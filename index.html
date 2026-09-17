@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Caderneta — controle de gastos</title>
+<meta name="description" content="Controle de gastos pessoais com as contas separadas por banco.">
+<meta name="theme-color" content="#16271f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icone.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icone-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ===================== primeiro acesso ===================== -->
+<section id="boas-vindas" class="boas-vindas" hidden>
+  <div class="boas-vindas__miolo">
+    <h1 class="boas-vindas__titulo">Caderneta</h1>
+    <p class="boas-vindas__texto">
+      Seu dinheiro não está num lugar só, então o controle também não deveria
+      estar. Comece dizendo quais são os seus bancos.
+    </p>
+
+    <form id="form-boas-vindas" class="formulario">
+      <div id="campos-bancos" class="bancos-iniciais"></div>
+
+      <button type="button" id="mais-banco" class="botao botao--texto">
+        Adicionar outro banco
+      </button>
+
+      <p class="ajuda">
+        O saldo de hoje é opcional. Se preencher, os saldos do app já nascem
+        batendo com o extrato do banco. Dá para mudar tudo depois em Ajustes.
+      </p>
+
+      <button type="submit" class="botao botao--principal botao--largo">
+        Criar minha caderneta
+      </button>
+    </form>
+
+    <p class="boas-vindas__rodape">
+      Já usa a Caderneta em outro aparelho?
+      <button type="button" id="restaurar-backup" class="botao botao--texto">
+        Restaurar um backup
+      </button>
+    </p>
+  </div>
+</section>
+
+<!-- ========================= aplicativo ======================== -->
+<div id="app" class="app" hidden>
+
+  <header class="barra-mes">
+    <button type="button" id="mes-anterior" class="barra-mes__seta" aria-label="Mês anterior">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <div class="barra-mes__centro">
+      <h1 id="rotulo-mes" class="barra-mes__titulo">—</h1>
+      <button type="button" id="ir-para-hoje" class="barra-mes__hoje" hidden>voltar para hoje</button>
+    </div>
+    <button type="button" id="mes-proximo" class="barra-mes__seta" aria-label="Próximo mês">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+    </button>
+  </header>
+
+  <main class="conteudo">
+
+    <!-- ---------------------- extrato ---------------------- -->
+    <section id="tela-extrato" class="tela" aria-labelledby="rotulo-mes">
+      <div id="painel-saldos" class="painel-saldos"></div>
+      <div id="filtro-contas" class="filtro"></div>
+      <div id="lista-extrato" class="extrato"></div>
+    </section>
+
+    <!-- ---------------------- resumo ----------------------- -->
+    <section id="tela-resumo" class="tela" hidden aria-label="Resumo do mês">
+      <div id="resumo-topo"></div>
+      <div id="resumo-categorias"></div>
+      <div id="resumo-contas"></div>
+      <div id="resumo-evolucao"></div>
+    </section>
+
+    <!-- ---------------------- ajustes ---------------------- -->
+    <section id="tela-ajustes" class="tela" hidden aria-label="Ajustes">
+      <div class="bloco">
+        <h2 class="bloco__titulo">Seus bancos</h2>
+        <div id="ajustes-contas" class="lista-ajuste"></div>
+        <button type="button" id="nova-conta" class="botao botao--secundario botao--largo">
+          Adicionar banco
+        </button>
+      </div>
+
+      <div class="bloco">
+        <h2 class="bloco__titulo">Categorias</h2>
+        <div id="ajustes-categorias" class="lista-ajuste"></div>
+        <form id="form-nova-categoria" class="linha-nova">
+          <input type="text" id="nome-categoria" placeholder="Nova categoria" maxlength="30" required>
+          <select id="tipo-categoria" aria-label="Tipo da categoria">
+            <option value="saida">Gasto</option>
+            <option value="entrada">Entrada</option>
+          </select>
+          <button type="submit" class="botao botao--secundario">Criar</button>
+        </form>
+      </div>
+
+      <div class="bloco">
+        <h2 class="bloco__titulo">Backup</h2>
+        <p class="ajuda">
+          Seus lançamentos ficam guardados neste navegador, neste aparelho.
+          Limpar os dados do navegador apaga tudo. Baixe um backup de vez em
+          quando e guarde no e-mail ou na nuvem.
+        </p>
+        <div id="estado-backup" class="aviso-backup" hidden></div>
+        <div class="botoes-backup">
+          <button type="button" id="baixar-backup" class="botao botao--principal">
+            Baixar backup
+          </button>
+          <button type="button" id="importar-backup" class="botao botao--secundario">
+            Restaurar backup
+          </button>
+          <button type="button" id="baixar-csv" class="botao botao--secundario">
+            Exportar para planilha
+          </button>
+        </div>
+        <input type="file" id="arquivo-backup" accept="application/json,.json" hidden>
+      </div>
+
+      <div class="bloco bloco--perigo">
+        <h2 class="bloco__titulo">Apagar tudo</h2>
+        <p class="ajuda">
+          Remove todos os bancos e lançamentos deste aparelho. Não tem como
+          desfazer.
+        </p>
+        <button type="button" id="apagar-tudo" class="botao botao--perigo">
+          Apagar todos os dados
+        </button>
+      </div>
+
+      <p class="versao">Caderneta · dados guardados só neste aparelho</p>
+    </section>
+
+  </main>
+
+  <button type="button" id="botao-lancar" class="lancar" aria-label="Novo lançamento">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    <span>Lançar</span>
+  </button>
+
+  <nav class="abas" aria-label="Seções">
+    <button type="button" class="aba aba--ativa" data-tela="extrato" aria-current="page">Extrato</button>
+    <button type="button" class="aba" data-tela="resumo">Resumo</button>
+    <button type="button" class="aba" data-tela="ajustes">Ajustes</button>
+  </nav>
+</div>
+
+<!-- ===================== lançamento ===================== -->
+<dialog id="dialogo-lancamento" class="dialogo">
+  <form id="form-lancamento" method="dialog" class="formulario">
+    <header class="dialogo__topo">
+      <button type="button" class="botao botao--texto" data-fechar>Cancelar</button>
+      <strong id="dialogo-titulo">Novo lançamento</strong>
+      <button type="submit" class="botao botao--texto botao--destaque">Salvar</button>
+    </header>
+
+    <input type="hidden" id="lancamento-id">
+
+    <div class="segmentado" role="group" aria-label="Tipo do lançamento">
+      <button type="button" class="segmento segmento--ativo" data-tipo="saida">Gasto</button>
+      <button type="button" class="segmento" data-tipo="entrada">Entrada</button>
+      <button type="button" class="segmento" data-tipo="transferencia">Entre bancos</button>
+    </div>
+
+    <label class="campo-valor">
+      <span class="campo-valor__moeda">R$</span>
+      <input type="text" id="lancamento-valor" inputmode="decimal" autocomplete="off"
+             placeholder="0,00" aria-label="Valor" required>
+    </label>
+
+    <div class="campo">
+      <label for="lancamento-data">Data</label>
+      <input type="date" id="lancamento-data" required>
+    </div>
+
+    <div class="campo">
+      <label for="lancamento-conta" id="rotulo-conta">Banco</label>
+      <select id="lancamento-conta" required></select>
+    </div>
+
+    <div class="campo" id="campo-destino" hidden>
+      <label for="lancamento-destino">Para qual banco</label>
+      <select id="lancamento-destino"></select>
+    </div>
+
+    <div class="campo" id="campo-categoria">
+      <label for="lancamento-categoria">Categoria</label>
+      <select id="lancamento-categoria"></select>
+    </div>
+
+    <div class="campo">
+      <label for="lancamento-descricao">Descrição <span class="opcional">opcional</span></label>
+      <input type="text" id="lancamento-descricao" maxlength="60" autocomplete="off"
+             placeholder="Ex.: feira da semana">
+    </div>
+
+    <button type="button" id="excluir-lancamento" class="botao botao--perigo botao--largo" hidden>
+      Excluir lançamento
+    </button>
+  </form>
+</dialog>
+
+<!-- ======================= conta ======================== -->
+<dialog id="dialogo-conta" class="dialogo">
+  <form id="form-conta" method="dialog" class="formulario">
+    <header class="dialogo__topo">
+      <button type="button" class="botao botao--texto" data-fechar>Cancelar</button>
+      <strong id="dialogo-conta-titulo">Banco</strong>
+      <button type="submit" class="botao botao--texto botao--destaque">Salvar</button>
+    </header>
+
+    <input type="hidden" id="conta-id">
+
+    <div class="campo">
+      <label for="conta-nome">Nome do banco</label>
+      <input type="text" id="conta-nome" maxlength="28" required autocomplete="off">
+    </div>
+
+    <div class="campo">
+      <label for="conta-saldo">Saldo inicial</label>
+      <input type="text" id="conta-saldo" inputmode="decimal" placeholder="0,00" autocomplete="off">
+      <p class="ajuda">
+        Quanto havia nesse banco quando você começou a usar a Caderneta.
+      </p>
+    </div>
+
+    <div class="campo">
+      <span class="campo__rotulo">Cor</span>
+      <div id="cores-conta" class="cores" role="radiogroup" aria-label="Cor do banco"></div>
+    </div>
+
+    <button type="button" id="excluir-conta" class="botao botao--perigo botao--largo" hidden>
+      Excluir banco
+    </button>
+  </form>
+</dialog>
+
+<div id="recado" class="recado" role="status" aria-live="polite" hidden></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

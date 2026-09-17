@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "caderneta",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["ferramentas/servidor.js"],
+      "port": 4173
+    }
+  ]
+}

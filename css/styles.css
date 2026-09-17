@@ -1,0 +1,747 @@
+/* =========================================================================
+   Caderneta — sistema visual.
+
+   Princípio herdado do app de Feriados: o "chrome" (topo, abas, fundos) é
+   tinta e neutro; cor saturada aparece só quando significa alguma coisa.
+   Aqui significam duas coisas, que nunca se misturam:
+
+     verde / vermelho  ->  direção do dinheiro (entrou / saiu)
+     azul, roxo, âmbar…->  identidade do banco
+
+   Desenhado primeiro para o celular: uma coluna, alvos de toque grandes,
+   nada essencial escondido atrás de hover.
+   ========================================================================= */
+
+:root {
+  --tinta: #16271f;
+  --tinta-2: #23392f;
+  --tinta-3: #3b5449;
+
+  --texto: #1b241f;
+  --texto-suave: #4e5a53;
+  --texto-fraco: #626e67;   /* 4.6:1 sobre o canvas — AA em 12-13px */
+
+  --canvas: #eceee8;
+  --superficie: #ffffff;
+  --superficie-2: #f5f6f2;
+  --linha: #d8dcd4;
+  --linha-forte: #c3c9be;
+
+  --entrada: #0f6b41;
+  --entrada-bg: #d8efe3;
+  --saida: #a8321f;
+  --saida-bg: #f8e1dc;
+
+  --raio-g: 14px;
+  --raio: 10px;
+  --raio-p: 7px;
+
+  --fonte: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --altura-abas: 58px;
+  --rodape-seguro: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; }
+
+/* O `hidden` do HTML é como o app troca de tela. Qualquer `display` vindo de
+   uma classe (.tela, .boas-vindas…) ganha dele por especificidade e faz as
+   telas aparecerem empilhadas. Esta regra devolve a palavra final ao HTML. */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--canvas);
+  color: var(--texto);
+  font-family: var(--fonte);
+  font-size: 16px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+}
+
+h1, h2, h3 { margin: 0; letter-spacing: -0.02em; font-weight: 600; }
+p { margin: 0; }
+button { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--tinta);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ======================= primeiro acesso ============================== */
+
+.boas-vindas {
+  min-height: 100svh;
+  display: grid;
+  place-items: start center;
+  background: var(--tinta);
+  color: #eef2ee;
+  padding: 48px 20px calc(32px + var(--rodape-seguro));
+}
+
+.boas-vindas__miolo { width: 100%; max-width: 30rem; }
+
+.boas-vindas__titulo {
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  margin-bottom: 12px;
+}
+
+.boas-vindas__texto {
+  color: #b9c7bf;
+  max-width: 34ch;
+  margin-bottom: 32px;
+}
+
+.bancos-iniciais { display: grid; gap: 14px; margin-bottom: 8px; }
+
+.banco-inicial {
+  display: grid;
+  grid-template-columns: 4px 1fr 7.5rem;
+  gap: 12px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--raio);
+  padding: 12px 14px 12px 0;
+  overflow: hidden;
+}
+
+.banco-inicial__cor { align-self: stretch; border-radius: 0 3px 3px 0; }
+
+.boas-vindas input {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fff;
+  padding: 6px 0;
+  font-size: 1rem;
+  border-radius: 0;
+}
+
+.boas-vindas input::placeholder { color: rgba(255, 255, 255, 0.4); }
+.boas-vindas input:focus { outline: 0; border-bottom-color: #fff; }
+
+.boas-vindas .ajuda { color: #9fb1a7; margin: 20px 0 28px; }
+
+.boas-vindas__rodape {
+  margin-top: 28px;
+  color: #9fb1a7;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.boas-vindas .botao--texto { color: #cfe0d6; text-decoration: underline; }
+.boas-vindas .botao--principal { background: #fff; color: var(--tinta); }
+
+/* =========================== estrutura ================================ */
+
+.app {
+  min-height: 100svh;
+  padding-bottom: calc(var(--altura-abas) + var(--rodape-seguro) + 12px);
+}
+
+.conteudo { max-width: 46rem; margin: 0 auto; padding: 0 0 24px; }
+
+.tela { display: block; }
+
+/* ---------------------------- barra do mês ---------------------------- */
+
+.barra-mes {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 4px;
+  background: var(--tinta);
+  color: #fff;
+  padding: 10px 8px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+}
+
+.barra-mes__centro { text-align: center; min-width: 0; }
+
+.barra-mes__titulo {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barra-mes__hoje {
+  background: none;
+  border: 0;
+  color: #a9c0b4;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.barra-mes__seta {
+  height: 44px;
+  width: 44px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  color: #d6e2db;
+  cursor: pointer;
+  border-radius: var(--raio-p);
+}
+
+.barra-mes__seta:active { background: rgba(255, 255, 255, 0.12); }
+.barra-mes__seta svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ========================= painel de saldos =========================== */
+
+.painel-saldos {
+  background: var(--superficie);
+  border-bottom: 1px solid var(--linha);
+  padding: 20px 16px 16px;
+}
+
+.painel-saldos__rotulo {
+  font-size: 0.8125rem;
+  color: var(--texto-fraco);
+  margin-bottom: 2px;
+}
+
+.painel-saldos__total {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.painel-saldos__total--negativo { color: var(--saida); }
+
+/* A faixa é o elemento memorável da tela: mostra, em largura, quanto do seu
+   dinheiro está em cada banco. É informação, não enfeite. */
+.faixa {
+  display: flex;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 16px 0 18px;
+  background: var(--superficie-2);
+}
+
+.faixa__parte { min-width: 3px; transition: flex-grow 0.3s ease; }
+
+.saldos-contas { display: grid; gap: 2px; }
+
+.saldo-conta {
+  display: grid;
+  grid-template-columns: 3px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 0;
+  border: 0;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--raio-p);
+}
+
+.saldo-conta + .saldo-conta { border-top: 1px solid var(--superficie-2); }
+.saldo-conta__spine { align-self: stretch; border-radius: 999px; min-height: 22px; }
+.saldo-conta__nome { font-weight: 500; }
+.saldo-conta__valor { font-weight: 600; font-size: 1.0625rem; }
+.saldo-conta__valor--negativo { color: var(--saida); }
+
+.mes-resumo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  margin-top: 18px;
+  background: var(--linha);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  overflow: hidden;
+}
+
+.mes-resumo__item { background: var(--superficie); padding: 10px 12px; }
+.mes-resumo__rotulo { font-size: 0.75rem; color: var(--texto-fraco); }
+.mes-resumo__valor { font-weight: 600; font-size: 1.0625rem; }
+.mes-resumo__valor--entrada { color: var(--entrada); }
+.mes-resumo__valor--saida { color: var(--saida); }
+
+/* ============================= filtro ================================= */
+
+.filtro {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 16px;
+  scrollbar-width: none;
+}
+
+.filtro::-webkit-scrollbar { display: none; }
+
+.pilula {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--superficie);
+  border: 1px solid var(--linha-forte);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pilula--ativa { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+.pilula__ponto { width: 7px; height: 7px; border-radius: 999px; }
+
+/* ============================= extrato ================================ */
+
+.extrato { padding: 0 0 8px; }
+
+.dia { margin-bottom: 4px; }
+
+.dia__cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 16px 6px;
+  font-size: 0.8125rem;
+  color: var(--texto-fraco);
+}
+
+.dia__total { font-variant-numeric: tabular-nums; }
+
+.dia__itens { background: var(--superficie); border-block: 1px solid var(--linha); }
+
+.item {
+  display: grid;
+  grid-template-columns: 3px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  background: none;
+  text-align: left;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.item + .item { border-top: 1px solid var(--superficie-2); }
+.item:active { background: var(--superficie-2); }
+.item__spine { align-self: stretch; min-height: 30px; border-radius: 999px; }
+
+/* Os dois textos (o que foi e onde foi) empilham. Como spans soltos eles
+   correriam na mesma linha e o valor entraria por cima. */
+.item__corpo { min-width: 0; display: grid; gap: 1px; }
+
+.item__titulo {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item__detalhe {
+  font-size: 0.8125rem;
+  color: var(--texto-fraco);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item__valor { font-weight: 600; white-space: nowrap; }
+.item__valor--entrada { color: var(--entrada); }
+.item__valor--saida { color: var(--texto); }
+.item__valor--transferencia { color: var(--texto-fraco); font-weight: 500; }
+
+/* ============================== vazio ================================= */
+
+.vazio {
+  text-align: center;
+  padding: 48px 28px;
+  color: var(--texto-suave);
+}
+
+.vazio__titulo { font-weight: 600; color: var(--texto); margin-bottom: 6px; }
+.vazio__texto { font-size: 0.9375rem; max-width: 28ch; margin: 0 auto; }
+
+/* ============================== resumo ================================ */
+
+.bloco {
+  background: var(--superficie);
+  border-block: 1px solid var(--linha);
+  padding: 18px 16px;
+  margin-bottom: 14px;
+}
+
+.bloco__titulo { font-size: 0.9375rem; margin-bottom: 14px; }
+
+.barra-categoria { display: grid; gap: 5px; padding: 9px 0; }
+.barra-categoria + .barra-categoria { border-top: 1px solid var(--superficie-2); }
+
+.barra-categoria__topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 0.9375rem;
+}
+
+.barra-categoria__nome { font-weight: 500; }
+.barra-categoria__valor { font-weight: 600; white-space: nowrap; }
+.barra-categoria__fatia { font-size: 0.75rem; color: var(--texto-fraco); margin-left: 6px; font-weight: 400; }
+
+.barra-categoria__trilho { height: 6px; background: var(--superficie-2); border-radius: 999px; overflow: hidden; }
+.barra-categoria__preenchimento { height: 100%; background: var(--tinta-3); border-radius: 999px; }
+
+.evolucao {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+  align-items: end;
+  height: 132px;
+  margin-top: 6px;
+}
+
+.evolucao__mes { display: grid; grid-template-rows: 1fr auto; gap: 6px; height: 100%; text-align: center; }
+.evolucao__colunas { display: flex; gap: 3px; align-items: flex-end; height: 100%; justify-content: center; }
+.evolucao__coluna { width: 12px; border-radius: 3px 3px 0 0; min-height: 2px; }
+.evolucao__coluna--entrada { background: var(--entrada); }
+.evolucao__coluna--saida { background: var(--saida); }
+.evolucao__rotulo { font-size: 0.6875rem; color: var(--texto-fraco); }
+.evolucao__rotulo--atual { color: var(--texto); font-weight: 600; }
+
+.legenda { display: flex; gap: 16px; font-size: 0.75rem; color: var(--texto-fraco); margin-top: 12px; }
+.legenda__item { display: flex; align-items: center; gap: 6px; }
+.legenda__marca { width: 10px; height: 10px; border-radius: 3px; }
+
+/* ============================= ajustes ================================ */
+
+.lista-ajuste { display: grid; gap: 2px; margin-bottom: 14px; }
+
+.linha-ajuste {
+  display: grid;
+  grid-template-columns: 3px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  background: none;
+  text-align: left;
+  padding: 12px 0;
+  cursor: pointer;
+}
+
+.linha-ajuste + .linha-ajuste { border-top: 1px solid var(--superficie-2); }
+.linha-ajuste__spine { align-self: stretch; min-height: 24px; border-radius: 999px; }
+.linha-ajuste__corpo { min-width: 0; display: grid; gap: 1px; }
+.linha-ajuste__nome { font-weight: 500; }
+.linha-ajuste__meta { font-size: 0.8125rem; color: var(--texto-fraco); }
+.linha-ajuste__acao { color: var(--texto-fraco); font-size: 0.8125rem; }
+
+.linha-nova { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; }
+
+.linha-nova input, .linha-nova select {
+  border: 1px solid var(--linha-forte);
+  border-radius: var(--raio-p);
+  padding: 9px 10px;
+  font-size: 0.9375rem;
+  background: var(--superficie);
+  min-width: 0;
+}
+
+.botoes-backup { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+
+.aviso-backup {
+  background: #fdf3d8;
+  border: 1px solid #e8d3a0;
+  color: #6b4e08;
+  border-radius: var(--raio-p);
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  margin-top: 12px;
+}
+
+.bloco--perigo .bloco__titulo { color: var(--saida); }
+
+.versao {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--texto-fraco);
+  padding: 8px 16px 24px;
+}
+
+.ajuda { font-size: 0.8125rem; color: var(--texto-suave); line-height: 1.5; }
+
+/* =========================== botões =================================== */
+
+.botao {
+  border: 0;
+  border-radius: var(--raio);
+  padding: 11px 16px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: none;
+}
+
+.botao--principal { background: var(--tinta); color: #fff; }
+.botao--principal:active { background: var(--tinta-2); }
+.botao--secundario { background: var(--superficie-2); color: var(--texto); border: 1px solid var(--linha-forte); }
+.botao--perigo { background: var(--saida-bg); color: var(--saida); }
+.botao--texto { padding: 8px 4px; color: var(--texto-suave); }
+.botao--destaque { color: var(--tinta); font-weight: 600; }
+.botao--largo { width: 100%; }
+.botao[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+.lancar {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--altura-abas) + var(--rodape-seguro) + 16px);
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--tinta);
+  color: #fff;
+  border: 0;
+  border-radius: 999px;
+  padding: 13px 20px 13px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 18px -6px rgba(10, 30, 20, 0.5);
+}
+
+.lancar:active { background: var(--tinta-2); }
+.lancar svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+
+/* ============================= abas =================================== */
+
+.abas {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--superficie);
+  border-top: 1px solid var(--linha);
+  padding-bottom: var(--rodape-seguro);
+}
+
+.aba {
+  border: 0;
+  background: none;
+  height: var(--altura-abas);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--texto-fraco);
+  cursor: pointer;
+  position: relative;
+}
+
+.aba--ativa { color: var(--texto); }
+
+.aba--ativa::after {
+  content: "";
+  position: absolute;
+  inset: 0 22% auto;
+  top: 0;
+  height: 2px;
+  background: var(--tinta);
+  border-radius: 0 0 2px 2px;
+}
+
+/* ============================ diálogos ================================ */
+
+.dialogo {
+  border: 0;
+  padding: 0;
+  background: var(--canvas);
+  color: var(--texto);
+  width: 100%;
+  max-width: 34rem;
+  border-radius: var(--raio-g) var(--raio-g) 0 0;
+  margin: auto auto 0;
+  max-height: 92svh;
+}
+
+.dialogo::backdrop { background: rgba(12, 24, 18, 0.45); }
+
+.dialogo .formulario {
+  display: grid;
+  /* minmax(0, 1fr) e não 1fr: uma coluna "auto" cresce até caber o item mais
+     largo (aqui, os três botões de tipo), e o formulário inteiro vaza para
+     fora da tela do celular. Com minmax(0, …) a coluna pode encolher. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  padding: 0 16px calc(24px + var(--rodape-seguro));
+}
+
+.dialogo__topo {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  background: var(--canvas);
+  padding: 10px 0;
+  margin: 0 -16px 4px;
+  padding-inline: 12px;
+  border-bottom: 1px solid var(--linha);
+}
+
+.dialogo__topo strong { text-align: center; font-size: 0.9375rem; }
+.dialogo__topo .botao--texto { justify-self: start; }
+.dialogo__topo .botao--destaque { justify-self: end; }
+
+.segmentado {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  background: var(--superficie-2);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  padding: 3px;
+}
+
+.segmento {
+  border: 0;
+  background: none;
+  border-radius: var(--raio-p);
+  padding: 9px 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--texto-suave);
+  cursor: pointer;
+  min-width: 0;
+}
+
+.segmento--ativo { background: var(--superficie); color: var(--texto); font-weight: 600; box-shadow: 0 1px 2px rgba(20, 35, 28, 0.12); }
+
+.campo-valor {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  background: var(--superficie);
+  border: 1px solid var(--linha-forte);
+  border-radius: var(--raio);
+  padding: 14px 16px;
+}
+
+.campo-valor__moeda { color: var(--texto-fraco); font-size: 1.125rem; font-weight: 500; }
+
+.campo-valor input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  padding: 0;
+  color: inherit;
+}
+
+.campo-valor input:focus { outline: 0; }
+.campo-valor:focus-within { border-color: var(--tinta); }
+
+.campo { display: grid; gap: 6px; }
+.campo label, .campo__rotulo { font-size: 0.8125rem; color: var(--texto-suave); font-weight: 500; }
+.opcional { color: var(--texto-fraco); font-weight: 400; }
+
+.campo input, .campo select {
+  width: 100%;
+  border: 1px solid var(--linha-forte);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  padding: 12px;
+  font-size: 1rem;
+  color: inherit;
+  min-height: 46px;
+}
+
+.campo input:focus, .campo select:focus { outline: 0; border-color: var(--tinta); }
+
+.cores { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.cor {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+}
+
+.cor--escolhida { border-color: var(--texto); box-shadow: inset 0 0 0 3px var(--superficie); }
+
+/* ============================= recado ================================= */
+
+.recado {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--altura-abas) + var(--rodape-seguro) + 78px);
+  transform: translateX(-50%);
+  z-index: 60;
+  background: var(--tinta);
+  color: #fff;
+  padding: 11px 18px;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+  box-shadow: 0 8px 20px -8px rgba(10, 30, 20, 0.6);
+}
+
+/* =========================== telas largas ============================= */
+
+@media (min-width: 48rem) {
+  body { font-size: 15px; }
+
+  .barra-mes { padding-block: 14px; }
+  .barra-mes__titulo { font-size: 1.25rem; }
+
+  .conteudo { padding-inline: 20px; }
+
+  .painel-saldos,
+  .bloco {
+    border: 1px solid var(--linha);
+    border-radius: var(--raio-g);
+    margin-top: 20px;
+  }
+
+  .dia__itens { border: 1px solid var(--linha); border-radius: var(--raio); }
+  .extrato { padding-inline: 0; }
+  .dia__cabecalho { padding-inline: 4px; }
+  .filtro { padding-inline: 0; }
+
+  .painel-saldos__total { font-size: 3rem; }
+
+  .dialogo { border-radius: var(--raio-g); margin: auto; }
+
+  .lancar { bottom: 28px; right: 28px; }
+  .recado { bottom: 100px; }
+}

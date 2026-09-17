@@ -1,0 +1,12 @@
+{
+  "name": "caderneta",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Controle de gastos pessoais com contas separadas por banco.",
+  "scripts": {
+    "dev": "node ferramentas/servidor.js",
+    "test": "node --test tests/*.test.js",
+    "icones": "node ferramentas/gerar-icones.js"
+  }
+}
