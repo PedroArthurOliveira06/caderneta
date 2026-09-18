@@ -20,7 +20,7 @@ export const SUPABASE = {
 
   // Painel do Supabase -> Project Settings -> API Keys -> chave "anon public".
   // É um texto longo, começando com "eyJ".
-  chaveAnon: '',
+  chaveAnon: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiZWx5dmNzYmlsc2dwemxlY3V3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MjgyMTEsImV4cCI6MjEwNTMwNDIxMX0.jF_tCUglTBDyL6k63y_-QqXMaoLT9q_Vzjcc4YG61QE',
 };
 
 export function temServidor() {

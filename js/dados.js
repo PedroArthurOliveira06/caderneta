@@ -10,6 +10,9 @@
    parte do código fala com localStorage direto.
    ========================================================================= */
 
+import * as servidor from './servidor.js';
+import * as mapear from './mapear.js';
+
 const CHAVE = 'caderneta.v1';
 const VERSAO = 1;
 
@@ -44,8 +47,19 @@ const CATEGORIAS_INICIAIS = [
   { nome: 'Outras entradas', tipo: 'entrada' },
 ];
 
+/**
+ * Identificador de registro. UUID de verdade porque é o formato que o banco
+ * espera — e porque ele nasce AQUI, no aparelho, e não no servidor. É isso
+ * que deixa o app gravar offline e mandar depois: a linha já tem o nome
+ * definitivo dela, então reenviar atualiza a mesma linha em vez de duplicar.
+ */
 function id() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  if (globalThis.crypto && crypto.randomUUID) return crypto.randomUUID();
+  // Navegador antigo ou página sem HTTPS: sorteio manual no mesmo formato.
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
 }
 
 function estadoVazio() {
@@ -86,9 +100,35 @@ export function categoriasDe(tipo) {
 
 /* ---------------------------- persistência ----------------------------- */
 
+/**
+ * O app funciona de dois jeitos, com a MESMA interface para o resto do
+ * código — nada fora deste arquivo sabe em qual deles está:
+ *
+ *   'local'    -> só este aparelho, sem conta e sem internet (como nasceu)
+ *   'servidor' -> conta própria no Supabase, sincronizando entre aparelhos
+ *
+ * No modo servidor a gravação é otimista: muda na tela na hora, entra numa
+ * fila e sobe depois. A fila fica guardada no navegador, então um gasto
+ * lançado no elevador sem sinal não se perde — sobe quando a rede volta.
+ *
+ * Reenviar é seguro porque cada registro nasce com o id gerado aqui e o
+ * envio é "upsert": mandar duas vezes atualiza a mesma linha em vez de
+ * criar duas.
+ */
+let modo = 'local';
+let usuarioId = null;
+let chaveDados = CHAVE;
+let chaveFila = null;
+let fila = [];
+let enviando = false;
+let aoFalharEnvio = null;
+
+export function definirAvisoDeFalha(fn) { aoFalharEnvio = fn; }
+export function modoAtual() { return modo; }
+
 export function carregar() {
   try {
-    const bruto = localStorage.getItem(CHAVE);
+    const bruto = localStorage.getItem(chaveDados);
     if (bruto) estado = migrar(JSON.parse(bruto));
   } catch (erro) {
     // Dado corrompido não pode derrubar o app inteiro: mantém o que já há em
@@ -109,16 +149,149 @@ function migrar(dados) {
   return pronto;
 }
 
-function mutar(fn) {
-  fn(estado);
+function gravarLocal(chave, valor) {
   try {
-    localStorage.setItem(CHAVE, JSON.stringify(estado));
+    localStorage.setItem(chave, JSON.stringify(valor));
+    return true;
   } catch (erro) {
     console.error('Não foi possível salvar:', erro);
+    return false;
+  }
+}
+
+/**
+ * @param {function}       fn     muda o estado em memória
+ * @param {array|function} envios operações para o servidor. Pode ser uma
+ *   função, para os casos em que o envio depende do que `fn` acabou de
+ *   criar — ela só é chamada depois da mudança, e só se houver conta.
+ */
+function mutar(fn, envios) {
+  fn(estado);
+
+  if (!gravarLocal(chaveDados, estado)) {
     alert('Não deu para salvar neste navegador. Exporte um backup pelos Ajustes antes de fechar a página.');
   }
+
+  if (modo === 'servidor' && envios) {
+    const lista = typeof envios === 'function' ? envios() : envios;
+    if (lista && lista.length) {
+      fila.push(...lista);
+      gravarLocal(chaveFila, fila);
+      escoarFila();
+    }
+  }
+
   ouvintes.forEach((ouvinte) => ouvinte(estado));
 }
+
+/* ------------------------- fila de envio ------------------------------- */
+
+/**
+ * Sobe a fila em ordem, uma operação por vez. Sem rede, para e tenta de
+ * novo depois — nada se perde. Com erro do servidor (um dado que ele
+ * recusa), descarta a operação e recarrega do servidor: insistir para
+ * sempre numa operação inválida travaria todas as outras atrás dela.
+ */
+async function escoarFila() {
+  if (enviando || modo !== 'servidor' || !fila.length) return;
+  enviando = true;
+
+  try {
+    while (fila.length) {
+      const operacao = fila[0];
+      try {
+        if (operacao.op === 'upsert') await servidor.upsert(operacao.tabela, operacao.linhas);
+        else await servidor.remover(operacao.tabela, operacao.filtro);
+        fila.shift();
+        gravarLocal(chaveFila, fila);
+      } catch (erro) {
+        if (erro.semRede) break; // volta quando a internet voltar
+
+        fila.shift();
+        gravarLocal(chaveFila, fila);
+        if (aoFalharEnvio) aoFalharEnvio(erro);
+        await sincronizar().catch(() => {});
+      }
+    }
+  } finally {
+    enviando = false;
+  }
+}
+
+/** Chamado quando o aparelho reencontra a internet. */
+export function tentarEscoar() {
+  escoarFila();
+}
+
+export function enviosPendentes() {
+  return fila.length;
+}
+
+/* --------------------------- modo servidor ----------------------------- */
+
+export function entrarModoServidor(usuario) {
+  modo = 'servidor';
+  usuarioId = usuario.id;
+  chaveDados = `${CHAVE}.${usuario.id}`;
+  chaveFila = `${CHAVE}.fila.${usuario.id}`;
+
+  estado = estadoVazio();
+  carregar(); // mostra logo o que já foi visto neste aparelho
+
+  try {
+    fila = JSON.parse(localStorage.getItem(chaveFila) || '[]');
+  } catch {
+    fila = [];
+  }
+  return estado;
+}
+
+export function sairModoServidor() {
+  modo = 'local';
+  usuarioId = null;
+  chaveDados = CHAVE;
+  chaveFila = null;
+  fila = [];
+  estado = estadoVazio();
+}
+
+/** Troca o que está na tela pelo que está no servidor. */
+export async function sincronizar() {
+  if (modo !== 'servidor') return estado;
+
+  const [contas, categorias, lancamentos] = await Promise.all([
+    servidor.listar('contas', 'select=*&order=ordem'),
+    servidor.listar('categorias', 'select=*&order=nome'),
+    servidor.listar('lancamentos', 'select=*&order=data.desc'),
+  ]);
+
+  const doServidor = mapear.estadoParaApp({ contas, categorias, lancamentos });
+
+  estado = {
+    ...estadoVazio(),
+    ...doServidor,
+    // Conta nenhuma no servidor significa conta nova: o app leva a pessoa
+    // para a tela de primeiro acesso.
+    configurado: doServidor.contas.length > 0,
+  };
+
+  gravarLocal(chaveDados, estado);
+  ouvintes.forEach((ouvinte) => ouvinte(estado));
+  escoarFila();
+  return estado;
+}
+
+/* Atalhos para montar as operações de envio. */
+const enviarContas = (contas) =>
+  [{ op: 'upsert', tabela: 'contas', linhas: contas.map((c) => mapear.contaParaBanco(c, usuarioId)) }];
+
+const enviarCategorias = (categorias) =>
+  [{ op: 'upsert', tabela: 'categorias', linhas: categorias.map((c) => mapear.categoriaParaBanco(c, usuarioId)) }];
+
+const enviarLancamentos = (lista) =>
+  [{ op: 'upsert', tabela: 'lancamentos', linhas: lista.map((l) => mapear.lancamentoParaBanco(l, usuarioId)) }];
+
+const apagar = (tabela, filtro) => [{ op: 'delete', tabela, filtro }];
 
 /* ------------------------------- contas -------------------------------- */
 
@@ -144,35 +317,45 @@ export function ehCartao(conta) {
 }
 
 export function definirContasIniciais(lista) {
+  const contas = lista.map((c, i) => ({
+    id: id(),
+    nome: c.nome,
+    cor: c.cor || CORES_CONTA[i % CORES_CONTA.length].id,
+    tipo: c.tipo === 'cartao' ? 'cartao' : 'conta',
+    saldoInicial: c.saldoInicial || 0,
+    ordem: i,
+  }));
+
   mutar((e) => {
-    e.contas = lista.map((c, i) => ({
-      id: id(),
-      nome: c.nome,
-      cor: c.cor || CORES_CONTA[i % CORES_CONTA.length].id,
-      tipo: c.tipo === 'cartao' ? 'cartao' : 'conta',
-      saldoInicial: c.saldoInicial || 0,
-      ordem: i,
-    }));
+    e.contas = contas;
     e.configurado = true;
-  });
+  }, [
+    ...enviarContas(contas),
+    // As categorias iniciais existem só em memória até aqui; no primeiro
+    // acesso com conta, elas precisam nascer no servidor também.
+    ...enviarCategorias(estado.categorias),
+  ]);
 }
 
 export function salvarConta(dados) {
+  let salva;
   mutar((e) => {
     if (dados.id) {
       const alvo = e.contas.find((c) => c.id === dados.id);
       if (alvo) Object.assign(alvo, dados);
+      salva = alvo;
     } else {
-      e.contas.push({
+      salva = {
         id: id(),
         nome: dados.nome,
         cor: dados.cor || CORES_CONTA[e.contas.length % CORES_CONTA.length].id,
         tipo: dados.tipo === 'cartao' ? 'cartao' : 'conta',
         saldoInicial: dados.saldoInicial || 0,
         ordem: e.contas.length,
-      });
+      };
+      e.contas.push(salva);
     }
-  });
+  }, () => enviarContas([salva]));
 }
 
 /** Só remove conta sem lançamento — apagar em cascata perderia histórico. */
@@ -184,21 +367,25 @@ export function podeRemoverConta(contaId) {
 
 export function removerConta(contaId) {
   if (!podeRemoverConta(contaId)) return false;
-  mutar((e) => { e.contas = e.contas.filter((c) => c.id !== contaId); });
+  mutar((e) => { e.contas = e.contas.filter((c) => c.id !== contaId); },
+    apagar('contas', `id=eq.${contaId}`));
   return true;
 }
 
 /* ----------------------------- categorias ------------------------------ */
 
 export function salvarCategoria(dados) {
+  let salva;
   mutar((e) => {
     if (dados.id) {
       const alvo = e.categorias.find((c) => c.id === dados.id);
       if (alvo) Object.assign(alvo, dados);
+      salva = alvo;
     } else {
-      e.categorias.push({ id: id(), nome: dados.nome, tipo: dados.tipo || 'saida' });
+      salva = { id: id(), nome: dados.nome, tipo: dados.tipo || 'saida' };
+      e.categorias.push(salva);
     }
-  });
+  }, () => enviarCategorias([salva]));
 }
 
 export function podeRemoverCategoria(categoriaId) {
@@ -207,7 +394,8 @@ export function podeRemoverCategoria(categoriaId) {
 
 export function removerCategoria(categoriaId) {
   if (!podeRemoverCategoria(categoriaId)) return false;
-  mutar((e) => { e.categorias = e.categorias.filter((c) => c.id !== categoriaId); });
+  mutar((e) => { e.categorias = e.categorias.filter((c) => c.id !== categoriaId); },
+    apagar('categorias', `id=eq.${categoriaId}`));
   return true;
 }
 
@@ -219,6 +407,7 @@ export function removerCategoria(categoriaId) {
  * transferência usa contaId (de onde sai) + contaDestinoId (onde entra)
  */
 export function salvarLancamento(dados) {
+  let salvo;
   mutar((e) => {
     if (dados.id) {
       const alvo = e.lancamentos.find((l) => l.id === dados.id);
@@ -226,15 +415,17 @@ export function salvarLancamento(dados) {
         valor: Math.abs(dados.valor || 0),
         editadoEm: new Date().toISOString(),
       });
+      salvo = alvo;
     } else {
-      e.lancamentos.push({
+      salvo = {
         id: id(),
         criadoEm: new Date().toISOString(),
         ...dados,
         valor: Math.abs(dados.valor || 0),
-      });
+      };
+      e.lancamentos.push(salvo);
     }
-  });
+  }, () => enviarLancamentos([salvo]));
 }
 
 /**
@@ -244,29 +435,29 @@ export function salvarLancamento(dados) {
  */
 export function salvarParcelas(lista) {
   const grupo = id();
-  mutar((e) => {
-    lista.forEach((dados, i) => {
-      e.lancamentos.push({
-        id: id(),
-        criadoEm: new Date().toISOString(),
-        ...dados,
-        valor: Math.abs(dados.valor || 0),
-        grupo,
-        parcela: i + 1,
-        parcelasTotal: lista.length,
-      });
-    });
-  });
+  const parcelas = lista.map((dados, i) => ({
+    id: id(),
+    criadoEm: new Date().toISOString(),
+    ...dados,
+    valor: Math.abs(dados.valor || 0),
+    grupo,
+    parcela: i + 1,
+    parcelasTotal: lista.length,
+  }));
+
+  mutar((e) => { e.lancamentos.push(...parcelas); }, enviarLancamentos(parcelas));
   return grupo;
 }
 
 export function removerLancamento(lancamentoId) {
-  mutar((e) => { e.lancamentos = e.lancamentos.filter((l) => l.id !== lancamentoId); });
+  mutar((e) => { e.lancamentos = e.lancamentos.filter((l) => l.id !== lancamentoId); },
+    apagar('lancamentos', `id=eq.${lancamentoId}`));
 }
 
 /** Apaga a compra parcelada inteira, incluindo as parcelas futuras. */
 export function removerGrupo(grupo) {
-  mutar((e) => { e.lancamentos = e.lancamentos.filter((l) => l.grupo !== grupo); });
+  mutar((e) => { e.lancamentos = e.lancamentos.filter((l) => l.grupo !== grupo); },
+    apagar('lancamentos', `grupo=eq.${grupo}`));
 }
 
 export function parcelasDoGrupo(grupo) {
@@ -299,17 +490,32 @@ export function importarJSON(texto) {
   if (!dados || !Array.isArray(dados.contas) || !Array.isArray(dados.lancamentos)) {
     return { ok: false, erro: 'O arquivo não parece um backup da Caderneta.' };
   }
+  const pronto = mapear.renomearIds(migrar(dados), id);
+
   mutar((e) => {
-    const pronto = migrar(dados);
     e.versao = pronto.versao;
     e.configurado = true;
     e.contas = pronto.contas;
     e.categorias = pronto.categorias;
     e.lancamentos = pronto.lancamentos;
-  });
+  }, [
+    // Restaurar é substituir: o que havia no servidor sai antes de o
+    // arquivo entrar, senão sobrariam lançamentos antigos misturados.
+    ...apagar('lancamentos', `usuario=eq.${usuarioId}`),
+    ...apagar('contas', `usuario=eq.${usuarioId}`),
+    ...apagar('categorias', `usuario=eq.${usuarioId}`),
+    ...enviarCategorias(pronto.categorias),
+    ...enviarContas(pronto.contas),
+    ...enviarLancamentos(pronto.lancamentos),
+  ]);
   return { ok: true, total: estado.lancamentos.length };
 }
 
+
 export function apagarTudo() {
-  mutar((e) => Object.assign(e, estadoVazio()));
+  mutar((e) => Object.assign(e, estadoVazio()), [
+    ...apagar('lancamentos', `usuario=eq.${usuarioId}`),
+    ...apagar('contas', `usuario=eq.${usuarioId}`),
+    ...apagar('categorias', `usuario=eq.${usuarioId}`),
+  ]);
 }
