@@ -224,6 +224,7 @@ function pintar() {
   $('tela-resumo').hidden = visao.tela !== 'resumo';
   $('tela-ajustes').hidden = visao.tela !== 'ajustes';
   $('botao-lancar').hidden = visao.tela === 'ajustes';
+  $('dica-rapida').hidden = jaAprendeu() || Boolean($('texto-rapido').value.trim());
   mostrarEstadoDoEnvio();
 
   const contexto = {
@@ -299,12 +300,18 @@ function contaPadrao() {
   return (banco || contas[0] || {}).id || null;
 }
 
+/* A dica de escrever "ontem" ensina uma vez. Depois de algumas dezenas de
+   lançamentos ela virou só duas linhas entre você e o extrato. */
+function jaAprendeu() {
+  return dados.obter().lancamentos.length >= 20;
+}
+
 function ligarLancamentoRapido() {
   const campo = $('texto-rapido');
   const leitura = $('leitura-rapida');
 
   campo.addEventListener('input', () => {
-    $('dica-rapida').hidden = Boolean(campo.value.trim());
+    $('dica-rapida').hidden = Boolean(campo.value.trim()) || jaAprendeu();
     if (!campo.value.trim()) {
       leitura.hidden = true;
       return;
@@ -338,7 +345,7 @@ function ligarLancamentoRapido() {
 
     campo.value = '';
     leitura.hidden = true;
-    $('dica-rapida').hidden = false;
+    $('dica-rapida').hidden = jaAprendeu();
     recado(`${lido.tipo === 'entrada' ? 'Entrada' : 'Gasto'} de ${fmt.moeda(lido.valor)} lançado.`);
   });
 }

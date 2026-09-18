@@ -50,6 +50,13 @@
 
   --fonte: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
+  /* O que está escolhido precisa CONTRASTAR com o fundo, e no escuro isso
+     se inverte: tinta sobre canvas claro, claro sobre canvas escuro. Sem
+     este par, a pílula ativa no modo escuro parece afundada em vez de
+     escolhida. */
+  --selecionado-fundo: var(--tinta);
+  --selecionado-texto: #ffffff;
+
   --altura-abas: 58px;
   --rodape-seguro: env(safe-area-inset-bottom, 0px);
 }
@@ -91,6 +98,9 @@
     --saida: #ff8073;
     --saida-viva: #e85446;
     --saida-bg: #3a1714;
+
+    --selecionado-fundo: #e7eee9;
+    --selecionado-texto: #101713;
   }
 }
 
@@ -119,9 +129,66 @@
   --saida: #ff8073;
   --saida-viva: #e85446;
   --saida-bg: #3a1714;
+
+  --selecionado-fundo: #e7eee9;
+  --selecionado-texto: #101713;
 }
 
 * { box-sizing: border-box; }
+
+/* ===================== o que acontece ao tocar ========================
+   Um toque sem resposta PARECE lento mesmo sendo instantâneo: o dedo cobre
+   o alvo e a pessoa não sabe se pegou. Um afundamento de 3% e um clarão
+   resolvem isso em 90ms — rápido demais para virar espera, lento o bastante
+   para o olho perceber.
+
+   A propriedade touch-action com valor "manipulation" desliga a espera de
+   300ms que alguns navegadores guardam para ver se o toque vai virar um
+   duplo-toque de zoom. É atraso puro, e some de graça. */
+.botao,
+.pilula,
+.botao-data,
+.atalho,
+.segmento,
+.tecla,
+.aba,
+.item,
+.saldo-conta,
+.ladrilho,
+.linha-ajuste,
+.rapido__botao,
+.lancar,
+.barra-mes__seta,
+.cor {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.09s ease, background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.botao:active,
+.pilula:active,
+.botao-data:active,
+.atalho:active,
+.segmento:active,
+.tecla:active,
+.ladrilho:active,
+.rapido__botao:active,
+.lancar:active,
+.cor:active { transform: scale(0.97); }
+
+/* Linha de lista afunda menos: ela ocupa a largura toda, e 3% numa faixa
+   inteira vira sacudida em vez de resposta. */
+.item:active,
+.saldo-conta:active,
+.linha-ajuste:active { background: var(--superficie-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .botao, .pilula, .botao-data, .atalho, .segmento, .tecla,
+  .ladrilho, .rapido__botao, .lancar, .cor { transition: none; }
+  .botao:active, .pilula:active, .botao-data:active, .atalho:active,
+  .segmento:active, .tecla:active, .ladrilho:active,
+  .rapido__botao:active, .lancar:active, .cor:active { transform: none; }
+}
 
 /* O `hidden` do HTML é como o app troca de tela. Qualquer `display` vindo de
    uma classe (.tela, .boas-vindas…) ganha dele por especificidade e faz as
@@ -608,6 +675,50 @@ button { font: inherit; color: inherit; }
 .marca-natureza--frequente { border-color: var(--capa-azul); color: var(--capa-azul); }
 .marca-natureza--esporadico { border-color: var(--capa-ambar); color: #9a5c00; }
 
+/* Guardado e fatura eram dois blocos com título, lista e uma frase cada um —
+   e o efeito era que a tela inicial acabava antes do primeiro lançamento
+   aparecer. São dois números de apoio; merecem duas caixinhas, não meia
+   tela. */
+.ladrilhos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.ladrilho {
+  display: grid;
+  gap: 1px;
+  text-align: left;
+  background: var(--superficie-2);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  padding: 10px 12px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  min-width: 0;
+}
+
+.ladrilho__rotulo { font-size: 0.75rem; color: var(--texto-fraco); }
+.ladrilho__valor { font-size: 1.0625rem; font-weight: 600; }
+.ladrilho--deve .ladrilho__valor { color: var(--saida); }
+
+.ladrilho__conta {
+  font-size: 0.75rem;
+  color: var(--texto-fraco);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* O total com a caixinha é legenda do número grande, não frase solta. */
+.painel-saldos__legenda {
+  font-size: 0.8125rem;
+  color: var(--texto-suave);
+  margin-top: 2px;
+}
+
 .mes-resumo {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -637,22 +748,37 @@ button { font: inherit; color: inherit; }
 
 .filtro::-webkit-scrollbar { display: none; }
 
-.pilula {
+/* Pílula de filtro, atalho de gasto e botão de data eram três desenhos
+   parecidos com alturas, raios e pesos diferentes — pareciam de apps
+   distintos. Agora são o mesmo objeto com nomes diferentes. */
+.pilula,
+.atalho,
+.botao-data {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  height: 38px;
   background: var(--superficie);
   border: 1px solid var(--linha-forte);
   border-radius: 999px;
-  padding: 7px 14px;
+  padding: 0 15px;
   font-size: 0.875rem;
+  font-weight: 500;
+  color: inherit;
   cursor: pointer;
   white-space: nowrap;
 }
 
-.pilula--ativa { background: var(--tinta); border-color: var(--tinta); color: #fff; }
-.pilula__ponto { width: 7px; height: 7px; border-radius: 999px; }
+.pilula--ativa,
+.botao-data--ativo {
+  background: var(--selecionado-fundo);
+  border-color: var(--selecionado-fundo);
+  color: var(--selecionado-texto);
+}
+
+.pilula__ponto,
+.atalho__ponto { width: 7px; height: 7px; border-radius: 999px; }
 
 /* ========================== lançar escrevendo ========================= */
 
@@ -707,17 +833,6 @@ button { font: inherit; color: inherit; }
    "ontem" é trabalho demais para a resposta mais comum. */
 .atalhos-data { display: flex; gap: 8px; margin-top: 2px; }
 
-.botao-data {
-  border: 1px solid var(--linha-forte);
-  background: var(--superficie);
-  border-radius: 999px;
-  padding: 7px 14px;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.botao-data--ativo { border-color: var(--tinta); background: var(--tinta); color: #fff; }
 
 /* A lista é tocável, mas nada dizia isso. */
 .dica-extrato {
@@ -731,27 +846,20 @@ button { font: inherit; color: inherit; }
 
 .atalhos { display: flex; flex-wrap: wrap; gap: 8px; }
 
-.atalho {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: var(--superficie);
-  border: 1px solid var(--linha-forte);
-  border-radius: 999px;
-  padding: 7px 13px;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-
-.atalho:active { background: var(--superficie-2); }
-.atalho__ponto { width: 7px; height: 7px; border-radius: 999px; }
 .atalho__valor { color: var(--texto-fraco); }
 
 /* ============================= extrato ================================ */
 
 .extrato { padding: 0 0 8px; }
 
-.dia { margin-bottom: 4px; }
+/* Um dia que está fora da tela não precisa ser medido nem pintado. O tamanho
+   estimado existe para a barra de rolagem não pular enquanto o conteúdo
+   entra — sem ele, a economia viria com um solavanco junto. */
+.dia {
+  margin-bottom: 4px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 180px;
+}
 
 .dia__cabecalho {
   display: flex;
@@ -940,7 +1048,7 @@ button { font: inherit; color: inherit; }
   background: none;
 }
 
-.botao--principal { background: var(--tinta); color: #fff; }
+.botao--principal { background: var(--selecionado-fundo); color: var(--selecionado-texto); }
 .botao--principal:active { background: var(--tinta-2); }
 .botao--secundario { background: var(--superficie-2); color: var(--texto); border: 1px solid var(--linha-forte); }
 .botao--perigo { background: var(--saida-bg); color: var(--saida); }
@@ -954,23 +1062,30 @@ button { font: inherit; color: inherit; }
 .botao--salvar { margin-top: 4px; padding-block: 14px; font-size: 1rem; font-weight: 600; }
 .botao[disabled] { opacity: 0.45; cursor: not-allowed; }
 
+/* No celular o botão é só o sinal de mais, num círculo. Com a palavra
+   "Lançar" ele ficava largo o bastante para cobrir o VALOR do primeiro
+   lançamento da lista — e valor é a única coisa que aquela linha existe
+   para mostrar. O caminho rápido de verdade é o campo de escrever logo
+   acima; este botão é o formulário completo, e o "+" já diz isso. */
 .lancar {
   position: fixed;
   right: 16px;
   bottom: calc(var(--altura-abas) + var(--rodape-seguro) + 16px);
   z-index: 30;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: var(--tinta);
-  color: #fff;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  background: var(--selecionado-fundo);
+  color: var(--selecionado-texto);
   border: 0;
   border-radius: 999px;
-  padding: 13px 20px 13px 16px;
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 6px 18px -6px rgba(10, 30, 20, 0.5);
 }
+
+.lancar span { display: none; }
 
 .lancar:active { background: var(--tinta-2); }
 .lancar svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
@@ -1208,6 +1323,18 @@ button { font: inherit; color: inherit; }
 
   .dialogo { border-radius: var(--raio-g); margin: auto; }
 
-  .lancar { bottom: 28px; right: 28px; }
+  /* Em tela larga sobra espaço e nada é coberto: a palavra volta. */
+  .lancar {
+    bottom: 28px;
+    right: 28px;
+    width: auto;
+    height: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 22px 14px 18px;
+  }
+
+  .lancar span { display: inline; }
   .recado { bottom: 100px; }
 }

@@ -40,6 +40,16 @@ export function pintarSaldos(estado, contexto) {
       texto: fmt.moeda(total),
     }),
 
+    // O total com a caixinha vem como legenda do número grande, não como
+    // frase solta: é a mesma informação, e ali ela custa uma linha em vez
+    // de um bloco inteiro.
+    reservas.total
+      ? el('p', {
+          class: 'painel-saldos__legenda',
+          texto: `Com a caixinha, ${fmt.moeda(total + reservas.total)}`,
+        })
+      : null,
+
     somaPositiva > 0
       ? el('div', { class: 'faixa', 'aria-hidden': 'true' },
           linhas
@@ -64,8 +74,7 @@ export function pintarSaldos(estado, contexto) {
         }),
       ]))),
 
-    reservas.linhas.length ? blocoGuardado(reservas, total, contexto) : null,
-    cartoes.linhas.length ? blocoCartoes(cartoes, fatura, total, contexto) : null,
+    ladrilhos(reservas, cartoes, fatura, contexto),
 
     el('div', { class: 'mes-resumo' }, [
       el('div', { class: 'mes-resumo__item' }, [
@@ -81,84 +90,44 @@ export function pintarSaldos(estado, contexto) {
 }
 
 /**
- * O que está guardado nas caixinhas.
+ * Guardado e fatura, lado a lado, em dois ladrilhos.
  *
- * Fica FORA do número grande de propósito. Dinheiro separado para um
- * objetivo não é dinheiro disponível — se entrasse no saldo do topo, o app
- * convidaria a gastar justamente o que foi poupado. Some ao lado, onde é
- * fácil de ver sem ser confundido com o resto.
- */
-function blocoGuardado(reservas, totalNosBancos, contexto) {
-  const { aoTocarConta } = contexto;
-
-  return el('div', { class: 'cartoes guardado' }, [
-    el('p', {
-      class: 'cartoes__rotulo',
-      texto: reservas.linhas.length > 1 ? 'Guardado nas caixinhas' : 'Guardado na caixinha',
-    }),
-
-    el('div', { class: 'saldos-contas' }, reservas.linhas.map((l) => el('button', {
-      class: 'saldo-conta',
-      type: 'button',
-      onclick: () => aoTocarConta(l.conta.id),
-    }, [
-      el('span', { class: 'saldo-conta__spine', estilo: { background: hexDaConta(l.conta) } }),
-      el('span', { class: 'saldo-conta__nome', texto: l.conta.nome }),
-      el('span', { class: 'saldo-conta__valor', texto: fmt.moeda(l.saldo) }),
-    ]))),
-
-    el('p', { class: 'cartoes__sobra' }, [
-      'Somando o guardado, você tem ',
-      el('strong', { texto: fmt.moeda(totalNosBancos + reservas.total) }),
-    ]),
-  ]);
-}
-
-/**
- * O que se deve no cartão. Fica embaixo dos bancos e visualmente mais quieto:
- * é dinheiro que ainda vai sair, não dinheiro que existe.
+ * Antes eram dois blocos com título, lista e uma frase cada um — e o efeito
+ * era que a tela inicial acabava antes do primeiro lançamento aparecer. São
+ * dois números de apoio; merecem duas caixinhas, não meia tela.
  *
- * O saldo de um cartão é negativo, então a dívida mostrada é o mesmo número
- * com o sinal virado. Se ficar positivo, é fatura paga a mais — dito com
- * essas palavras, e não como "dívida de −R$ 70,00".
+ * Com mais de uma caixinha ou mais de um cartão, o ladrilho mostra a soma e
+ * quantos são, e deixa de filtrar: não dá para filtrar por dois de uma vez.
  */
-function blocoCartoes(cartoes, fatura, totalNosBancos, contexto) {
+function ladrilhos(reservas, cartoes, fatura, contexto) {
   const { aoTocarConta } = contexto;
+  const peças = [];
 
-  return el('div', { class: 'cartoes' }, [
-    el('p', { class: 'cartoes__rotulo', texto: cartoes.linhas.length > 1 ? 'Cartões de crédito' : 'Cartão de crédito' }),
-
-    el('div', { class: 'saldos-contas' }, cartoes.linhas.map((l) => el('button', {
-      class: 'saldo-conta',
-      type: 'button',
-      onclick: () => aoTocarConta(l.conta.id),
+  const ladrilho = (rotulo, valor, linhas, classe) => {
+    const unica = linhas.length === 1;
+    return el(unica ? 'button' : 'div', {
+      class: `ladrilho${classe ? ' ' + classe : ''}`,
+      type: unica ? 'button' : null,
+      onclick: unica ? () => aoTocarConta(linhas[0].conta.id) : null,
     }, [
-      el('span', { class: 'saldo-conta__spine', estilo: { background: hexDaConta(l.conta) } }),
-      el('span', { class: 'item__corpo' }, [
-        el('span', { class: 'saldo-conta__nome', texto: l.conta.nome }),
-        el('span', {
-          class: 'item__detalhe',
-          texto: l.saldo > 0 ? 'Pago a mais' : 'Fatura em aberto',
-        }),
-      ]),
+      el('span', { class: 'ladrilho__rotulo', texto: rotulo }),
+      el('span', { class: 'ladrilho__valor', texto: fmt.moeda(valor) }),
       el('span', {
-        class: `saldo-conta__valor${l.saldo < 0 ? ' saldo-conta__valor--negativo' : ''}`,
-        texto: fmt.moeda(Math.abs(l.saldo)),
+        class: 'ladrilho__conta',
+        texto: unica ? linhas[0].conta.nome : `${linhas.length} contas`,
       }),
-    ]))),
+    ]);
+  };
 
-    // A pergunta que o cartão cria: "desse dinheiro que aparece no banco,
-    // quanto é realmente meu?". Sem isso, o saldo do topo engana para cima.
-    fatura > 0
-      ? el('p', { class: 'cartoes__sobra' }, [
-          'Pagando a fatura agora, sobram ',
-          el('strong', {
-            class: totalNosBancos - fatura < 0 ? 'cartoes__sobra--negativa' : '',
-            texto: fmt.moeda(totalNosBancos - fatura),
-          }),
-        ])
-      : null,
-  ]);
+  if (reservas.linhas.length) {
+    peças.push(ladrilho('Guardado', reservas.total, reservas.linhas));
+  }
+  if (cartoes.linhas.length) {
+    peças.push(ladrilho('Fatura do cartão', fatura, cartoes.linhas,
+      fatura > 0 ? 'ladrilho--deve' : ''));
+  }
+
+  return peças.length ? el('div', { class: 'ladrilhos' }, peças) : null;
 }
 
 /* ============================= filtro ================================== */
@@ -441,7 +410,11 @@ function textoDoPeso(natureza) {
 /** A linha de apoio nos Ajustes: um banco tem saldo, um cartão tem fatura. */
 function descricaoDaConta(estado, conta) {
   const saldo = calc.saldoDaConta(estado, conta.id);
-  if (calc.tipoDaConta(conta) !== 'cartao') return `Saldo hoje ${fmt.moeda(saldo)}`;
+  const tipo = calc.tipoDaConta(conta);
+
+  if (tipo === 'reserva') return `Caixinha · guardado ${fmt.moeda(saldo)}`;
+  if (tipo !== 'cartao') return `Saldo hoje ${fmt.moeda(saldo)}`;
+
   return saldo > 0
     ? `Cartão · pago a mais ${fmt.moeda(saldo)}`
     : `Cartão · fatura em aberto ${fmt.moeda(-saldo)}`;
