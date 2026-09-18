@@ -61,6 +61,8 @@ async function iniciar() {
   });
   window.addEventListener('offline', mostrarEstadoDoEnvio);
 
+  ligarAvisoDeVersao();
+
   try {
     mostrarTelaCerta(await conta.iniciar(mostrarTelaCerta));
   } catch (erro) {
@@ -1025,6 +1027,39 @@ function aplicarMascaraDeValor(campo) {
     }
     campo.value = fmt.valor(Number(digitos));
   });
+}
+
+/* ========================= aviso de versão nova ========================= */
+
+/**
+ * Pergunta ao servidor se há versão mais nova e oferece recarregar.
+ *
+ * Existe porque "lembre de puxar a tela para atualizar" não é resposta: o
+ * dono do app ficou três vezes com uma versão velha sem saber. O service
+ * worker já busca pela rede primeiro, mas isso só vale quando a página
+ * recarrega — e um app instalado fica aberto por dias.
+ *
+ * O aviso não interrompe nada: é uma faixa no rodapé que dá para ignorar.
+ */
+function ligarAvisoDeVersao() {
+  $('atualizar-agora').addEventListener('click', () => location.reload());
+
+  conferirVersao();
+  // Ao voltar para o app depois de um tempo fora, pergunta de novo.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) conferirVersao();
+  });
+}
+
+async function conferirVersao() {
+  try {
+    const resposta = await fetch('versao.json', { cache: 'no-store' });
+    if (!resposta.ok) return;
+    const { versao } = await resposta.json();
+    $('tem-versao-nova').hidden = !versao || versao === VERSAO_APP;
+  } catch {
+    // Sem internet não há o que conferir, e isso não é problema.
+  }
 }
 
 /* =========================== offline (PWA) ============================= */

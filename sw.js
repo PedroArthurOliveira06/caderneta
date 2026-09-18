@@ -18,7 +18,7 @@
    lembrar, eu esqueci sete vezes seguidas.
    ========================================================================= */
 
-const VERSAO = 'caderneta-2026-09-18-1410';
+const VERSAO = 'caderneta-2026-09-18-1413';
 
 const ARQUIVOS = [
   './',
@@ -69,6 +69,9 @@ self.addEventListener('fetch', (evento) => {
   // o navegador resolve sozinho — e o app já sabe se virar sem eles.
   if (requisicao.method !== 'GET') return;
   if (new URL(requisicao.url).origin !== self.location.origin) return;
+  // O arquivo de versão precisa ser sempre o do servidor: guardá-lo seria
+  // perguntar à cópia velha se existe versão nova.
+  if (new URL(requisicao.url).pathname.endsWith('/versao.json')) return;
 
   evento.respondWith((async () => {
     try {

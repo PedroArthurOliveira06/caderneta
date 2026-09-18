@@ -41,4 +41,10 @@ console.log(`Carimbando versão ${carimbo}`);
 trocar('sw.js', /const VERSAO = '[^']*';/, `const VERSAO = 'caderneta-${carimbo}';`);
 trocar('js/configuracao.js', /export const VERSAO_APP = '[^']*';/, `export const VERSAO_APP = '${legivel}';`);
 
+/* Um arquivo minúsculo que o app consulta para saber se há versão nova.
+   Separado do resto de propósito: é o único que precisa ser buscado sempre
+   pela rede, e sendo pequeno isso não custa nada. */
+writeFileSync(join(RAIZ, 'versao.json'), `${JSON.stringify({ versao: legivel })}\n`);
+console.log('  versao.json');
+
 console.log('Pronto. Agora é só commitar e publicar.');
