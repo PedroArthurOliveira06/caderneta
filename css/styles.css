@@ -54,6 +54,73 @@
   --rodape-seguro: env(safe-area-inset-bottom, 0px);
 }
 
+/* =========================== modo escuro ==============================
+   As mesmas peças, outras cores. Só os tokens mudam — nenhuma regra do resto
+   do arquivo precisa saber que existe modo escuro.
+
+   Dois blocos porque são duas perguntas diferentes: "o celular está no
+   escuro?" e "a pessoa escolheu escuro?". A escolha manual ganha, e é por
+   isso que o automático só vale quando ninguém escolheu nada
+   (`:root:not([data-tema])`).
+
+   As cores de dinheiro clareiam: o verde e o vermelho escuros foram
+   calculados para contrastar com papel branco e somem no fundo escuro. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    --capa-azul: #5b93ec;
+    --capa-roxo: #a07ce6;
+    --capa-ambar: #e2a54a;
+
+    --tinta: #0b110e;
+    --tinta-2: #16201a;
+    --tinta-3: #4a6357;
+
+    --texto: #e7eee9;
+    --texto-suave: #b0bfb7;
+    --texto-fraco: #94a69c;
+
+    --canvas: #101713;
+    --superficie: #18211c;
+    --superficie-2: #202b25;
+    --linha: #2b3730;
+    --linha-forte: #3c4a42;
+
+    --entrada: #45d391;
+    --entrada-viva: #2bbd78;
+    --entrada-bg: #10301f;
+    --saida: #ff8073;
+    --saida-viva: #e85446;
+    --saida-bg: #3a1714;
+  }
+}
+
+:root[data-tema="escuro"] {
+  --capa-azul: #5b93ec;
+  --capa-roxo: #a07ce6;
+  --capa-ambar: #e2a54a;
+
+  --tinta: #0b110e;
+  --tinta-2: #16201a;
+  --tinta-3: #4a6357;
+
+  --texto: #e7eee9;
+  --texto-suave: #b0bfb7;
+  --texto-fraco: #94a69c;
+
+  --canvas: #101713;
+  --superficie: #18211c;
+  --superficie-2: #202b25;
+  --linha: #2b3730;
+  --linha-forte: #3c4a42;
+
+  --entrada: #45d391;
+  --entrada-viva: #2bbd78;
+  --entrada-bg: #10301f;
+  --saida: #ff8073;
+  --saida-viva: #e85446;
+  --saida-bg: #3a1714;
+}
+
 * { box-sizing: border-box; }
 
 /* O `hidden` do HTML é como o app troca de tela. Qualquer `display` vindo de

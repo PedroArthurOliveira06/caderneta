@@ -101,7 +101,19 @@ Publicado e no ar: **https://pedroarthuroliveira06.github.io/caderneta/**
   conta criada, promovida a dono pelo SQL, e um lançamento feito no
   computador apareceu no celular. Ele usa o app nos dois aparelhos.
 
-Duas armadilhas que já custaram tempo e vale lembrar ao explicar algo a ele:
+Armadilhas que já custaram tempo e valem lembrar:
+
+- **Publicar exige `npm run versao` antes do commit.** Ele carimba o número
+  no sw.js e no app. Quando isso dependia de eu lembrar, esqueci sete
+  publicações seguidas e o app ficou permanentemente uma versão atrás.
+- **Repositório privado derruba o site.** Pages gratuito só publica
+  repositório público, e ao voltar para público o Pages fica DESLIGADO —
+  precisa ser religado à mão em Settings → Pages, logado.
+- **Celular agarrado na versão velha:** abrir o link com `?novo=1` no fim
+  força a busca pela rede (a cópia guardada está arquivada sob o endereço
+  sem query). Resolveu quando nada mais resolvia.
+- A página de Settings de um repositório dá 404 para quem não está logado —
+  parece que o link está errado, mas é só o login.
 
 - O endereço do GitHub Pages diferencia maiúscula: `/Caderneta/` dá 404, só
   `/caderneta/` abre.

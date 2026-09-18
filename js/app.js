@@ -13,6 +13,7 @@ import * as fmt from './formato.js';
 import * as telas from './telas.js';
 import * as conta from './conta.js';
 import * as tranca from './tranca.js';
+import * as tema from './tema.js';
 import { interpretar, explicar, atalhosFrequentes } from './interpretar.js';
 import { el, trocar, hexDaConta, recado, baixarArquivo, nomeComData } from './ui.js';
 import { VERSAO_APP } from './configuracao.js';
@@ -30,6 +31,9 @@ const $ = (id) => document.getElementById(id);
 /* ============================= arranque ================================ */
 
 async function iniciar() {
+  // Antes de tudo: sem isso a tela pisca clara antes de escurecer.
+  tema.iniciar();
+
   dados.carregar();
   dados.assinar(() => pintar());
   dados.definirAvisoDeFalha((erro) => recado(`O servidor recusou uma alteração: ${erro.message}`));
@@ -722,6 +726,15 @@ function pintarCores() {
 function ligarAjustes() {
   $('nova-conta').addEventListener('click', () => abrirConta(null));
 
+  trocar($('escolha-tema'), tema.TEMAS.map((t) => el('button', {
+    class: 'segmento',
+    type: 'button',
+    texto: t.nome,
+    dados: { tema: t.id },
+    onclick: () => { tema.definir(t.id); pintarEscolhaDoTema(); },
+  })));
+  pintarEscolhaDoTema();
+
   $('criar-pin').addEventListener('click', () => tranca.comecarADefinir());
   $('trocar-pin').addEventListener('click', () => tranca.comecarADefinir());
   $('remover-pin').addEventListener('click', () => {
@@ -842,6 +855,11 @@ function pintarAvisoDeBackup(estado) {
   } else {
     caixa.hidden = true;
   }
+}
+
+function pintarEscolhaDoTema() {
+  $('escolha-tema').querySelectorAll('[data-tema]').forEach((b) =>
+    b.classList.toggle('segmento--ativo', b.dataset.tema === tema.temaAtual()));
 }
 
 /** A tranca tem três botões, e só dois fazem sentido por vez. */
