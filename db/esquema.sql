@@ -62,7 +62,9 @@ create table if not exists public.contas (
   usuario       uuid not null references auth.users on delete cascade,
   nome          text not null,
   cor           text not null default 'azul',
-  tipo          text not null default 'conta' check (tipo in ('conta', 'cartao')),
+  -- 'conta' é banco, 'cartao' é cartão de crédito (saldo negativo = fatura),
+  -- 'reserva' é caixinha: dinheiro que existe mas está separado de propósito.
+  tipo          text not null default 'conta' check (tipo in ('conta', 'cartao', 'reserva')),
   saldo_inicial bigint not null default 0,
   ordem         integer not null default 0,
   criado_em     timestamptz not null default now()
@@ -72,7 +74,10 @@ create table if not exists public.categorias (
   id       uuid primary key default gen_random_uuid(),
   usuario  uuid not null references auth.users on delete cascade,
   nome     text not null,
-  tipo     text not null default 'saida' check (tipo in ('saida', 'entrada'))
+  tipo     text not null default 'saida' check (tipo in ('saida', 'entrada')),
+  -- Se o gasto se repete todo mês ou aparece de vez em quando. É o que
+  -- responde "quanto do meu mês já estava comprometido antes de começar".
+  natureza text not null default 'frequente' check (natureza in ('frequente', 'esporadico'))
 );
 
 create table if not exists public.lancamentos (

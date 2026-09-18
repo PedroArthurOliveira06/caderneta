@@ -200,6 +200,7 @@
     <!-- ---------------------- resumo ----------------------- -->
     <section id="tela-resumo" class="tela" hidden aria-label="Resumo do mês">
       <div id="resumo-topo"></div>
+      <div id="resumo-natureza"></div>
       <div id="resumo-categorias"></div>
       <div id="resumo-contas"></div>
       <div id="resumo-evolucao"></div>
@@ -398,9 +399,10 @@
 
     <input type="hidden" id="conta-id">
 
-    <div class="segmentado segmentado--duplo" role="group" aria-label="É banco ou cartão">
+    <div class="segmentado" role="group" aria-label="Banco, cartão ou caixinha">
       <button type="button" class="segmento segmento--ativo" data-tipo-conta="conta">Banco</button>
-      <button type="button" class="segmento" data-tipo-conta="cartao">Cartão de crédito</button>
+      <button type="button" class="segmento" data-tipo-conta="cartao">Cartão</button>
+      <button type="button" class="segmento" data-tipo-conta="reserva">Caixinha</button>
     </div>
 
     <div class="campo">

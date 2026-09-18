@@ -18,6 +18,7 @@ export function pintarSaldos(estado, contexto) {
   // Bancos e cartões são lidos separados de propósito: um diz quanto existe,
   // o outro quanto se deve. Misturar num número só esconde as duas respostas.
   const { linhas, total } = calc.saldos(estado, fim, 'conta');
+  const reservas = calc.saldos(estado, fim, 'reserva');
   const cartoes = calc.saldos(estado, fim, 'cartao');
   const fatura = calc.faturaEmAberto(estado, fim);
   const totais = calc.totaisDoMes(estado, ano, mes, filtroContaId);
@@ -63,6 +64,7 @@ export function pintarSaldos(estado, contexto) {
         }),
       ]))),
 
+    reservas.linhas.length ? blocoGuardado(reservas, total, contexto) : null,
     cartoes.linhas.length ? blocoCartoes(cartoes, fatura, total, contexto) : null,
 
     el('div', { class: 'mes-resumo' }, [
@@ -76,6 +78,40 @@ export function pintarSaldos(estado, contexto) {
       ]),
     ]),
   );
+}
+
+/**
+ * O que está guardado nas caixinhas.
+ *
+ * Fica FORA do número grande de propósito. Dinheiro separado para um
+ * objetivo não é dinheiro disponível — se entrasse no saldo do topo, o app
+ * convidaria a gastar justamente o que foi poupado. Some ao lado, onde é
+ * fácil de ver sem ser confundido com o resto.
+ */
+function blocoGuardado(reservas, totalNosBancos, contexto) {
+  const { aoTocarConta } = contexto;
+
+  return el('div', { class: 'cartoes guardado' }, [
+    el('p', {
+      class: 'cartoes__rotulo',
+      texto: reservas.linhas.length > 1 ? 'Guardado nas caixinhas' : 'Guardado na caixinha',
+    }),
+
+    el('div', { class: 'saldos-contas' }, reservas.linhas.map((l) => el('button', {
+      class: 'saldo-conta',
+      type: 'button',
+      onclick: () => aoTocarConta(l.conta.id),
+    }, [
+      el('span', { class: 'saldo-conta__spine', estilo: { background: hexDaConta(l.conta) } }),
+      el('span', { class: 'saldo-conta__nome', texto: l.conta.nome }),
+      el('span', { class: 'saldo-conta__valor', texto: fmt.moeda(l.saldo) }),
+    ]))),
+
+    el('p', { class: 'cartoes__sobra' }, [
+      'Somando o guardado, você tem ',
+      el('strong', { texto: fmt.moeda(totalNosBancos + reservas.total) }),
+    ]),
+  ]);
 }
 
 /**
@@ -256,6 +292,33 @@ export function pintarResumo(estado, contexto) {
       ]),
     ]));
 
+  /* ---- o que já estava comprometido antes do mês começar ---- */
+  const natureza = calc.porNatureza(estado, ano, mes, filtroContaId);
+
+  trocar(document.getElementById('resumo-natureza'), natureza.total
+    ? el('div', { class: 'bloco' }, [
+        el('h2', { class: 'bloco__titulo', texto: 'O que se repete e o que não' }),
+
+        el('div', { class: 'peso', 'aria-hidden': 'true' }, [
+          el('span', {
+            class: 'peso__parte peso__parte--frequente',
+            estilo: { flexGrow: String(natureza.frequente || 0.0001) },
+          }),
+          el('span', {
+            class: 'peso__parte peso__parte--esporadico',
+            estilo: { flexGrow: String(natureza.esporadico || 0.0001) },
+          }),
+        ]),
+
+        el('div', { class: 'peso-linhas' }, [
+          linhaDoPeso('Todo mês', natureza.frequente, natureza.total, 'frequente'),
+          linhaDoPeso('De vez em quando', natureza.esporadico, natureza.total, 'esporadico'),
+        ]),
+
+        el('p', { class: 'ajuda', texto: textoDoPeso(natureza) }),
+      ])
+    : null);
+
   /* ---- gasto por categoria ---- */
   const categorias = calc.porCategoria(estado, ano, mes, filtroContaId);
   const maior = categorias.length ? categorias[0].valor : 0;
@@ -342,6 +405,30 @@ export function pintarResumo(estado, contexto) {
     ]));
 }
 
+function linhaDoPeso(rotulo, valor, total, tipo) {
+  return el('div', { class: 'peso-linha' }, [
+    el('span', { class: `peso-linha__marca peso-linha__marca--${tipo}` }),
+    el('span', { class: 'peso-linha__nome', texto: rotulo }),
+    el('span', { class: 'peso-linha__fatia', texto: `${Math.round((valor / total) * 100)}%` }),
+    el('span', { class: 'peso-linha__valor', texto: fmt.moeda(valor) }),
+  ]);
+}
+
+/** A frase que traduz o gráfico. Um número sozinho não diz se é bom ou ruim. */
+function textoDoPeso(natureza) {
+  const fatia = Math.round(natureza.fatiaFrequente * 100);
+  if (fatia >= 80) {
+    return 'Quase tudo neste mês é gasto que se repete. Sobra pouco espaço para cortar sem mudar alguma conta fixa.';
+  }
+  if (fatia >= 50) {
+    return 'A maior parte do mês já estava comprometida antes de ele começar. O resto é onde há escolha.';
+  }
+  if (fatia >= 25) {
+    return 'Boa parte dos gastos do mês foi de ocasião, não de rotina — é aí que dá para mexer sem mudar nada fixo.';
+  }
+  return 'Quase tudo neste mês foi gasto de ocasião. Vale olhar o que aconteceu de diferente.';
+}
+
 /* ============================= ajustes ================================= */
 
 /** A linha de apoio nos Ajustes: um banco tem saldo, um cartão tem fatura. */
@@ -379,16 +466,33 @@ export function pintarAjustes(estado, contexto) {
     a.tipo === b.tipo ? a.nome.localeCompare(b.nome, 'pt-BR') : (a.tipo === 'saida' ? -1 : 1));
 
   trocar(document.getElementById('ajustes-categorias'),
-    ordenadas.map((cat) => el('button', {
-      class: 'linha-ajuste',
-      type: 'button',
-      onclick: () => aoEditarCategoria(cat.id),
-    }, [
-      el('span', { class: 'linha-ajuste__spine', estilo: { background: 'var(--linha-forte)' } }),
-      el('span', { class: 'linha-ajuste__corpo' }, [
-        el('span', { class: 'linha-ajuste__nome', texto: cat.nome }),
-        el('span', { class: 'linha-ajuste__meta', texto: cat.tipo === 'entrada' ? 'Entrada' : 'Gasto' }),
-      ]),
-      el('span', { class: 'linha-ajuste__acao', texto: 'Renomear' }),
-    ])));
+    ordenadas.map((cat) => {
+      const ehGasto = cat.tipo !== 'entrada';
+      const natureza = calc.naturezaDaCategoria(cat);
+
+      return el('div', { class: 'linha-categoria' }, [
+        el('span', { class: 'linha-ajuste__spine', estilo: { background: 'var(--linha-forte)' } }),
+
+        el('button', {
+          class: 'linha-categoria__nome',
+          type: 'button',
+          onclick: () => aoEditarCategoria(cat.id),
+        }, [
+          el('strong', { texto: cat.nome }),
+          el('span', { texto: ehGasto ? 'Gasto · toque para renomear' : 'Entrada · toque para renomear' }),
+        ]),
+
+        // Só gasto tem "se repete ou não": entrada de dinheiro não entra
+        // nessa conta, e um botão morto ali só confundiria.
+        ehGasto
+          ? el('button', {
+              class: `marca-natureza marca-natureza--${natureza}`,
+              type: 'button',
+              title: 'Toque para trocar',
+              texto: natureza === 'frequente' ? 'Todo mês' : 'De vez em quando',
+              onclick: () => contexto.aoTrocarNatureza(cat.id),
+            })
+          : null,
+      ]);
+    }));
 }

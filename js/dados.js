@@ -31,16 +31,20 @@ export const CORES_CONTA = [
   { id: 'ardosia', nome: 'Ardósia', hex: '#4a5c78' },
 ];
 
+/* `natureza` diz se o gasto se repete todo mês ou aparece de vez em quando.
+   Os padrões abaixo são um chute razoável para começar — a pessoa muda com
+   um toque em Ajustes, porque "Educação" é mensalidade para uns e curso
+   avulso para outros. */
 const CATEGORIAS_INICIAIS = [
-  { nome: 'Mercado', tipo: 'saida' },
-  { nome: 'Casa', tipo: 'saida' },
-  { nome: 'Transporte', tipo: 'saida' },
-  { nome: 'Alimentação', tipo: 'saida' },
-  { nome: 'Saúde', tipo: 'saida' },
-  { nome: 'Educação', tipo: 'saida' },
-  { nome: 'Lazer', tipo: 'saida' },
-  { nome: 'Assinaturas', tipo: 'saida' },
-  { nome: 'Outros', tipo: 'saida' },
+  { nome: 'Mercado', tipo: 'saida', natureza: 'frequente' },
+  { nome: 'Casa', tipo: 'saida', natureza: 'frequente' },
+  { nome: 'Transporte', tipo: 'saida', natureza: 'frequente' },
+  { nome: 'Alimentação', tipo: 'saida', natureza: 'frequente' },
+  { nome: 'Assinaturas', tipo: 'saida', natureza: 'frequente' },
+  { nome: 'Educação', tipo: 'saida', natureza: 'frequente' },
+  { nome: 'Saúde', tipo: 'saida', natureza: 'esporadico' },
+  { nome: 'Lazer', tipo: 'saida', natureza: 'esporadico' },
+  { nome: 'Outros', tipo: 'saida', natureza: 'esporadico' },
   { nome: 'Salário', tipo: 'entrada' },
   { nome: 'Ajuda da família', tipo: 'entrada' },
   { nome: 'Reembolso', tipo: 'entrada' },
@@ -308,8 +312,16 @@ const apagar = (tabela, filtro) => [{ op: 'delete', tabela, filtro }];
  * Contas antigas, gravadas antes dos cartões existirem, não têm o campo —
  * por isso todo lugar que lê trata a ausência como 'conta'.
  */
+function tipoValido(tipo) {
+  return tipo === 'cartao' || tipo === 'reserva' ? tipo : 'conta';
+}
+
 export function tipoDaConta(conta) {
-  return conta && conta.tipo === 'cartao' ? 'cartao' : 'conta';
+  return tipoValido(conta && conta.tipo);
+}
+
+export function ehReserva(conta) {
+  return tipoDaConta(conta) === 'reserva';
 }
 
 export function ehCartao(conta) {
@@ -321,7 +333,7 @@ export function definirContasIniciais(lista) {
     id: id(),
     nome: c.nome,
     cor: c.cor || CORES_CONTA[i % CORES_CONTA.length].id,
-    tipo: c.tipo === 'cartao' ? 'cartao' : 'conta',
+    tipo: tipoValido(c.tipo),
     saldoInicial: c.saldoInicial || 0,
     ordem: i,
   }));
@@ -349,7 +361,7 @@ export function salvarConta(dados) {
         id: id(),
         nome: dados.nome,
         cor: dados.cor || CORES_CONTA[e.contas.length % CORES_CONTA.length].id,
-        tipo: dados.tipo === 'cartao' ? 'cartao' : 'conta',
+        tipo: tipoValido(dados.tipo),
         saldoInicial: dados.saldoInicial || 0,
         ordem: e.contas.length,
       };
@@ -382,7 +394,7 @@ export function salvarCategoria(dados) {
       if (alvo) Object.assign(alvo, dados);
       salva = alvo;
     } else {
-      salva = { id: id(), nome: dados.nome, tipo: dados.tipo || 'saida' };
+      salva = { id: id(), nome: dados.nome, tipo: dados.tipo || 'saida', natureza: dados.natureza || 'frequente' };
       e.categorias.push(salva);
     }
   }, () => enviarCategorias([salva]));

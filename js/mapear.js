@@ -13,12 +13,14 @@
 
 /* ------------------------------ contas ---------------------------------- */
 
+const tipoDeConta = (t) => (t === 'cartao' || t === 'reserva' ? t : 'conta');
+
 export function contaParaApp(linha) {
   return {
     id: linha.id,
     nome: linha.nome,
     cor: linha.cor,
-    tipo: linha.tipo === 'cartao' ? 'cartao' : 'conta',
+    tipo: tipoDeConta(linha.tipo),
     saldoInicial: Number(linha.saldo_inicial) || 0,
     ordem: Number(linha.ordem) || 0,
   };
@@ -30,7 +32,7 @@ export function contaParaBanco(conta, usuario) {
     usuario,
     nome: conta.nome,
     cor: conta.cor,
-    tipo: conta.tipo === 'cartao' ? 'cartao' : 'conta',
+    tipo: tipoDeConta(conta.tipo),
     saldo_inicial: conta.saldoInicial || 0,
     ordem: conta.ordem || 0,
   };
@@ -39,7 +41,7 @@ export function contaParaBanco(conta, usuario) {
 /* ---------------------------- categorias -------------------------------- */
 
 export function categoriaParaApp(linha) {
-  return { id: linha.id, nome: linha.nome, tipo: linha.tipo };
+  return { id: linha.id, nome: linha.nome, tipo: linha.tipo, natureza: linha.natureza === 'esporadico' ? 'esporadico' : 'frequente' };
 }
 
 export function categoriaParaBanco(categoria, usuario) {
@@ -48,6 +50,7 @@ export function categoriaParaBanco(categoria, usuario) {
     usuario,
     nome: categoria.nome,
     tipo: categoria.tipo === 'entrada' ? 'entrada' : 'saida',
+    natureza: categoria.natureza === 'esporadico' ? 'esporadico' : 'frequente',
   };
 }
 

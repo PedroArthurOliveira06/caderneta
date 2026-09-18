@@ -222,6 +222,7 @@ function pintar() {
     aoTocarLancamento: (id) => abrirLancamento(id),
     aoEditarConta: (id) => abrirConta(id),
     aoEditarCategoria: (id) => editarCategoria(id),
+    aoTrocarNatureza: (id) => trocarNatureza(id),
   };
 
   if (visao.tela === 'extrato') {
@@ -614,7 +615,7 @@ function ligarDialogoConta() {
     if (!confirm(`Excluir este ${palavraDaConta()}?`)) return;
     dados.removerConta(id);
     dialogo.close();
-    recado(tipoContaEmEdicao === 'cartao' ? 'Cartão excluído.' : 'Banco excluído.');
+    recado({ conta: 'Banco excluído.', cartao: 'Cartão excluído.', reserva: 'Caixinha excluída.' }[tipoContaEmEdicao]);
   });
 
   $('form-conta').addEventListener('submit', (evento) => {
@@ -635,28 +636,51 @@ function ligarDialogoConta() {
       // usando a mesma conta de transferência dos bancos.
       saldoInicial: tipoContaEmEdicao === 'cartao' ? -informado : informado,
     });
-    recado(tipoContaEmEdicao === 'cartao' ? 'Cartão salvo.' : 'Banco salvo.');
+    // Cada um tem o seu gênero: caixinha é salva, banco e cartão são salvos.
+    recado({ conta: 'Banco salvo.', cartao: 'Cartão salvo.', reserva: 'Caixinha salva.' }[tipoContaEmEdicao]);
   });
 }
 
 /** A palavra certa para o que está sendo editado, usada nos avisos. */
 function palavraDaConta() {
-  return tipoContaEmEdicao === 'cartao' ? 'cartão' : 'banco';
+  if (tipoContaEmEdicao === 'cartao') return 'cartão';
+  if (tipoContaEmEdicao === 'reserva') return 'caixinha';
+  return 'banco';
 }
 
 /** Banco e cartão são a mesma tela com outras palavras — e sinal invertido. */
+const PALAVRAS_DA_CONTA = {
+  conta: {
+    nome: 'Nome do banco',
+    excluir: 'Excluir banco',
+    saldo: 'Saldo inicial',
+    ajuda: 'Quanto havia nesse banco quando você começou a usar a Caderneta.',
+  },
+  cartao: {
+    nome: 'Nome do cartão',
+    excluir: 'Excluir cartão',
+    saldo: 'Quanto você já deve hoje',
+    ajuda: 'O valor da fatura em aberto agora. Compras no crédito não descontam do saldo do banco; elas somam aqui, e saem do banco quando você paga a fatura.',
+  },
+  reserva: {
+    nome: 'Nome da caixinha',
+    excluir: 'Excluir caixinha',
+    saldo: 'Quanto já tem guardado',
+    ajuda: 'Dinheiro separado para um objetivo. Fica fora do saldo do topo de propósito: é seu, mas não é para gastar hoje. Para guardar mais, use Transferir do banco para a caixinha.',
+  },
+};
+
 function aplicarTipoConta() {
   const cartao = tipoContaEmEdicao === 'cartao';
+  const palavras = PALAVRAS_DA_CONTA[tipoContaEmEdicao] || PALAVRAS_DA_CONTA.conta;
 
   $('dialogo-conta').querySelectorAll('[data-tipo-conta]').forEach((b) =>
     b.classList.toggle('segmento--ativo', b.dataset.tipoConta === tipoContaEmEdicao));
 
-  $('rotulo-conta-nome').textContent = cartao ? 'Nome do cartão' : 'Nome do banco';
-  $('excluir-conta').textContent = cartao ? 'Excluir cartão' : 'Excluir banco';
-  $('rotulo-conta-saldo').textContent = cartao ? 'Quanto você já deve hoje' : 'Saldo inicial';
-  $('ajuda-conta-saldo').textContent = cartao
-    ? 'O valor da fatura em aberto agora. Compras no crédito não descontam do saldo do banco; elas somam aqui, e saem do banco quando você paga a fatura.'
-    : 'Quanto havia nesse banco quando você começou a usar a Caderneta.';
+  $('rotulo-conta-nome').textContent = palavras.nome;
+  $('excluir-conta').textContent = palavras.excluir;
+  $('rotulo-conta-saldo').textContent = palavras.saldo;
+  $('ajuda-conta-saldo').textContent = palavras.ajuda;
 }
 
 function abrirConta(contaId) {
@@ -664,9 +688,10 @@ function abrirConta(contaId) {
   corEscolhida = conta ? conta.cor : dados.CORES_CONTA[dados.obter().contas.length % dados.CORES_CONTA.length].id;
   tipoContaEmEdicao = dados.tipoDaConta(conta);
 
+  const comoChamar = { conta: 'banco', cartao: 'cartão', reserva: 'caixinha' };
   $('dialogo-conta-titulo').textContent = conta
-    ? (dados.ehCartao(conta) ? 'Editar cartão' : 'Editar banco')
-    : 'Novo banco ou cartão';
+    ? `Editar ${comoChamar[dados.tipoDaConta(conta)]}`
+    : 'Novo banco, cartão ou caixinha';
   $('conta-id').value = conta ? conta.id : '';
   $('conta-nome').value = conta ? conta.nome : '';
   // Sempre em módulo: a dívida do cartão é guardada negativa, mas quem digita
@@ -784,6 +809,14 @@ function editarCategoria(categoriaId) {
 
   dados.salvarCategoria({ id: categoriaId, nome, tipo: categoria.tipo });
   recado('Categoria renomeada.');
+}
+
+/** Um toque alterna entre "todo mês" e "de vez em quando". */
+function trocarNatureza(categoriaId) {
+  const categoria = dados.categoria(categoriaId);
+  if (!categoria) return;
+  const nova = categoria.natureza === 'esporadico' ? 'frequente' : 'esporadico';
+  dados.salvarCategoria({ ...categoria, natureza: nova });
 }
 
 function pintarAvisoDeBackup(estado) {

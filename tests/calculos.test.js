@@ -148,6 +148,54 @@ test('fatura paga a mais não vira dívida negativa', () => {
   assert.equal(calc.faturaEmAberto(e, '2026-09-30'), 0);
 });
 
+/* --------------------- caixinha e natureza do gasto --------------------- */
+
+test('caixinha é dinheiro seu, mas fora do que dá para gastar hoje', () => {
+  const e = cenario();
+  e.contas.push({ id: 'cx', nome: 'Caixinha do Nubank', tipo: 'reserva', saldoInicial: 0, ordem: 3 });
+  // Guardar 800 do Nubank na caixinha é transferência: o total não muda,
+  // mas o disponível cai e o guardado sobe.
+  e.lancamentos.push({ id: 'g1', data: '2026-09-20', tipo: 'transferencia', valor: 80000, contaId: 'b', contaDestinoId: 'cx' });
+
+  const bancos = calc.saldos(e, '2026-09-30', 'conta');
+  const guardado = calc.saldos(e, '2026-09-30', 'reserva');
+
+  assert.equal(bancos.linhas.length, 3, 'a caixinha não entra na lista dos bancos');
+  assert.equal(guardado.total, 80000);
+  // Banco B tinha 290,00 e guardou 800? Não cabe — fica negativo, e o app
+  // mostra isso em vez de esconder.
+  assert.equal(calc.saldoDaConta(e, 'b', '2026-09-30'), 29000 - 80000);
+  // Guardar não é gasto.
+  assert.equal(calc.totaisDoMes(e, 2026, 9).saiu, 44000);
+});
+
+test('gasto de todo mês é separado do gasto de vez em quando', () => {
+  const e = cenario();
+  e.categorias = [
+    { id: 'aluguel', nome: 'Casa', tipo: 'saida', natureza: 'frequente' },
+    { id: 'presente', nome: 'Presentes', tipo: 'saida', natureza: 'esporadico' },
+  ];
+  e.lancamentos = [
+    { id: '1', data: '2026-09-05', tipo: 'saida', valor: 120000, contaId: 'a', categoriaId: 'aluguel' },
+    { id: '2', data: '2026-09-07', tipo: 'saida', valor: 30000, contaId: 'a', categoriaId: 'presente' },
+    { id: '3', data: '2026-09-09', tipo: 'saida', valor: 10000, contaId: 'a', categoriaId: null },
+  ];
+
+  const r = calc.porNatureza(e, 2026, 9);
+  assert.equal(r.frequente, 120000);
+  // 300 do presente + 100 sem categoria: sem categoria não pode ser chamado
+  // de "todo mês", porque ninguém afirmou isso.
+  assert.equal(r.esporadico, 40000);
+  assert.equal(r.total, 160000);
+  assert.equal(Math.round(r.fatiaFrequente * 100), 75);
+});
+
+test('categoria antiga, sem o campo, conta como de todo mês', () => {
+  assert.equal(calc.naturezaDaCategoria({ nome: 'Mercado' }), 'frequente');
+  assert.equal(calc.naturezaDaCategoria({ nome: 'Lazer', natureza: 'esporadico' }), 'esporadico');
+  assert.equal(calc.naturezaDaCategoria(null), 'esporadico');
+});
+
 /* ---------------------------- parcelamento ------------------------------ */
 
 test('parcela quebrada não perde nem inventa centavo', () => {

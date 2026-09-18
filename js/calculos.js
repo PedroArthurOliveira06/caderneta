@@ -37,10 +37,20 @@ export function saldoDaConta(estado, contaId, ateISO) {
   );
 }
 
-/** 'conta' para bancos, 'cartao' para cartão de crédito. Registro antigo,
- *  gravado antes dos cartões existirem, conta como banco. */
+/**
+ * Três lugares onde o dinheiro pode estar, e eles respondem perguntas
+ * diferentes:
+ *
+ *   'conta'   -> banco: o que dá para gastar hoje
+ *   'cartao'  -> cartão de crédito: o que se deve (saldo negativo)
+ *   'reserva' -> caixinha: o que existe mas está separado de propósito
+ *
+ * Registro antigo, gravado antes de os outros dois existirem, conta como
+ * banco.
+ */
 export function tipoDaConta(conta) {
-  return conta && conta.tipo === 'cartao' ? 'cartao' : 'conta';
+  const tipo = conta && conta.tipo;
+  return tipo === 'cartao' || tipo === 'reserva' ? tipo : 'conta';
 }
 
 /**
@@ -122,6 +132,44 @@ export function porConta(estado, ano, mes, tipo = 'saida') {
         .filter((l) => l.tipo === tipo && l.contaId === conta.id)
         .reduce((s, l) => s + l.valor, 0),
     }));
+}
+
+/**
+ * Gasto que se repete todo mês (aluguel, luz, assinatura) separado do que
+ * aparece de vez em quando (um presente, um remédio).
+ *
+ * A diferença que isso responde: dos gastos do mês, quanto já estava
+ * comprometido antes de o mês começar. É o número que diz se dá para relaxar
+ * ou não — e some quando tudo aparece junto numa lista só.
+ *
+ * Gasto sem categoria conta como esporádico: dizer que ele se repete seria
+ * afirmar algo que ninguém afirmou.
+ */
+export function naturezaDaCategoria(categoria) {
+  if (!categoria) return 'esporadico';
+  return categoria.natureza === 'esporadico' ? 'esporadico' : 'frequente';
+}
+
+export function porNatureza(estado, ano, mes, filtroContaId) {
+  const lista = lancamentosDoMes(estado, ano, mes, filtroContaId)
+    .filter((l) => l.tipo === 'saida');
+
+  let frequente = 0;
+  let esporadico = 0;
+
+  for (const l of lista) {
+    const categoria = estado.categorias.find((c) => c.id === l.categoriaId);
+    if (naturezaDaCategoria(categoria) === 'esporadico') esporadico += l.valor;
+    else frequente += l.valor;
+  }
+
+  const total = frequente + esporadico;
+  return {
+    frequente,
+    esporadico,
+    total,
+    fatiaFrequente: total ? frequente / total : 0,
+  };
 }
 
 /** Agrupa a lista por dia, preservando a ordem já ordenada. */

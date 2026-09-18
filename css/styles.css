@@ -466,6 +466,81 @@ button { font: inherit; color: inherit; }
 .cartoes__sobra strong { color: var(--texto); font-weight: 600; }
 .cartoes__sobra .cartoes__sobra--negativa { color: var(--saida); }
 
+/* A caixinha usa o mesmo bloco discreto do cartão, mas ela é dinheiro que
+   existe — então não herda o vermelho da dívida. */
+.guardado .saldo-conta__valor { color: var(--texto); }
+
+/* ------------------- o peso do mês: fixo x ocasião -------------------- */
+
+.peso {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  background: var(--superficie-2);
+}
+
+.peso__parte--frequente { background: var(--capa-azul); }
+.peso__parte--esporadico { background: var(--capa-ambar); }
+
+.peso-linhas { display: grid; gap: 2px; margin-bottom: 12px; }
+
+.peso-linha {
+  display: grid;
+  grid-template-columns: 10px 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 0;
+  font-size: 0.9375rem;
+}
+
+.peso-linha + .peso-linha { border-top: 1px solid var(--superficie-2); }
+.peso-linha__marca { width: 10px; height: 10px; border-radius: 3px; }
+.peso-linha__marca--frequente { background: var(--capa-azul); }
+.peso-linha__marca--esporadico { background: var(--capa-ambar); }
+.peso-linha__nome { font-weight: 500; }
+.peso-linha__fatia { color: var(--texto-fraco); font-size: 0.8125rem; }
+.peso-linha__valor { font-weight: 600; white-space: nowrap; }
+
+/* -------------------- natureza dentro dos Ajustes --------------------- */
+
+.linha-categoria {
+  display: grid;
+  grid-template-columns: 3px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.linha-categoria + .linha-categoria { border-top: 1px solid var(--superficie-2); }
+
+.linha-categoria__nome {
+  border: 0;
+  background: none;
+  text-align: left;
+  padding: 4px 0;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.linha-categoria__nome strong { display: block; font-weight: 500; }
+.linha-categoria__nome span { font-size: 0.8125rem; color: var(--texto-fraco); }
+
+.marca-natureza {
+  border: 1px solid var(--linha-forte);
+  background: var(--superficie);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.marca-natureza--frequente { border-color: var(--capa-azul); color: var(--capa-azul); }
+.marca-natureza--esporadico { border-color: var(--capa-ambar); color: #9a5c00; }
+
 .mes-resumo {
   display: grid;
   grid-template-columns: 1fr 1fr;
