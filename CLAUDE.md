@@ -96,15 +96,28 @@ Publicado e no ar: **https://pedroarthuroliveira06.github.io/caderneta/**
 (GitHub Pages, branch `main`, raiz). Cada `git push` atualiza o site.
 
 - Conta do GitHub: `PedroArthurOliveira06` (confirmado pela API)
-- Supabase: projeto `sbelyvcsbilsgpzlecuw`, esquema já aplicado
-- Ele usa o app no celular, em modo local, com dados REAIS desde 18/09/2026
+- Supabase: projeto `sbelyvcsbilsgpzlecuw`, esquema aplicado
+- **Login funcionando de ponta a ponta**, confirmado por ele em 18/09/2026:
+  conta criada, promovida a dono pelo SQL, e um lançamento feito no
+  computador apareceu no celular. Ele usa o app nos dois aparelhos.
 
-**Falta:** o usuário criar a conta dele pelo app e rodar a linha de SQL que
-o promove a dono (está no fim de db/esquema.sql). Só depois dá para testar o
-caminho feliz do login e a fila de aprovação — eu não crio contas por ele.
+Duas armadilhas que já custaram tempo e vale lembrar ao explicar algo a ele:
 
-O usuário não conhece GitHub — explicar cada passo em linguagem simples,
-sem jargão.
+- O endereço do GitHub Pages diferencia maiúscula: `/Caderneta/` dá 404, só
+  `/caderneta/` abre.
+- No SQL Editor do Supabase, mandar "apague o que estiver lá" não basta:
+  precisa dizer Ctrl+A e Delete. Ele rodou um comando no meio do arquivo
+  antigo e tomou erro de sintaxe na linha 198.
+
+**Falta do que ele pediu:**
+
+1. **Tranca na abertura do app (PIN).** Ele escolheu "as duas coisas"
+   (contas no servidor + PIN local) e só a primeira metade existe.
+2. **Recursos espertos:** previsão de quanto sobra no fim do mês, alerta de
+   categoria estourando, lembrete de fatura, metas.
+
+O usuário não conhece GitHub nem SQL — explicar cada passo em linguagem
+simples, sem jargão, e fazer a parte de linha de comando por ele.
 
 ## Limite conhecido (assumido, não é bug)
 
