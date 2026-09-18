@@ -2,26 +2,40 @@
    Service worker: é o que faz o app abrir sem internet e poder ser
    instalado na tela de início do celular.
 
-   Estratégia: "usa o cache e atualiza atrás". A tela abre na hora, a partir
-   do que já está guardado, e a versão nova é baixada em segundo plano para
-   a próxima abertura. Para um app de uso diário isso vale mais que esperar
-   a rede a cada toque.
+   ESTRATÉGIA: rede primeiro, cópia guardada como rede de segurança.
 
-   AO PUBLICAR UMA VERSÃO NOVA: troque o número do VERSAO abaixo. É o que
-   diz ao celular para jogar fora o cache antigo.
+   A versão anterior fazia o contrário — servia a cópia e buscava a nova
+   atrás — e o efeito era que o app SEMPRE mostrava a versão anterior:
+   cada abertura entregava o que tinha sido baixado na abertura passada.
+   Para um app que recebe melhorias toda semana, isso é um defeito, não uma
+   otimização. Alguns milissegundos a mais valem menos que ver o que é
+   verdade.
+
+   Sem internet, tudo continua funcionando: a cópia guardada assume.
+
+   A versão abaixo é escrita por `npm run versao`, que roda antes de cada
+   publicação. Ela não é mantida à mão de propósito: quando dependia de eu
+   lembrar, eu esqueci sete vezes seguidas.
    ========================================================================= */
 
-const VERSAO = 'caderneta-v1';
+const VERSAO = 'caderneta-2026-09-18-1143';
 
 const ARQUIVOS = [
   './',
   './index.html',
   './css/styles.css',
   './js/app.js',
-  './js/dados.js',
   './js/calculos.js',
+  './js/conta.js',
+  './js/configuracao.js',
+  './js/dados.js',
   './js/formato.js',
+  './js/interpretar.js',
+  './js/mapear.js',
+  './js/segredo.js',
+  './js/servidor.js',
   './js/telas.js',
+  './js/tranca.js',
   './js/ui.js',
   './manifest.webmanifest',
   './icons/icone.svg',
@@ -50,25 +64,30 @@ self.addEventListener('activate', (evento) => {
 self.addEventListener('fetch', (evento) => {
   const requisicao = evento.request;
 
-  // Só cuidamos de leitura da própria origem. A fonte do Google, por
-  // exemplo, o navegador resolve sozinho — e sem internet o app cai no
-  // tipo do sistema, o que é aceitável.
+  // Só cuidamos de leitura da própria origem. O Supabase e a fonte do Google
+  // o navegador resolve sozinho — e o app já sabe se virar sem eles.
   if (requisicao.method !== 'GET') return;
   if (new URL(requisicao.url).origin !== self.location.origin) return;
 
-  evento.respondWith(
-    caches.match(requisicao).then((guardado) => {
-      const daRede = fetch(requisicao)
-        .then((resposta) => {
-          if (resposta && resposta.ok) {
-            const copia = resposta.clone();
-            caches.open(VERSAO).then((cache) => cache.put(requisicao, copia));
-          }
-          return resposta;
-        })
-        .catch(() => guardado);
+  evento.respondWith((async () => {
+    try {
+      const resposta = await fetch(requisicao);
+      if (resposta && resposta.ok) {
+        const cache = await caches.open(VERSAO);
+        cache.put(requisicao, resposta.clone());
+      }
+      return resposta;
+    } catch (erro) {
+      const guardado = await caches.match(requisicao);
+      if (guardado) return guardado;
 
-      return guardado || daRede;
-    })
-  );
+      // Abrindo o app sem rede e sem esta página guardada: a tela inicial
+      // serve, porque o app é uma página só.
+      if (requisicao.mode === 'navigate') {
+        const inicial = await caches.match('./index.html');
+        if (inicial) return inicial;
+      }
+      throw erro;
+    }
+  })());
 });

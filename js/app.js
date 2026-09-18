@@ -15,6 +15,7 @@ import * as conta from './conta.js';
 import * as tranca from './tranca.js';
 import { interpretar, explicar, atalhosFrequentes } from './interpretar.js';
 import { el, trocar, hexDaConta, recado, baixarArquivo, nomeComData } from './ui.js';
+import { VERSAO_APP } from './configuracao.js';
 
 const hoje = fmt.hojeISO();
 const visao = {
@@ -235,6 +236,7 @@ function pintar() {
     telas.pintarAjustes(estado, contexto);
     pintarAvisoDeBackup(estado);
     pintarBotoesDaTranca();
+    $('versao-app').textContent = `Caderneta · versão de ${VERSAO_APP}`;
     conta.pintarAjustes();
   }
 }
