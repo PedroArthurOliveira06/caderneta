@@ -169,31 +169,30 @@ test('caixinha é dinheiro seu, mas fora do que dá para gastar hoje', () => {
   assert.equal(calc.totaisDoMes(e, 2026, 9).saiu, 44000);
 });
 
-test('gasto de todo mês é separado do gasto de vez em quando', () => {
+test('a fatura se divide em corrente e esporádico — e só a do cartão', () => {
   const e = cenario();
-  e.categorias = [
-    { id: 'aluguel', nome: 'Casa', tipo: 'saida', natureza: 'frequente' },
-    { id: 'presente', nome: 'Presentes', tipo: 'saida', natureza: 'esporadico' },
-  ];
+  e.contas.push({ id: 'cc', nome: 'Cartão BB', tipo: 'cartao', saldoInicial: 0, ordem: 3 });
   e.lancamentos = [
-    { id: '1', data: '2026-09-05', tipo: 'saida', valor: 120000, contaId: 'a', categoriaId: 'aluguel' },
-    { id: '2', data: '2026-09-07', tipo: 'saida', valor: 30000, contaId: 'a', categoriaId: 'presente' },
-    { id: '3', data: '2026-09-09', tipo: 'saida', valor: 10000, contaId: 'a', categoriaId: null },
+    { id: '1', data: '2026-09-05', tipo: 'saida', valor: 4500, contaId: 'cc', natureza: 'corrente' },
+    { id: '2', data: '2026-09-06', tipo: 'saida', valor: 1290, contaId: 'cc', natureza: 'corrente' },
+    { id: '3', data: '2026-09-07', tipo: 'saida', valor: 20000, contaId: 'cc', natureza: 'esporadico' },
+    // Gasto em conta corrente NÃO entra nessa divisão: a pergunta é da
+    // fatura, não da vida inteira.
+    { id: '4', data: '2026-09-08', tipo: 'saida', valor: 99900, contaId: 'a', natureza: 'corrente' },
   ];
 
   const r = calc.porNatureza(e, 2026, 9);
-  assert.equal(r.frequente, 120000);
-  // 300 do presente + 100 sem categoria: sem categoria não pode ser chamado
-  // de "todo mês", porque ninguém afirmou isso.
-  assert.equal(r.esporadico, 40000);
-  assert.equal(r.total, 160000);
-  assert.equal(Math.round(r.fatiaFrequente * 100), 75);
+  assert.equal(r.corrente, 5790);
+  assert.equal(r.esporadico, 20000);
+  assert.equal(r.total, 25790, 'o gasto do banco ficou de fora');
+  assert.equal(Math.round(r.fatiaCorrente * 100), 22);
 });
 
-test('categoria antiga, sem o campo, conta como de todo mês', () => {
-  assert.equal(calc.naturezaDaCategoria({ nome: 'Mercado' }), 'frequente');
-  assert.equal(calc.naturezaDaCategoria({ nome: 'Lazer', natureza: 'esporadico' }), 'esporadico');
-  assert.equal(calc.naturezaDaCategoria(null), 'esporadico');
+test('gasto de cartão sem rótulo conta como esporádico', () => {
+  // Dizer que algo se repete todo mês é uma afirmação; na dúvida, não se faz.
+  assert.equal(calc.naturezaDoLancamento({ natureza: 'corrente' }), 'corrente');
+  assert.equal(calc.naturezaDoLancamento({}), 'esporadico');
+  assert.equal(calc.naturezaDoLancamento(null), 'esporadico');
 });
 
 /* ---------------------------- parcelamento ------------------------------ */

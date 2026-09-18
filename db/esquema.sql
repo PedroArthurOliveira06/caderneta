@@ -75,9 +75,7 @@ create table if not exists public.categorias (
   usuario  uuid not null references auth.users on delete cascade,
   nome     text not null,
   tipo     text not null default 'saida' check (tipo in ('saida', 'entrada')),
-  -- Se o gasto se repete todo mês ou aparece de vez em quando. É o que
-  -- responde "quanto do meu mês já estava comprometido antes de começar".
-  natureza text not null default 'frequente' check (natureza in ('frequente', 'esporadico'))
+  natureza text not null default 'frequente' check (natureza in ('frequente', 'esporadico')) -- não usado; ficou de uma versão anterior
 );
 
 create table if not exists public.lancamentos (
@@ -93,6 +91,8 @@ create table if not exists public.lancamentos (
   grupo             uuid,
   parcela           integer,
   parcelas_total    integer,
+  -- Só gasto no cartão usa: 'corrente' (volta todo mês) ou 'esporadico'.
+  natureza          text check (natureza is null or natureza in ('corrente', 'esporadico')),
   criado_em         timestamptz not null default now(),
 
   -- Transferência precisa dos dois lados, e eles têm de ser diferentes. A

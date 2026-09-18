@@ -502,13 +502,37 @@ export function registrarBackup() {
  * app não teria como saber os ids daqui. Nome que não existe vira conta nova,
  * e a resposta diz quais foram criadas, para não haver surpresa silenciosa.
  */
-export function adicionarLancamentos(lista) {
+export function adicionarLancamentos(lista, contasPedidas = []) {
   const semAcento = (t) => String(t || '').normalize('NFD')
     .replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
   const novasContas = [];
+  const ajustadas = [];
   const novos = [];
   const agora = new Date().toISOString();
+
+  /* O arquivo pode trazer as contas descritas — com tipo e saldo inicial.
+     É o que permite criar a caixinha já com o valor guardado e acertar o
+     ponto de partida de cada banco sem ninguém digitar número nenhum. */
+  for (const pedida of contasPedidas) {
+    const procurado = semAcento(pedida.nome);
+    const existente = estado.contas.find((c) => semAcento(c.nome) === procurado);
+    if (existente) {
+      if (pedida.saldoInicial !== undefined && pedida.saldoInicial !== existente.saldoInicial) {
+        ajustadas.push({ ...existente, saldoInicial: pedida.saldoInicial });
+      }
+      continue;
+    }
+    const posicao = estado.contas.length + novasContas.length;
+    novasContas.push({
+      id: id(),
+      nome: String(pedida.nome).trim(),
+      cor: pedida.cor || CORES_CONTA[posicao % CORES_CONTA.length].id,
+      tipo: pedida.tipo === 'cartao' || pedida.tipo === 'reserva' ? pedida.tipo : 'conta',
+      saldoInicial: pedida.saldoInicial || 0,
+      ordem: posicao,
+    });
+  }
 
   for (const item of lista) {
     const procurado = semAcento(item.banco);
@@ -539,21 +563,31 @@ export function adicionarLancamentos(lista) {
       contaDestinoId: null,
       categoriaId: null,
       descricao: item.descricao || '',
+      // Só o cartão usa; em banco fica nulo.
+      natureza: item.natureza === 'corrente' || item.natureza === 'esporadico' ? item.natureza : null,
     });
   }
 
   mutar((e) => {
     e.contas.push(...novasContas);
+    for (const a of ajustadas) {
+      const alvo = e.contas.find((c) => c.id === a.id);
+      if (alvo) alvo.saldoInicial = a.saldoInicial;
+    }
     e.lancamentos.push(...novos);
     e.configurado = true;
   }, () => [
     // As contas sobem antes: o banco recusa um lançamento que aponte para
     // uma conta que ainda não existe lá.
-    ...(novasContas.length ? enviarContas(novasContas) : []),
+    ...(novasContas.length || ajustadas.length ? enviarContas([...novasContas, ...ajustadas]) : []),
     ...enviarLancamentos(novos),
   ]);
 
-  return { lancamentos: novos.length, contasCriadas: novasContas.map((c) => c.nome) };
+  return {
+    lancamentos: novos.length,
+    contasCriadas: novasContas.map((c) => c.nome),
+    saldosAjustados: ajustadas.map((c) => c.nome),
+  };
 }
 
 /** Substitui tudo pelo conteúdo do arquivo. Devolve {ok, erro}. */

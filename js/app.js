@@ -227,7 +227,6 @@ function pintar() {
     aoTocarLancamento: (id) => abrirLancamento(id),
     aoEditarConta: (id) => abrirConta(id),
     aoEditarCategoria: (id) => editarCategoria(id),
-    aoTrocarNatureza: (id) => trocarNatureza(id),
   };
 
   if (visao.tela === 'extrato') {
@@ -339,6 +338,7 @@ function ligarLancamentoRapido() {
 /* ======================= diálogo de lançamento ========================= */
 
 let tipoEmEdicao = 'saida';
+let naturezaEmEdicao = 'esporadico';
 
 function ligarDialogoLancamento() {
   const dialogo = $('dialogo-lancamento');
@@ -352,6 +352,14 @@ function ligarDialogoLancamento() {
       aplicarTipo(dialogo);
     });
   });
+
+  dialogo.querySelectorAll('[data-natureza]').forEach((botao) => {
+    botao.addEventListener('click', () => {
+      naturezaEmEdicao = botao.dataset.natureza;
+      pintarNatureza();
+    });
+  });
+  $('lancamento-conta').addEventListener('change', mostrarNaturezaSePrecisar);
 
   aplicarMascaraDeValor($('lancamento-valor'));
 
@@ -433,6 +441,8 @@ function ligarDialogoLancamento() {
     } else {
       registro.contaDestinoId = null;
       registro.categoriaId = $('lancamento-categoria').value || null;
+      // Só faz sentido guardar no cartão; em banco o campo fica vazio.
+      registro.natureza = dados.ehCartao(dados.conta(contaId)) ? naturezaEmEdicao : null;
     }
 
     const vezes = Number($('lancamento-parcelas').value || 1);
@@ -473,6 +483,7 @@ function aplicarTipo(dialogo) {
   else mostrarContaDasParcelas();
 
   pintarAtalhos(editando);
+  mostrarNaturezaSePrecisar();
 
   // Transferir de um banco para ele mesmo não existe, e o app recusaria na
   // hora de salvar. Então já abre apontando para outro banco.
@@ -517,6 +528,23 @@ function pintarAtalhosDeData() {
   });
 }
 
+/**
+ * "Corrente ou esporádico" só aparece quando o gasto é no cartão. Em conta
+ * corrente essa pergunta não existe: gasto é gasto. Perguntar sempre seria
+ * inventar uma decisão que ninguém precisa tomar.
+ */
+function mostrarNaturezaSePrecisar() {
+  const conta = dados.conta($('lancamento-conta').value);
+  const noCartao = tipoEmEdicao === 'saida' && dados.ehCartao(conta);
+  $('campo-natureza').hidden = !noCartao;
+  if (noCartao) pintarNatureza();
+}
+
+function pintarNatureza() {
+  $('dialogo-lancamento').querySelectorAll('[data-natureza]').forEach((b) =>
+    b.classList.toggle('segmento--ativo', b.dataset.natureza === naturezaEmEdicao));
+}
+
 function garantirDestinoDiferente() {
   const origem = $('lancamento-conta');
   const destino = $('lancamento-destino');
@@ -547,6 +575,7 @@ function abrirLancamento(lancamentoId) {
   const existente = lancamentoId ? dados.lancamento(lancamentoId) : null;
 
   tipoEmEdicao = existente ? existente.tipo : 'saida';
+  naturezaEmEdicao = existente && existente.natureza === 'corrente' ? 'corrente' : 'esporadico';
   $('dialogo-titulo').textContent = existente
     ? (existente.parcelasTotal > 1
         ? `Parcela ${existente.parcela} de ${existente.parcelasTotal}`
@@ -850,14 +879,6 @@ function editarCategoria(categoriaId) {
   recado('Categoria renomeada.');
 }
 
-/** Um toque alterna entre "todo mês" e "de vez em quando". */
-function trocarNatureza(categoriaId) {
-  const categoria = dados.categoria(categoriaId);
-  if (!categoria) return;
-  const nova = categoria.natureza === 'esporadico' ? 'frequente' : 'esporadico';
-  dados.salvarCategoria({ ...categoria, natureza: nova });
-}
-
 /**
  * Lê um arquivo de lançamentos e os acrescenta. Mostra antes o que vai
  * acontecer, mês a mês: importar 161 linhas às cegas é pedir para alguém se
@@ -889,6 +910,8 @@ async function adicionarDeArquivo(evento) {
     return;
   }
 
+  const contas = Array.isArray(dados_.contas) ? dados_.contas : [];
+
   const porMes = new Map();
   for (const l of lista) {
     const chave = String(l.data).slice(0, 7);
@@ -897,17 +920,21 @@ async function adicionarDeArquivo(evento) {
   const meses = [...porMes.entries()].sort()
     .map(([m, n]) => `  ${m}: ${n} lançamentos`).join('\n');
 
-  if (!confirm(`Adicionar ${lista.length} lançamentos?
-
-${meses}
-
-Eles somam ao que já existe, sem apagar nada.`)) return;
-
-  const r = dados.adicionarLancamentos(lista);
-  const aviso = r.contasCriadas.length
-    ? ` Criei também: ${r.contasCriadas.join(', ')}.`
+  const sobreContas = contas.length
+    ? '\n\nTambém vou acertar os bancos:\n' + contas
+        .map((c) => `  ${c.nome}: saldo inicial ${fmt.moeda(c.saldoInicial || 0)}`).join('\n')
     : '';
-  recado(`${r.lancamentos} lançamentos adicionados.${aviso}`);
+
+  const pergunta = `Adicionar ${lista.length} lançamentos?\n\n${meses}${sobreContas}`
+    + '\n\nOs lançamentos somam ao que já existe, sem apagar nada.';
+
+  if (!confirm(pergunta)) return;
+
+  const r = dados.adicionarLancamentos(lista, contas);
+  const partes = [`${r.lancamentos} lançamentos adicionados.`];
+  if (r.contasCriadas.length) partes.push(`Criei: ${r.contasCriadas.join(', ')}.`);
+  if (r.saldosAjustados.length) partes.push(`Saldo inicial ajustado: ${r.saldosAjustados.join(', ')}.`);
+  recado(partes.join(' '));
 }
 
 function pintarAvisoDeBackup(estado) {

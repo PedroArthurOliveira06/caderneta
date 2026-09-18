@@ -41,7 +41,7 @@ export function contaParaBanco(conta, usuario) {
 /* ---------------------------- categorias -------------------------------- */
 
 export function categoriaParaApp(linha) {
-  return { id: linha.id, nome: linha.nome, tipo: linha.tipo, natureza: linha.natureza === 'esporadico' ? 'esporadico' : 'frequente' };
+  return { id: linha.id, nome: linha.nome, tipo: linha.tipo };
 }
 
 export function categoriaParaBanco(categoria, usuario) {
@@ -50,7 +50,6 @@ export function categoriaParaBanco(categoria, usuario) {
     usuario,
     nome: categoria.nome,
     tipo: categoria.tipo === 'entrada' ? 'entrada' : 'saida',
-    natureza: categoria.natureza === 'esporadico' ? 'esporadico' : 'frequente',
   };
 }
 
@@ -70,6 +69,8 @@ export function lancamentoParaApp(linha) {
   // É o desempate entre dois lançamentos do mesmo dia; só existe quando já
   // foi gravado, então não se inventa a chave quando falta.
   if (linha.criado_em) pronto.criadoEm = linha.criado_em;
+  // Só o cartão usa este campo; em banco ele vem vazio e não vira chave.
+  if (linha.natureza) pronto.natureza = linha.natureza;
   // Campos de parcelamento só existem quando a compra foi parcelada; deixar
   // `null` espalhado atrapalharia as comparações do tipo `parcelasTotal > 1`.
   if (linha.grupo) {
@@ -101,6 +102,7 @@ export function lancamentoParaBanco(l, usuario) {
   // lançamentos do mesmo dia é o mesmo aqui e no servidor. Sem ela, o banco
   // usa a hora em que recebeu — que numa fila offline pode ser bem depois.
   if (l.criadoEm) linha.criado_em = l.criadoEm;
+  linha.natureza = l.natureza === 'corrente' ? 'corrente' : (l.natureza === 'esporadico' ? 'esporadico' : null);
   return linha;
 }
 

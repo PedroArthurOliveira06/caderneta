@@ -304,12 +304,12 @@ export function pintarResumo(estado, contexto) {
 
   trocar(document.getElementById('resumo-natureza'), natureza.total
     ? el('div', { class: 'bloco' }, [
-        el('h2', { class: 'bloco__titulo', texto: 'O que se repete e o que não' }),
+        el('h2', { class: 'bloco__titulo', texto: 'A fatura do cartão' }),
 
         el('div', { class: 'peso', 'aria-hidden': 'true' }, [
           el('span', {
             class: 'peso__parte peso__parte--frequente',
-            estilo: { flexGrow: String(natureza.frequente || 0.0001) },
+            estilo: { flexGrow: String(natureza.corrente || 0.0001) },
           }),
           el('span', {
             class: 'peso__parte peso__parte--esporadico',
@@ -318,8 +318,8 @@ export function pintarResumo(estado, contexto) {
         ]),
 
         el('div', { class: 'peso-linhas' }, [
-          linhaDoPeso('Todo mês', natureza.frequente, natureza.total, 'frequente'),
-          linhaDoPeso('De vez em quando', natureza.esporadico, natureza.total, 'esporadico'),
+          linhaDoPeso('Corrente', natureza.corrente, natureza.total, 'frequente'),
+          linhaDoPeso('Esporádico', natureza.esporadico, natureza.total, 'esporadico'),
         ]),
 
         el('p', { class: 'ajuda', texto: textoDoPeso(natureza) }),
@@ -423,17 +423,17 @@ function linhaDoPeso(rotulo, valor, total, tipo) {
 
 /** A frase que traduz o gráfico. Um número sozinho não diz se é bom ou ruim. */
 function textoDoPeso(natureza) {
-  const fatia = Math.round(natureza.fatiaFrequente * 100);
+  const fatia = Math.round(natureza.fatiaCorrente * 100);
   if (fatia >= 80) {
-    return 'Quase tudo neste mês é gasto que se repete. Sobra pouco espaço para cortar sem mudar alguma conta fixa.';
+    return 'Quase toda a fatura é gasto corrente: ela vem parecida no mês que vem, sem você fazer nada.';
   }
   if (fatia >= 50) {
-    return 'A maior parte do mês já estava comprometida antes de ele começar. O resto é onde há escolha.';
+    return 'Mais da metade da fatura se repete todo mês. A outra parte é onde houve escolha.';
   }
   if (fatia >= 25) {
-    return 'Boa parte dos gastos do mês foi de ocasião, não de rotina — é aí que dá para mexer sem mudar nada fixo.';
+    return 'A maior parte da fatura foi de ocasião — é ela que faz o valor variar de um mês para o outro.';
   }
-  return 'Quase tudo neste mês foi gasto de ocasião. Vale olhar o que aconteceu de diferente.';
+  return 'Quase toda a fatura foi de ocasião. No mês que vem ela tende a vir bem menor.';
 }
 
 /* ============================= ajustes ================================= */
@@ -473,33 +473,16 @@ export function pintarAjustes(estado, contexto) {
     a.tipo === b.tipo ? a.nome.localeCompare(b.nome, 'pt-BR') : (a.tipo === 'saida' ? -1 : 1));
 
   trocar(document.getElementById('ajustes-categorias'),
-    ordenadas.map((cat) => {
-      const ehGasto = cat.tipo !== 'entrada';
-      const natureza = calc.naturezaDaCategoria(cat);
-
-      return el('div', { class: 'linha-categoria' }, [
-        el('span', { class: 'linha-ajuste__spine', estilo: { background: 'var(--linha-forte)' } }),
-
-        el('button', {
-          class: 'linha-categoria__nome',
-          type: 'button',
-          onclick: () => aoEditarCategoria(cat.id),
-        }, [
-          el('strong', { texto: cat.nome }),
-          el('span', { texto: ehGasto ? 'Gasto · toque para renomear' : 'Entrada · toque para renomear' }),
-        ]),
-
-        // Só gasto tem "se repete ou não": entrada de dinheiro não entra
-        // nessa conta, e um botão morto ali só confundiria.
-        ehGasto
-          ? el('button', {
-              class: `marca-natureza marca-natureza--${natureza}`,
-              type: 'button',
-              title: 'Toque para trocar',
-              texto: natureza === 'frequente' ? 'Todo mês' : 'De vez em quando',
-              onclick: () => contexto.aoTrocarNatureza(cat.id),
-            })
-          : null,
-      ]);
-    }));
+    ordenadas.map((cat) => el('button', {
+      class: 'linha-ajuste',
+      type: 'button',
+      onclick: () => aoEditarCategoria(cat.id),
+    }, [
+      el('span', { class: 'linha-ajuste__spine', estilo: { background: 'var(--linha-forte)' } }),
+      el('span', { class: 'linha-ajuste__corpo' }, [
+        el('span', { class: 'linha-ajuste__nome', texto: cat.nome }),
+        el('span', { class: 'linha-ajuste__meta', texto: cat.tipo === 'entrada' ? 'Entrada' : 'Gasto' }),
+      ]),
+      el('span', { class: 'linha-ajuste__acao', texto: 'Renomear' }),
+    ])));
 }

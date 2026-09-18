@@ -135,40 +135,43 @@ export function porConta(estado, ano, mes, tipo = 'saida') {
 }
 
 /**
- * Gasto que se repete todo mês (aluguel, luz, assinatura) separado do que
- * aparece de vez em quando (um presente, um remédio).
+ * A fatura do cartão, partida em duas: o que se repete todo mês (assinatura,
+ * curso, cabelo) e o que foi de ocasião.
  *
- * A diferença que isso responde: dos gastos do mês, quanto já estava
- * comprometido antes de o mês começar. É o número que diz se dá para relaxar
- * ou não — e some quando tudo aparece junto numa lista só.
+ * Esta divisão existe SÓ no cartão de crédito, e isso não é limitação: é a
+ * pergunta que o cartão cria. A fatura chega fechada, e o que interessa é
+ * saber qual parte dela vem de novo no mês que vem. Gasto em conta corrente
+ * é gasto, e ponto.
  *
- * Gasto sem categoria conta como esporádico: dizer que ele se repete seria
- * afirmar algo que ninguém afirmou.
+ * O rótulo é do lançamento, não da categoria: no mesmo cartão, "Ifood"
+ * pode ser a assinatura mensal num mês e um pedido avulso no outro.
  */
-export function naturezaDaCategoria(categoria) {
-  if (!categoria) return 'esporadico';
-  return categoria.natureza === 'esporadico' ? 'esporadico' : 'frequente';
+export function naturezaDoLancamento(lancamento) {
+  return lancamento && lancamento.natureza === 'corrente' ? 'corrente' : 'esporadico';
 }
 
 export function porNatureza(estado, ano, mes, filtroContaId) {
-  const lista = lancamentosDoMes(estado, ano, mes, filtroContaId)
-    .filter((l) => l.tipo === 'saida');
+  const cartoes = new Set(estado.contas
+    .filter((c) => tipoDaConta(c) === 'cartao')
+    .map((c) => c.id));
 
-  let frequente = 0;
+  const lista = lancamentosDoMes(estado, ano, mes, filtroContaId)
+    .filter((l) => l.tipo === 'saida' && cartoes.has(l.contaId));
+
+  let corrente = 0;
   let esporadico = 0;
 
   for (const l of lista) {
-    const categoria = estado.categorias.find((c) => c.id === l.categoriaId);
-    if (naturezaDaCategoria(categoria) === 'esporadico') esporadico += l.valor;
-    else frequente += l.valor;
+    if (naturezaDoLancamento(l) === 'corrente') corrente += l.valor;
+    else esporadico += l.valor;
   }
 
-  const total = frequente + esporadico;
+  const total = corrente + esporadico;
   return {
-    frequente,
+    corrente,
     esporadico,
     total,
-    fatiaFrequente: total ? frequente / total : 0,
+    fatiaCorrente: total ? corrente / total : 0,
   };
 }
 

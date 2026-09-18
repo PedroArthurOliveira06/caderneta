@@ -392,6 +392,18 @@
       <select id="lancamento-destino"></select>
     </div>
 
+    <div class="campo" id="campo-natureza" hidden>
+      <span class="campo__rotulo">No cartão, este gasto é</span>
+      <div class="segmentado segmentado--duplo" role="group" aria-label="Corrente ou esporádico">
+        <button type="button" class="segmento" data-natureza="corrente">Corrente</button>
+        <button type="button" class="segmento segmento--ativo" data-natureza="esporadico">Esporádico</button>
+      </div>
+      <p class="ajuda">
+        Corrente é o que volta todo mês — assinatura, curso, cabelo.
+        Esporádico é o que foi só desta vez.
+      </p>
+    </div>
+
     <div class="campo" id="campo-categoria">
       <label for="lancamento-categoria">Categoria</label>
       <select id="lancamento-categoria"></select>
