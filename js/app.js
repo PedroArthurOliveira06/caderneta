@@ -126,7 +126,7 @@ function montarCamposBancos(quantidade = 3) {
       el('input', {
         type: 'text',
         inputmode: 'decimal',
-        placeholder: 'saldo hoje',
+        placeholder: 'Saldo hoje',
         'aria-label': `Saldo atual do banco ${i + 1}`,
         'data-campo': 'saldo',
       }),
@@ -253,10 +253,10 @@ function mostrarEstadoDoEnvio() {
   const pendentes = dados.enviosPendentes();
   if (!navigator.onLine) {
     caixa.textContent = pendentes
-      ? `sem internet · ${pendentes} para enviar`
-      : 'sem internet · seus dados estão salvos aqui';
+      ? `Sem internet · ${pendentes} para enviar`
+      : 'Sem internet · seus dados estão salvos aqui';
   } else if (pendentes) {
-    caixa.textContent = `enviando ${pendentes}…`;
+    caixa.textContent = `Enviando ${pendentes}…`;
   } else {
     caixa.hidden = true;
     return;

@@ -92,19 +92,27 @@ export function dataCurta(iso) {
   return `${d}/${m}`;
 }
 
-/** '2026-09-17' -> 'qui' */
+const comMaiuscula = (texto) => texto.charAt(0).toUpperCase() + texto.slice(1);
+
+/** '2026-09-17' -> 'Qui' */
 export function diaDaSemana(iso) {
-  return DIAS[paraData(iso).getDay()];
+  return comMaiuscula(DIAS[paraData(iso).getDay()]);
 }
 
-/** (2026, 9) -> 'setembro de 2026' */
+/**
+ * (2026, 9) -> 'Setembro de 2026'
+ *
+ * Em português o certo é mês com letra minúscula no meio de uma frase — e é
+ * assim que `dataLonga` escreve. Aqui é diferente: este texto é o TÍTULO da
+ * tela, e título começa com maiúscula.
+ */
 export function mesPorExtenso(ano, mes) {
-  return `${MESES[mes - 1]} de ${ano}`;
+  return comMaiuscula(`${MESES[mes - 1]} de ${ano}`);
 }
 
-/** (2026, 9) -> 'set' */
+/** (9) -> 'Set' */
 export function mesCurto(mes) {
-  return MESES_CURTO[mes - 1];
+  return comMaiuscula(MESES_CURTO[mes - 1]);
 }
 
 /** '2026-09-17' -> '2026-09' */

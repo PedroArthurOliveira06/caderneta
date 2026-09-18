@@ -58,7 +58,7 @@ test('o banco citado pelo nome é reconhecido', () => {
 test('nome mais longo ganha: "Cartão BB" não vira "BB" solto', () => {
   const r = ler('geladeira 489,90 cartao bb');
   assert.equal(r.contaId, 'cc');
-  assert.equal(r.descricao, 'geladeira');
+  assert.equal(r.descricao, 'Geladeira');
 });
 
 test('a categoria é quem revela que é entrada, sem a pessoa dizer', () => {
@@ -86,7 +86,7 @@ test('data escrita como 12/09 é entendida', () => {
   assert.equal(r.data, '2026-09-12');
   assert.equal(r.contaId, 'it');
   assert.equal(r.valor, 21000);
-  assert.equal(r.descricao, 'luz');
+  assert.equal(r.descricao, 'Luz');
 });
 
 test('data sem ano que cairia no futuro é lida como do ano passado', () => {
@@ -99,7 +99,7 @@ test('o que sobra vira descrição, sem sobrar espaço solto', () => {
   const r = ler('mercado 45 feira da semana nubank');
   assert.equal(r.categoriaId, 'mer');
   assert.equal(r.contaId, 'nu');
-  assert.equal(r.descricao, 'feira da semana');
+  assert.equal(r.descricao, 'Feira da semana', 'a descrição volta com maiúscula');
 });
 
 test('sem valor, o app não finge que entendeu', () => {

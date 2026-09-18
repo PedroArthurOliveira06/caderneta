@@ -102,7 +102,7 @@ function blocoCartoes(cartoes, fatura, totalNosBancos, contexto) {
         el('span', { class: 'saldo-conta__nome', texto: l.conta.nome }),
         el('span', {
           class: 'item__detalhe',
-          texto: l.saldo > 0 ? 'pago a mais' : 'fatura em aberto',
+          texto: l.saldo > 0 ? 'Pago a mais' : 'Fatura em aberto',
         }),
       ]),
       el('span', {
@@ -333,10 +333,10 @@ export function pintarResumo(estado, contexto) {
       ]))),
       el('div', { class: 'legenda' }, [
         el('span', { class: 'legenda__item' }, [
-          el('span', { class: 'legenda__marca', estilo: { background: 'var(--entrada)' } }), 'entrou',
+          el('span', { class: 'legenda__marca', estilo: { background: 'var(--entrada-viva)' } }), 'Entrou',
         ]),
         el('span', { class: 'legenda__item' }, [
-          el('span', { class: 'legenda__marca', estilo: { background: 'var(--saida)' } }), 'saiu',
+          el('span', { class: 'legenda__marca', estilo: { background: 'var(--saida-viva)' } }), 'Saiu',
         ]),
       ]),
     ]));
@@ -347,10 +347,10 @@ export function pintarResumo(estado, contexto) {
 /** A linha de apoio nos Ajustes: um banco tem saldo, um cartão tem fatura. */
 function descricaoDaConta(estado, conta) {
   const saldo = calc.saldoDaConta(estado, conta.id);
-  if (calc.tipoDaConta(conta) !== 'cartao') return `saldo hoje ${fmt.moeda(saldo)}`;
+  if (calc.tipoDaConta(conta) !== 'cartao') return `Saldo hoje ${fmt.moeda(saldo)}`;
   return saldo > 0
-    ? `cartão · pago a mais ${fmt.moeda(saldo)}`
-    : `cartão · fatura em aberto ${fmt.moeda(-saldo)}`;
+    ? `Cartão · pago a mais ${fmt.moeda(saldo)}`
+    : `Cartão · fatura em aberto ${fmt.moeda(-saldo)}`;
 }
 
 export function pintarAjustes(estado, contexto) {
@@ -372,7 +372,7 @@ export function pintarAjustes(estado, contexto) {
             texto: descricaoDaConta(estado, conta),
           }),
         ]),
-        el('span', { class: 'linha-ajuste__acao', texto: 'editar' }),
+        el('span', { class: 'linha-ajuste__acao', texto: 'Editar' }),
       ])));
 
   const ordenadas = [...estado.categorias].sort((a, b) =>
@@ -387,8 +387,8 @@ export function pintarAjustes(estado, contexto) {
       el('span', { class: 'linha-ajuste__spine', estilo: { background: 'var(--linha-forte)' } }),
       el('span', { class: 'linha-ajuste__corpo' }, [
         el('span', { class: 'linha-ajuste__nome', texto: cat.nome }),
-        el('span', { class: 'linha-ajuste__meta', texto: cat.tipo === 'entrada' ? 'entrada' : 'gasto' }),
+        el('span', { class: 'linha-ajuste__meta', texto: cat.tipo === 'entrada' ? 'Entrada' : 'Gasto' }),
       ]),
-      el('span', { class: 'linha-ajuste__acao', texto: 'renomear' }),
+      el('span', { class: 'linha-ajuste__acao', texto: 'Renomear' }),
     ])));
 }

@@ -13,24 +13,36 @@
    ========================================================================= */
 
 :root {
-  --tinta: #16271f;
-  --tinta-2: #23392f;
-  --tinta-3: #3b5449;
+  /* As três cores da capa mandam no app inteiro. Elas são a marca: o "C"
+     repartido em azul, roxo e âmbar. Aparecem na tarja do topo, na
+     identidade de cada banco e nos gráficos. */
+  --capa-azul: #2563d8;
+  --capa-roxo: #7a35dd;
+  --capa-ambar: #e08a12;
 
-  --texto: #1b241f;
-  --texto-suave: #4e5a53;
-  --texto-fraco: #626e67;   /* 4.6:1 sobre o canvas — AA em 12-13px */
+  --tinta: #14261d;
+  --tinta-2: #1f3a2c;
+  --tinta-3: #38574a;
 
-  --canvas: #eceee8;
+  --texto: #16201a;
+  --texto-suave: #45524b;
+  --texto-fraco: #5a6760;   /* 4.7:1 sobre o canvas — AA em 12-13px */
+
+  --canvas: #eef1ea;
   --superficie: #ffffff;
-  --superficie-2: #f5f6f2;
-  --linha: #d8dcd4;
-  --linha-forte: #c3c9be;
+  --superficie-2: #f4f6f1;
+  --linha: #d7ddd3;
+  --linha-forte: #bfc8ba;
 
-  --entrada: #0f6b41;
-  --entrada-bg: #d8efe3;
-  --saida: #a8321f;
-  --saida-bg: #f8e1dc;
+  /* Duas versões de cada cor de dinheiro, e isso não é capricho: a viva é
+     para preencher barra e marca, onde brilho ajuda; a escura é para texto,
+     onde a viva não alcançaria o contraste mínimo de leitura sobre branco. */
+  --entrada: #0a7a45;
+  --entrada-viva: #12a961;
+  --entrada-bg: #d6f5e4;
+  --saida: #c0271d;
+  --saida-viva: #e63a2e;
+  --saida-bg: #fde3e0;
 
   --raio-g: 14px;
   --raio: 10px;
@@ -306,8 +318,25 @@ button { font: inherit; color: inherit; }
 
 /* ---------------------------- barra do mês ---------------------------- */
 
+/* A tarja das três cores embaixo do topo é a logo deitada: as mesmas
+   proporções desiguais dos três pedaços do "C". É o que faz a marca estar
+   presente em toda tela sem precisar repetir o ícone. */
+.barra-mes::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: linear-gradient(to right,
+    var(--capa-azul) 0 45%,
+    var(--capa-roxo) 45% 67%,
+    var(--capa-ambar) 67% 100%);
+}
+
 .barra-mes {
   position: sticky;
+  isolation: isolate;
   top: 0;
   z-index: 20;
   display: grid;
@@ -649,7 +678,7 @@ button { font: inherit; color: inherit; }
 .barra-categoria__fatia { font-size: 0.75rem; color: var(--texto-fraco); margin-left: 6px; font-weight: 400; }
 
 .barra-categoria__trilho { height: 6px; background: var(--superficie-2); border-radius: 999px; overflow: hidden; }
-.barra-categoria__preenchimento { height: 100%; background: var(--tinta-3); border-radius: 999px; }
+.barra-categoria__preenchimento { height: 100%; background: var(--capa-azul); border-radius: 999px; }
 
 .evolucao {
   display: grid;
@@ -664,8 +693,8 @@ button { font: inherit; color: inherit; }
 .evolucao__mes { display: grid; grid-template-rows: 1fr auto; gap: 6px; height: 100%; text-align: center; }
 .evolucao__colunas { display: flex; gap: 3px; align-items: flex-end; height: 100%; justify-content: center; }
 .evolucao__coluna { width: 12px; border-radius: 3px 3px 0 0; min-height: 2px; }
-.evolucao__coluna--entrada { background: var(--entrada); }
-.evolucao__coluna--saida { background: var(--saida); }
+.evolucao__coluna--entrada { background: var(--entrada-viva); }
+.evolucao__coluna--saida { background: var(--saida-viva); }
 .evolucao__rotulo { font-size: 0.6875rem; color: var(--texto-fraco); }
 .evolucao__rotulo--atual { color: var(--texto); font-weight: 600; }
 
@@ -807,7 +836,7 @@ button { font: inherit; color: inherit; }
   inset: 0 22% auto;
   top: 0;
   height: 2px;
-  background: var(--tinta);
+  background: var(--capa-azul);
   border-radius: 0 0 2px 2px;
 }
 

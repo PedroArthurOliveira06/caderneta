@@ -123,7 +123,11 @@ export function interpretar(texto, contexto = {}) {
     ? 'entrada'
     : 'saida';
 
-  const descricao = resto.replace(/\s+/g, ' ').trim();
+  // O texto foi rebaixado para minúsculas só para poder comparar com nomes de
+  // banco e categoria. A descrição, porém, vai aparecer no extrato — e uma
+  // lista toda em caixa baixa parece desleixada. Volta com maiúscula.
+  const sobrou = resto.replace(/\s+/g, ' ').trim();
+  const descricao = sobrou ? sobrou.charAt(0).toUpperCase() + sobrou.slice(1) : '';
 
   return {
     valor,

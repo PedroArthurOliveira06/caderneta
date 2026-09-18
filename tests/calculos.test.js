@@ -232,6 +232,15 @@ test('a data não escorrega um dia por causa de fuso horário', () => {
   assert.equal(fmt.dataLonga('2026-01-01'), '1 de janeiro');
 });
 
+test('título de mês começa com maiúscula; data no meio da frase, não', () => {
+  // A regra do português é mês em minúscula — mas só dentro de uma frase.
+  // "Setembro de 2026" é o título da tela, e título começa com maiúscula.
+  assert.equal(fmt.mesPorExtenso(2026, 9), 'Setembro de 2026');
+  assert.equal(fmt.mesCurto(9), 'Set');
+  assert.equal(fmt.diaDaSemana('2026-09-17'), 'Qui');
+  assert.equal(fmt.dataLonga('2026-09-17'), '17 de setembro');
+});
+
 test('virada de ano ao navegar entre meses', () => {
   assert.deepEqual(fmt.deslocarMes(2026, 1, -1), { ano: 2025, mes: 12 });
   assert.deepEqual(fmt.deslocarMes(2026, 12, 1), { ano: 2027, mes: 1 });

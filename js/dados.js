@@ -23,12 +23,12 @@ const VERSAO = 1;
  *  querem dizer "entrou" e "saiu". Se um banco também fosse vermelho, um
  *  valor vermelho passaria a ter dois significados possíveis. */
 export const CORES_CONTA = [
-  { id: 'azul', nome: 'Azul', hex: '#1c5fc4' },
-  { id: 'roxo', nome: 'Roxo', hex: '#5f2da8' },
-  { id: 'ambar', nome: 'Âmbar', hex: '#8a5406' },
-  { id: 'petroleo', nome: 'Petróleo', hex: '#0f5c66' },
-  { id: 'magenta', nome: 'Magenta', hex: '#a41d6b' },
-  { id: 'ardosia', nome: 'Ardósia', hex: '#46536b' },
+  { id: 'azul', nome: 'Azul', hex: '#2563d8' },
+  { id: 'roxo', nome: 'Roxo', hex: '#7a35dd' },
+  { id: 'ambar', nome: 'Âmbar', hex: '#e08a12' },
+  { id: 'petroleo', nome: 'Turquesa', hex: '#0a97ad' },
+  { id: 'magenta', nome: 'Magenta', hex: '#d11e77' },
+  { id: 'ardosia', nome: 'Ardósia', hex: '#4a5c78' },
 ];
 
 const CATEGORIAS_INICIAIS = [
