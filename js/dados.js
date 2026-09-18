@@ -39,6 +39,7 @@ const CATEGORIAS_INICIAIS = [
   { nome: 'Assinaturas', tipo: 'saida' },
   { nome: 'Outros', tipo: 'saida' },
   { nome: 'Salário', tipo: 'entrada' },
+  { nome: 'Ajuda da família', tipo: 'entrada' },
   { nome: 'Reembolso', tipo: 'entrada' },
   { nome: 'Outras entradas', tipo: 'entrada' },
 ];
@@ -236,8 +237,40 @@ export function salvarLancamento(dados) {
   });
 }
 
+/**
+ * Grava várias parcelas de uma vez. Existe para a compra parcelada ser uma
+ * gravação só: se cada parcela fosse salva sozinha, seriam N escritas em
+ * disco e N redesenhos de tela para um único ato do usuário.
+ */
+export function salvarParcelas(lista) {
+  const grupo = id();
+  mutar((e) => {
+    lista.forEach((dados, i) => {
+      e.lancamentos.push({
+        id: id(),
+        criadoEm: new Date().toISOString(),
+        ...dados,
+        valor: Math.abs(dados.valor || 0),
+        grupo,
+        parcela: i + 1,
+        parcelasTotal: lista.length,
+      });
+    });
+  });
+  return grupo;
+}
+
 export function removerLancamento(lancamentoId) {
   mutar((e) => { e.lancamentos = e.lancamentos.filter((l) => l.id !== lancamentoId); });
+}
+
+/** Apaga a compra parcelada inteira, incluindo as parcelas futuras. */
+export function removerGrupo(grupo) {
+  mutar((e) => { e.lancamentos = e.lancamentos.filter((l) => l.grupo !== grupo); });
+}
+
+export function parcelasDoGrupo(grupo) {
+  return grupo ? estado.lancamentos.filter((l) => l.grupo === grupo) : [];
 }
 
 export function lancamento(lancamentoId) {

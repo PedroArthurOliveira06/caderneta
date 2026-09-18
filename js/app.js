@@ -202,6 +202,15 @@ function ligarDialogoLancamento() {
 
   aplicarMascaraDeValor($('lancamento-valor'));
 
+  trocar($('lancamento-parcelas'), Array.from({ length: 24 }, (_, i) => el('option', {
+    value: String(i + 1),
+    texto: i === 0 ? 'À vista' : `${i + 1}x`,
+  })));
+
+  $('lancamento-parcelas').addEventListener('change', mostrarContaDasParcelas);
+  $('lancamento-valor').addEventListener('input', mostrarContaDasParcelas);
+  $('lancamento-data').addEventListener('change', mostrarContaDasParcelas);
+
   // Trocar o banco de origem não pode deixar os dois lados iguais.
   $('lancamento-conta').addEventListener('change', () => {
     if (tipoEmEdicao === 'transferencia') garantirDestinoDiferente();
@@ -210,6 +219,18 @@ function ligarDialogoLancamento() {
   $('excluir-lancamento').addEventListener('click', () => {
     const id = $('lancamento-id').value;
     if (!id) return;
+    const alvo = dados.lancamento(id);
+
+    // Numa compra parcelada, apagar uma parcela só deixaria a compra pela
+    // metade e o total errado. Apaga a compra inteira, dizendo isso.
+    if (alvo && alvo.grupo && alvo.parcelasTotal > 1) {
+      if (!confirm(`Isto apaga as ${alvo.parcelasTotal} parcelas desta compra, inclusive as que ainda vão vencer. Continuar?`)) return;
+      dados.removerGrupo(alvo.grupo);
+      dialogo.close();
+      recado('Compra parcelada excluída.');
+      return;
+    }
+
     if (!confirm('Excluir este lançamento? Não dá para desfazer.')) return;
     dados.removerLancamento(id);
     dialogo.close();
@@ -252,6 +273,22 @@ function ligarDialogoLancamento() {
       registro.categoriaId = $('lancamento-categoria').value || null;
     }
 
+    const vezes = Number($('lancamento-parcelas').value || 1);
+
+    if (!registro.id && tipoEmEdicao === 'saida' && vezes > 1) {
+      // Uma parcela por mês, a partir da data da compra. Cada uma é um
+      // lançamento de verdade, com a sua própria data — é isso que faz cada
+      // mês mostrar só o que vence nele, sem nenhuma conta especial depois.
+      dados.salvarParcelas(fmt.dividirEmParcelas(valor, vezes).map((parte, i) => ({
+        ...registro,
+        id: undefined,
+        valor: parte,
+        data: fmt.somarMeses(registro.data, i),
+      })));
+      recado(`Lançado em ${vezes} parcelas.`);
+      return;
+    }
+
     dados.salvarLancamento(registro);
     recado(registro.id ? 'Lançamento atualizado.' : 'Lançado.');
   });
@@ -266,11 +303,45 @@ function aplicarTipo(dialogo) {
   $('campo-categoria').hidden = transferencia;
   $('rotulo-conta').textContent = transferencia ? 'De onde sai' : 'Banco ou cartão';
 
+  // Parcelar só faz sentido em gasto, e só ao criar: editar uma parcela mexe
+  // naquela parcela, não redivide a compra inteira.
+  const editando = Boolean($('lancamento-id').value);
+  $('campo-parcelas').hidden = tipoEmEdicao !== 'saida' || editando;
+  if ($('campo-parcelas').hidden) $('ajuda-parcelas').hidden = true;
+  else mostrarContaDasParcelas();
+
   // Transferir de um banco para ele mesmo não existe, e o app recusaria na
   // hora de salvar. Então já abre apontando para outro banco.
   if (transferencia) garantirDestinoDiferente();
 
   preencherCategorias(transferencia ? 'saida' : tipoEmEdicao);
+}
+
+/**
+ * Mostra a conta feita antes de salvar: quanto fica cada parcela e quando cai
+ * a última. Parcelamento é justamente onde a pessoa quer conferir a conta
+ * antes de confirmar — e onde o centavo da divisão aparece.
+ */
+function mostrarContaDasParcelas() {
+  const aviso = $('ajuda-parcelas');
+  const vezes = Number($('lancamento-parcelas').value || 1);
+  const total = fmt.paraCentavos($('lancamento-valor').value);
+  const data = $('lancamento-data').value;
+
+  if (vezes < 2 || total <= 0 || !data) {
+    aviso.hidden = true;
+    return;
+  }
+
+  const parcelas = fmt.dividirEmParcelas(total, vezes);
+  const primeira = fmt.moeda(parcelas[0]);
+  const demais = fmt.moeda(parcelas[vezes - 1]);
+  const ultimaData = fmt.somarMeses(data, vezes - 1);
+
+  aviso.textContent = parcelas[0] === parcelas[vezes - 1]
+    ? `${vezes} parcelas de ${primeira}. A última cai em ${fmt.dataCurta(ultimaData)}/${ultimaData.slice(0, 4)}.`
+    : `1ª de ${primeira} e as outras ${vezes - 1} de ${demais}. A última cai em ${fmt.dataCurta(ultimaData)}/${ultimaData.slice(0, 4)}.`;
+  aviso.hidden = false;
 }
 
 function garantirDestinoDiferente() {
@@ -303,9 +374,17 @@ function abrirLancamento(lancamentoId) {
   const existente = lancamentoId ? dados.lancamento(lancamentoId) : null;
 
   tipoEmEdicao = existente ? existente.tipo : 'saida';
-  $('dialogo-titulo').textContent = existente ? 'Editar lançamento' : 'Novo lançamento';
+  $('dialogo-titulo').textContent = existente
+    ? (existente.parcelasTotal > 1
+        ? `Parcela ${existente.parcela} de ${existente.parcelasTotal}`
+        : 'Editar lançamento')
+    : 'Novo lançamento';
   $('lancamento-id').value = existente ? existente.id : '';
+  $('lancamento-parcelas').value = '1';
   $('excluir-lancamento').hidden = !existente;
+  $('excluir-lancamento').textContent = existente && existente.parcelasTotal > 1
+    ? `Excluir as ${existente.parcelasTotal} parcelas`
+    : 'Excluir lançamento';
 
   preencherContas($('lancamento-conta'), existente ? existente.contaId : undefined);
   preencherContas($('lancamento-destino'), existente ? existente.contaDestinoId : undefined);

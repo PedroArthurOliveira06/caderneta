@@ -206,6 +206,9 @@ function linhaDoExtrato(estado, l, aoTocar) {
     titulo = l.descricao || (categoria ? categoria.nome : 'Sem categoria');
     const partes = [conta ? conta.nome : 'Banco removido'];
     if (l.descricao && categoria) partes.unshift(categoria.nome);
+    // "3/10" vem antes do resto: numa compra parcelada é a informação que a
+    // pessoa procura primeiro ao passar o olho no extrato.
+    if (l.parcelasTotal > 1) partes.unshift(`${l.parcela}/${l.parcelasTotal}`);
     detalhe = partes.join(' · ');
     valorTexto = l.tipo === 'entrada' ? fmt.comSinal(l.valor) : fmt.comSinal(-l.valor);
     classeValor = l.tipo === 'entrada' ? 'item__valor--entrada' : 'item__valor--saida';

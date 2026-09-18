@@ -119,6 +119,37 @@ export function limitesDoMes(ano, mes) {
   return { inicio: `${ano}-${mm}-01`, fim: `${ano}-${mm}-${String(ultimo).padStart(2, '0')}` };
 }
 
+/**
+ * Mesma data, N meses à frente. Dia que não existe no mês de destino cai no
+ * último dia dele: 31/01 + 1 mês é 28/02, não 03/03. É o que os bancos fazem
+ * com parcela, e o que o `new Date(ano, mes, 31)` do JavaScript NÃO faz
+ * sozinho — ele transborda para o mês seguinte.
+ */
+export function somarMeses(iso, quantidade) {
+  const [ano, mes, dia] = String(iso).split('-').map(Number);
+  const total = ano * 12 + (mes - 1) + quantidade;
+  const anoNovo = Math.floor(total / 12);
+  const mesNovo = (total % 12) + 1;
+  const ultimoDia = new Date(anoNovo, mesNovo, 0).getDate();
+  const diaNovo = Math.min(dia, ultimoDia);
+  return [
+    anoNovo,
+    String(mesNovo).padStart(2, '0'),
+    String(diaNovo).padStart(2, '0'),
+  ].join('-');
+}
+
+/**
+ * Divide um valor em N parcelas sem perder nem inventar centavo: o resto da
+ * divisão vai todo na primeira, como as lojas fazem. 100,00 em 3x vira
+ * 33,34 + 33,33 + 33,33 — e a soma continua sendo exatamente 100,00.
+ */
+export function dividirEmParcelas(centavos, quantidade) {
+  const base = Math.floor(centavos / quantidade);
+  const resto = centavos - base * quantidade;
+  return Array.from({ length: quantidade }, (_, i) => (i === 0 ? base + resto : base));
+}
+
 /** Avança ou volta meses preservando o par {ano, mes}. */
 export function deslocarMes(ano, mes, passo) {
   const total = ano * 12 + (mes - 1) + passo;

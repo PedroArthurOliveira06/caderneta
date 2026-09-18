@@ -148,6 +148,65 @@ test('fatura paga a mais não vira dívida negativa', () => {
   assert.equal(calc.faturaEmAberto(e, '2026-09-30'), 0);
 });
 
+/* ---------------------------- parcelamento ------------------------------ */
+
+test('parcela quebrada não perde nem inventa centavo', () => {
+  // 100,00 em 3x: 33,333... não existe em dinheiro. O resto vai na primeira.
+  const p = fmt.dividirEmParcelas(10000, 3);
+  assert.deepEqual(p, [3334, 3333, 3333]);
+  assert.equal(p.reduce((a, b) => a + b, 0), 10000);
+
+  // A soma tem de fechar exata para qualquer valor e qualquer número de vezes.
+  for (const total of [10000, 48990, 1, 99999, 123457]) {
+    for (const vezes of [2, 3, 6, 7, 10, 12, 24]) {
+      const soma = fmt.dividirEmParcelas(total, vezes).reduce((a, b) => a + b, 0);
+      assert.equal(soma, total, `${total} em ${vezes}x`);
+    }
+  }
+});
+
+test('parcela de 489,90 em 10x dá exatamente 48,99', () => {
+  assert.deepEqual(new Set(fmt.dividirEmParcelas(48990, 10)), new Set([4899]));
+});
+
+test('parcela cai no último dia quando o mês de destino é mais curto', () => {
+  assert.equal(fmt.somarMeses('2026-01-31', 1), '2026-02-28'); // não 03/03
+  assert.equal(fmt.somarMeses('2028-01-31', 1), '2028-02-29'); // bissexto
+  assert.equal(fmt.somarMeses('2026-03-31', 1), '2026-04-30');
+  assert.equal(fmt.somarMeses('2026-09-15', 3), '2026-12-15');
+  assert.equal(fmt.somarMeses('2026-11-20', 3), '2027-02-20'); // vira o ano
+});
+
+test('a fatura só mostra as parcelas que já venceram', () => {
+  const e = cenario();
+  e.contas.push({ id: 'cc', nome: 'Cartão BB', tipo: 'cartao', saldoInicial: 0, ordem: 3 });
+  // Geladeira de 489,90 em 10x, a partir de setembro.
+  fmt.dividirEmParcelas(48990, 10).forEach((valor, i) => {
+    e.lancamentos.push({
+      id: `p${i}`,
+      data: fmt.somarMeses('2026-09-08', i),
+      tipo: 'saida',
+      valor,
+      contaId: 'cc',
+      categoriaId: 'casa',
+      grupo: 'g1',
+      parcela: i + 1,
+      parcelasTotal: 10,
+    });
+  });
+
+  // Em setembro, só a 1ª parcela pesou — não os 489,90 inteiros.
+  assert.equal(calc.faturaEmAberto(e, '2026-09-30'), 4899);
+  assert.equal(calc.faturaEmAberto(e, '2026-11-30'), 4899 * 3);
+  assert.equal(calc.faturaEmAberto(e, '2027-06-30'), 48990); // todas as 10
+
+  // E cada mês carrega só a SUA parcela no "saiu" — nunca a compra inteira.
+  // Outubro já tinha uma saída de 500,00 no cenário base, então o total do
+  // mês é ela mais uma única parcela de 48,99.
+  assert.equal(calc.totaisDoMes(e, 2026, 10).saiu, 50000 + 4899);
+  assert.equal(calc.totaisDoMes(e, 2026, 11).saiu, 4899);
+});
+
 test('dinheiro digitado em qualquer formato vira o mesmo inteiro', () => {
   assert.equal(fmt.paraCentavos('1.234,56'), 123456);
   assert.equal(fmt.paraCentavos('1234,56'), 123456);
