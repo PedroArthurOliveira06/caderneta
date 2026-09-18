@@ -90,6 +90,11 @@ button { font: inherit; color: inherit; }
 
 .boas-vindas__miolo { width: 100%; max-width: 30rem; }
 
+/* Sobre o fundo tinta da abertura, as cores do ícone são clareadas: as
+   originais foram escolhidas para contrastar com papel branco e ficam
+   abafadas no escuro. */
+.marca { width: 64px; height: 64px; display: block; margin-bottom: 18px; }
+
 .boas-vindas__titulo {
   font-size: 2.25rem;
   font-weight: 700;

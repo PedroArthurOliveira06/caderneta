@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caderneta — escolher a logo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --tinta: #16271f; --canvas: #eceee8; --superficie: #fff;
+    --texto: #1b241f; --fraco: #626e67; --linha: #d8dcd4;
+    --azul: #1c5fc4; --roxo: #5f2da8; --ambar: #8a5406;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px 24px 80px; background: var(--canvas); color: var(--texto);
+    font-family: "Geist", system-ui, sans-serif; line-height: 1.5;
+  }
+  .miolo { max-width: 60rem; margin: 0 auto; }
+  h1 { font-size: 1.75rem; letter-spacing: -0.03em; margin: 0 0 6px; }
+  .intro { color: var(--fraco); max-width: 52ch; margin: 0 0 40px; }
+
+  .opcao {
+    background: var(--superficie); border: 1px solid var(--linha); border-radius: 14px;
+    padding: 24px; margin-bottom: 20px;
+    display: grid; grid-template-columns: 140px 1fr; gap: 28px; align-items: start;
+  }
+  @media (max-width: 40rem) { .opcao { grid-template-columns: 1fr; } }
+
+  .opcao__nome { font-size: 1.0625rem; font-weight: 600; margin: 0 0 4px; }
+  .opcao__ideia { color: var(--fraco); font-size: 0.9375rem; margin: 0 0 18px; max-width: 46ch; }
+  .opcao__letra { font-size: 0.75rem; color: var(--fraco); font-weight: 600; margin-bottom: 8px; }
+
+  .tamanhos { display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap; }
+  .tamanho { text-align: center; }
+  .tamanho span { display: block; font-size: 0.6875rem; color: var(--fraco); margin-top: 8px; }
+  .tamanho svg { display: block; border-radius: 22%; }
+
+  /* Fundo escuro para conferir o ícone na tela de início do celular. */
+  .no-celular {
+    margin-top: 20px; background: linear-gradient(160deg, #2b3a44, #16201c);
+    border-radius: 12px; padding: 18px; display: flex; gap: 18px; align-items: center;
+  }
+  .no-celular span { color: #b9c7bf; font-size: 0.75rem; }
+</style>
+</head>
+<body>
+<div class="miolo">
+  <h1>Quatro caminhos para a logo</h1>
+  <p class="intro">
+    Cada um aparece do tamanho de cartaz até 16 pixels, que é o tamanho da
+    abinha do navegador. O que importa não é qual fica mais bonito grande — é
+    qual continua legível pequeno, porque é assim que você vai vê-lo todo dia.
+  </p>
+
+  <!-- ===================== A ===================== -->
+  <section class="opcao">
+    <div>
+      <p class="opcao__letra">OPÇÃO A</p>
+      <p class="opcao__nome">Três saldos</p>
+      <p class="opcao__ideia">
+        Três barras de tamanhos diferentes: os seus bancos, com quantias
+        diferentes em cada um. É o desenho que o app já usa.
+      </p>
+    </div>
+    <div>
+      <div class="tamanhos">
+        <div class="tamanho">
+          <svg width="128" height="128" viewBox="0 0 512 512"><g id="a-arte">
+            <rect width="512" height="512" fill="#16271f"/>
+            <rect x="118" y="148" width="276" height="56" rx="28" fill="#1c5fc4"/>
+            <rect x="118" y="238" width="180" height="56" rx="28" fill="#5f2da8"/>
+            <rect x="118" y="328" width="232" height="56" rx="28" fill="#8a5406"/>
+          </g></svg>
+          <span>128</span>
+        </div>
+        <div class="tamanho"><svg width="64" height="64" viewBox="0 0 512 512"><use href="#a-arte"/></svg><span>64</span></div>
+        <div class="tamanho"><svg width="32" height="32" viewBox="0 0 512 512"><use href="#a-arte"/></svg><span>32</span></div>
+        <div class="tamanho"><svg width="16" height="16" viewBox="0 0 512 512"><use href="#a-arte"/></svg><span>16</span></div>
+      </div>
+      <div class="no-celular">
+        <svg width="56" height="56" viewBox="0 0 512 512" style="border-radius:24%"><use href="#a-arte"/></svg>
+        <span>na tela de início</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== B ===================== -->
+  <section class="opcao">
+    <div>
+      <p class="opcao__letra">OPÇÃO B</p>
+      <p class="opcao__nome">C repartido</p>
+      <p class="opcao__ideia">
+        A letra C, de Caderneta, quebrada em três pedaços de tamanhos
+        diferentes. Diz o nome e a ideia ao mesmo tempo: uma coisa só,
+        repartida em três.
+      </p>
+    </div>
+    <div>
+      <div class="tamanhos">
+        <div class="tamanho">
+          <svg width="128" height="128" viewBox="0 0 512 512"><g id="b-arte">
+            <rect width="512" height="512" fill="#16271f"/>
+            <!-- A abertura do C precisa cair à direita. O traço começa às 3
+                 horas e anda no sentido do relógio, cobrindo até 276°; girar
+                 42° leva a falta de traço para o lado certo. -->
+            <g fill="none" stroke-width="64" stroke-linecap="round" transform="rotate(42 256 256)">
+              <circle cx="256" cy="256" r="148" stroke="#1c5fc4" stroke-dasharray="300 630"/>
+              <circle cx="256" cy="256" r="148" stroke="#5f2da8" stroke-dasharray="150 780" stroke-dashoffset="-330"/>
+              <circle cx="256" cy="256" r="148" stroke="#8a5406" stroke-dasharray="212 718" stroke-dashoffset="-510"/>
+            </g>
+          </g></svg>
+          <span>128</span>
+        </div>
+        <div class="tamanho"><svg width="64" height="64" viewBox="0 0 512 512"><use href="#b-arte"/></svg><span>64</span></div>
+        <div class="tamanho"><svg width="32" height="32" viewBox="0 0 512 512"><use href="#b-arte"/></svg><span>32</span></div>
+        <div class="tamanho"><svg width="16" height="16" viewBox="0 0 512 512"><use href="#b-arte"/></svg><span>16</span></div>
+      </div>
+      <div class="no-celular">
+        <svg width="56" height="56" viewBox="0 0 512 512" style="border-radius:24%"><use href="#b-arte"/></svg>
+        <span>na tela de início</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== C ===================== -->
+  <section class="opcao">
+    <div>
+      <p class="opcao__letra">OPÇÃO C</p>
+      <p class="opcao__nome">A caderneta</p>
+      <p class="opcao__ideia">
+        A caderneta de banco de verdade, com as três cores na lombada. É a
+        mesma tarja colorida que marca cada banco dentro do app — o ícone
+        vira a versão pequena do que você vê na tela.
+      </p>
+    </div>
+    <div>
+      <div class="tamanhos">
+        <div class="tamanho">
+          <svg width="128" height="128" viewBox="0 0 512 512"><g id="c-arte">
+            <rect width="512" height="512" fill="#16271f"/>
+            <rect x="120" y="96" width="272" height="320" rx="24" fill="#f2f4ef"/>
+            <rect x="120" y="96" width="52" height="320" rx="24" fill="#1c5fc4"/>
+            <rect x="148" y="96" width="24" height="320" fill="#1c5fc4"/>
+            <rect x="120" y="203" width="52" height="106" fill="#5f2da8"/>
+            <rect x="120" y="310" width="52" height="106" fill="#8a5406"/>
+            <rect x="120" y="392" width="52" height="24" fill="#8a5406"/>
+            <rect x="212" y="176" width="136" height="26" rx="13" fill="#16271f" opacity="0.82"/>
+            <rect x="212" y="238" width="96" height="26" rx="13" fill="#16271f" opacity="0.42"/>
+            <rect x="212" y="300" width="120" height="26" rx="13" fill="#16271f" opacity="0.42"/>
+          </g></svg>
+          <span>128</span>
+        </div>
+        <div class="tamanho"><svg width="64" height="64" viewBox="0 0 512 512"><use href="#c-arte"/></svg><span>64</span></div>
+        <div class="tamanho"><svg width="32" height="32" viewBox="0 0 512 512"><use href="#c-arte"/></svg><span>32</span></div>
+        <div class="tamanho"><svg width="16" height="16" viewBox="0 0 512 512"><use href="#c-arte"/></svg><span>16</span></div>
+      </div>
+      <div class="no-celular">
+        <svg width="56" height="56" viewBox="0 0 512 512" style="border-radius:24%"><use href="#c-arte"/></svg>
+        <span>na tela de início</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== D ===================== -->
+  <section class="opcao">
+    <div>
+      <p class="opcao__letra">OPÇÃO D</p>
+      <p class="opcao__nome">A faixa</p>
+      <p class="opcao__ideia">
+        Uma única barra repartida em três pedaços desiguais — exatamente a
+        faixa que fica embaixo do seu saldo, mostrando quanto do dinheiro está
+        em cada banco. O mais simples de reconhecer pequeno.
+      </p>
+    </div>
+    <div>
+      <div class="tamanhos">
+        <div class="tamanho">
+          <svg width="128" height="128" viewBox="0 0 512 512"><g id="d-arte">
+            <rect width="512" height="512" fill="#16271f"/>
+            <!-- Um retângulo arredondado recorta os três pedaços: assim as
+                 pontas ficam redondas e as divisões internas, retas — sem
+                 emendar curvas na mão. -->
+            <defs><clipPath id="faixa-recorte">
+              <rect x="88" y="204" width="336" height="104" rx="52"/>
+            </clipPath></defs>
+            <g clip-path="url(#faixa-recorte)">
+              <rect x="88" y="204" width="178" height="104" fill="#1c5fc4"/>
+              <rect x="266" y="204" width="86" height="104" fill="#5f2da8"/>
+              <rect x="352" y="204" width="72" height="104" fill="#8a5406"/>
+            </g>
+          </g></svg>
+          <span>128</span>
+        </div>
+        <div class="tamanho"><svg width="64" height="64" viewBox="0 0 512 512"><use href="#d-arte"/></svg><span>64</span></div>
+        <div class="tamanho"><svg width="32" height="32" viewBox="0 0 512 512"><use href="#d-arte"/></svg><span>32</span></div>
+        <div class="tamanho"><svg width="16" height="16" viewBox="0 0 512 512"><use href="#d-arte"/></svg><span>16</span></div>
+      </div>
+      <div class="no-celular">
+        <svg width="56" height="56" viewBox="0 0 512 512" style="border-radius:24%"><use href="#d-arte"/></svg>
+        <span>na tela de início</span>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>
