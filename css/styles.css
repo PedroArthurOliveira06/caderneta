@@ -334,6 +334,73 @@ button { font: inherit; color: inherit; }
 .pilula--ativa { background: var(--tinta); border-color: var(--tinta); color: #fff; }
 .pilula__ponto { width: 7px; height: 7px; border-radius: 999px; }
 
+/* ========================== lançar escrevendo ========================= */
+
+.rapido {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 8px;
+  padding: 0 16px 4px;
+}
+
+.rapido input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--linha-forte);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  padding: 11px 14px;
+  font-size: 1rem;
+  color: inherit;
+  min-height: 44px;
+}
+
+.rapido input:focus { outline: 0; border-color: var(--tinta); }
+
+.rapido__botao {
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--raio);
+  background: var(--tinta);
+  color: #fff;
+  cursor: pointer;
+}
+
+.rapido__botao:active { background: var(--tinta-2); }
+.rapido__botao:disabled { opacity: 0.35; cursor: not-allowed; }
+.rapido__botao svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* A leitura que o app fez, dita em português: ele mostra o que entendeu em
+   vez de adivinhar calado. */
+.rapido__leitura {
+  padding: 2px 16px 8px;
+  font-size: 0.8125rem;
+  color: var(--texto-suave);
+}
+
+.rapido__leitura--erro { color: var(--saida); }
+
+/* ------------------------------ atalhos ------------------------------- */
+
+.atalhos { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.atalho {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--superficie);
+  border: 1px solid var(--linha-forte);
+  border-radius: 999px;
+  padding: 7px 13px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.atalho:active { background: var(--superficie-2); }
+.atalho__ponto { width: 7px; height: 7px; border-radius: 999px; }
+.atalho__valor { color: var(--texto-fraco); }
+
 /* ============================= extrato ================================ */
 
 .extrato { padding: 0 0 8px; }

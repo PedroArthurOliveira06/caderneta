@@ -75,6 +75,16 @@
     <section id="tela-extrato" class="tela" aria-labelledby="rotulo-mes">
       <div id="painel-saldos" class="painel-saldos"></div>
       <div id="filtro-contas" class="filtro"></div>
+
+      <form id="lancamento-rapido" class="rapido">
+        <input type="text" id="texto-rapido" autocomplete="off" enterkeyhint="done"
+               placeholder="mercado 45" aria-label="Lançar escrevendo, por exemplo: mercado 45">
+        <button type="submit" class="rapido__botao" aria-label="Lançar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+        </button>
+      </form>
+      <p id="leitura-rapida" class="rapido__leitura" hidden></p>
+
       <div id="lista-extrato" class="extrato"></div>
     </section>
 
@@ -175,6 +185,8 @@
       <button type="button" class="segmento" data-tipo="entrada">Entrada</button>
       <button type="button" class="segmento" data-tipo="transferencia">Transferir</button>
     </div>
+
+    <div id="atalhos" class="atalhos" hidden></div>
 
     <label class="campo-valor">
       <span class="campo-valor__moeda">R$</span>

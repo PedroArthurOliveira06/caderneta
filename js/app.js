@@ -11,7 +11,8 @@
 import * as dados from './dados.js';
 import * as fmt from './formato.js';
 import * as telas from './telas.js';
-import { el, trocar, hexDaCor, recado, baixarArquivo, nomeComData } from './ui.js';
+import { interpretar, explicar, atalhosFrequentes } from './interpretar.js';
+import { el, trocar, hexDaConta, recado, baixarArquivo, nomeComData } from './ui.js';
 
 const hoje = fmt.hojeISO();
 const visao = {
@@ -31,6 +32,7 @@ function iniciar() {
 
   ligarBoasVindas();
   ligarNavegacao();
+  ligarLancamentoRapido();
   ligarDialogoLancamento();
   ligarDialogoConta();
   ligarAjustes();
@@ -183,6 +185,69 @@ function pintar() {
   }
 }
 
+/* ========================= lançar escrevendo =========================== */
+
+/** O que o interpretador precisa saber do estado atual. */
+function contextoDeLeitura() {
+  return {
+    contas: dados.obter().contas,
+    categorias: dados.obter().categorias,
+    hoje,
+  };
+}
+
+/** Banco usado quando a frase não cita nenhum: o que está filtrado na tela,
+ *  senão o primeiro banco cadastrado. Cartão não é padrão — a maior parte
+ *  dos gastos do dia a dia sai da conta, não do crédito. */
+function contaPadrao() {
+  if (visao.filtroContaId) return visao.filtroContaId;
+  const contas = dados.obter().contas;
+  const banco = contas.find((c) => !dados.ehCartao(c));
+  return (banco || contas[0] || {}).id || null;
+}
+
+function ligarLancamentoRapido() {
+  const campo = $('texto-rapido');
+  const leitura = $('leitura-rapida');
+
+  campo.addEventListener('input', () => {
+    if (!campo.value.trim()) {
+      leitura.hidden = true;
+      return;
+    }
+    const lido = interpretar(campo.value, contextoDeLeitura());
+    leitura.classList.toggle('rapido__leitura--erro', !lido.entendido);
+    leitura.textContent = lido.entendido
+      ? `${fmt.moeda(lido.valor)} · ${explicar({ ...lido, contaId: lido.contaId || contaPadrao() }, contextoDeLeitura())}`
+      : 'Falta o valor. Escreva, por exemplo: mercado 45';
+    leitura.hidden = false;
+  });
+
+  $('lancamento-rapido').addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    const lido = interpretar(campo.value, contextoDeLeitura());
+
+    if (!lido.entendido) {
+      recado('Escreva um valor. Por exemplo: mercado 45');
+      campo.focus();
+      return;
+    }
+
+    dados.salvarLancamento({
+      tipo: lido.tipo,
+      valor: lido.valor,
+      data: lido.data,
+      contaId: lido.contaId || contaPadrao(),
+      categoriaId: lido.categoriaId,
+      descricao: lido.descricao,
+    });
+
+    campo.value = '';
+    leitura.hidden = true;
+    recado(`${lido.tipo === 'entrada' ? 'Entrada' : 'Gasto'} de ${fmt.moeda(lido.valor)} lançado.`);
+  });
+}
+
 /* ======================= diálogo de lançamento ========================= */
 
 let tipoEmEdicao = 'saida';
@@ -310,6 +375,8 @@ function aplicarTipo(dialogo) {
   if ($('campo-parcelas').hidden) $('ajuda-parcelas').hidden = true;
   else mostrarContaDasParcelas();
 
+  pintarAtalhos(editando);
+
   // Transferir de um banco para ele mesmo não existe, e o app recusaria na
   // hora de salvar. Então já abre apontando para outro banco.
   if (transferencia) garantirDestinoDiferente();
@@ -404,6 +471,39 @@ function abrirLancamento(lancamentoId) {
 
   dialogo.showModal();
   if (!existente) $('lancamento-valor').focus();
+}
+
+/**
+ * Atalhos para o que você repete. Só aparecem ao criar um gasto novo: numa
+ * edição eles sobrescreveriam o que está sendo corrigido.
+ */
+function pintarAtalhos(editando) {
+  const caixa = $('atalhos');
+  const lista = editando || tipoEmEdicao !== 'saida'
+    ? []
+    : atalhosFrequentes(dados.obter(), 4);
+
+  caixa.hidden = !lista.length;
+  if (!lista.length) return;
+
+  trocar(caixa, lista.map((atalho) => {
+    const conta = dados.conta(atalho.contaId);
+    return el('button', {
+      class: 'atalho',
+      type: 'button',
+      onclick: () => {
+        $('lancamento-valor').value = fmt.valor(atalho.ultimoValor);
+        $('lancamento-conta').value = atalho.contaId;
+        if (atalho.categoriaId) $('lancamento-categoria').value = atalho.categoriaId;
+        $('lancamento-descricao').value = atalho.rotulo;
+        mostrarContaDasParcelas();
+      },
+    }, [
+      el('span', { class: 'atalho__ponto', estilo: { background: hexDaConta(conta) } }),
+      atalho.rotulo,
+      el('span', { class: 'atalho__valor', texto: fmt.moeda(atalho.ultimoValor) }),
+    ]);
+  }));
 }
 
 /* ========================= diálogo de conta ============================ */
