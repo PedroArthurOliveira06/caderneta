@@ -46,6 +46,11 @@ export async function iniciar(aoMudar) {
 
   if (!temServidor()) return 'local';
 
+  // O link de recuperação chega com a sessão pendurada no endereço. Isso é
+  // conferido antes de tudo: quem chegou por ele quer trocar a senha, não
+  // ver a tela de entrar.
+  if (servidor.sessaoVindaDoEndereco() === 'recovery') return 'nova-senha';
+
   servidor.carregarSessao();
   if (!servidor.temSessao()) {
     // Quem já usa o app sem conta continua entrando direto. Só o aparelho
@@ -87,6 +92,7 @@ function ligarTelas() {
   $('alternar-entrada').addEventListener('click', () => {
     criandoConta = !criandoConta;
     $('erro-entrada').hidden = true; // o erro era do outro modo
+    $('aviso-entrada').hidden = true;
     aplicarModoDaEntrada();
   });
 
@@ -95,6 +101,8 @@ function ligarTelas() {
   });
 
   $('form-entrada').addEventListener('submit', enviarEntrada);
+  $('esqueci-senha').addEventListener('click', pedirRecuperacao);
+  $('form-nova-senha').addEventListener('submit', salvarNovaSenha);
 
   $('conferir-liberacao').addEventListener('click', async () => {
     try {
@@ -181,6 +189,78 @@ async function enviarEntrada(evento) {
   } finally {
     botao.disabled = false;
     aplicarModoDaEntrada();
+  }
+}
+
+/**
+ * Manda o link de recuperação para o e-mail digitado.
+ *
+ * A resposta é a mesma existindo ou não a conta, de propósito: dizer "esse
+ * e-mail não existe" entregaria, a quem tentasse adivinhar, quem tem conta
+ * aqui.
+ */
+async function pedirRecuperacao() {
+  const email = $('entrada-email').value.trim();
+  if (!email) {
+    mostrarErro('Escreva seu e-mail primeiro, e eu mando o link.');
+    $('entrada-email').focus();
+    return;
+  }
+
+  const botao = $('esqueci-senha');
+  botao.disabled = true;
+  botao.textContent = 'Enviando…';
+  $('erro-entrada').hidden = true;
+
+  try {
+    await servidor.pedirNovaSenha(email);
+    const aviso = $('aviso-entrada');
+    aviso.textContent = `Se existe conta com ${email}, o link para criar uma senha nova já está a caminho. Confira também a caixa de spam.`;
+    aviso.hidden = false;
+  } catch (erro) {
+    mostrarErro(erro.message);
+  } finally {
+    botao.disabled = false;
+    botao.textContent = 'Esqueci minha senha';
+  }
+}
+
+async function salvarNovaSenha(evento) {
+  evento.preventDefault();
+  const senha = $('nova-senha').value;
+  const confirma = $('nova-senha-confirma').value;
+  const erro = $('erro-nova-senha');
+  const botao = $('botao-nova-senha');
+
+  if (senha.length < 6) {
+    erro.textContent = 'A senha precisa ter pelo menos 6 caracteres.';
+    erro.hidden = false;
+    return;
+  }
+  if (senha !== confirma) {
+    erro.textContent = 'As duas não bateram. Digite de novo.';
+    erro.hidden = false;
+    $('nova-senha-confirma').value = '';
+    $('nova-senha-confirma').focus();
+    return;
+  }
+
+  botao.disabled = true;
+  botao.textContent = 'Salvando…';
+  erro.hidden = true;
+
+  try {
+    await servidor.definirNovaSenha(senha);
+    $('nova-senha').value = '';
+    $('nova-senha-confirma').value = '';
+    recado('Senha trocada. Bem-vindo de volta.');
+    aoTrocarDeEstado(await entrarNoModoServidor());
+  } catch (falha) {
+    erro.textContent = falha.message;
+    erro.hidden = false;
+  } finally {
+    botao.disabled = false;
+    botao.textContent = 'Salvar senha';
   }
 }
 

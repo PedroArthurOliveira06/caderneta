@@ -152,6 +152,85 @@ export async function entrar(email, senha) {
   return guardarSessao(corpo);
 }
 
+/**
+ * Pede ao Supabase que envie o link de recuperação por e-mail.
+ *
+ * `redirect_to` é para onde o link traz a pessoa de volta. Esse endereço
+ * precisa estar autorizado no painel do Supabase (Authentication → URL
+ * Configuration), senão o link cai no endereço padrão e a pessoa se perde.
+ */
+export function pedirNovaSenha(email) {
+  const volta = encodeURIComponent(location.origin + location.pathname);
+  return chamar(`/auth/v1/recover?redirect_to=${volta}`, {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  }, false);
+}
+
+/**
+ * Troca a senha de quem está com sessão aberta.
+ *
+ * Funciona tanto para quem chegou pelo link de recuperação (o link já traz
+ * uma sessão) quanto para quem quiser trocar a senha estando logado.
+ */
+export async function definirNovaSenha(senha) {
+  if (!(await garantirTokenValido())) {
+    throw new Error('O link expirou. Peça um novo e tente de novo.');
+  }
+  let corpo;
+  try {
+    corpo = await chamar('/auth/v1/user', {
+      method: 'PUT',
+      body: JSON.stringify({ password: senha }),
+    });
+  } catch (erro) {
+    // Aqui um 401 não quer dizer "sem permissão": quer dizer que o link do
+    // e-mail expirou ou já foi usado. A mensagem genérica mandaria a pessoa
+    // procurar o problema no lugar errado.
+    if (erro.status === 401 || erro.status === 403) {
+      throw new Error('Este link expirou ou já foi usado. Peça um novo na tela de entrar.');
+    }
+    throw erro;
+  }
+  if (sessao) {
+    sessao.usuario = corpo || sessao.usuario;
+    guardarSessao({
+      access_token: sessao.token,
+      refresh_token: sessao.renovacao,
+      expires_in: Math.max(60, Math.round((sessao.expiraEm - Date.now()) / 1000)),
+      user: sessao.usuario,
+    });
+  }
+  return corpo;
+}
+
+/**
+ * O link do e-mail volta com a sessão pendurada no endereço, depois do "#".
+ * Guarda essa sessão e limpa o endereço — deixar token à mostra na barra do
+ * navegador é convite para ele acabar num histórico ou num print.
+ *
+ * Devolve o tipo do link ('recovery', 'signup'...) ou vazio.
+ */
+export function sessaoVindaDoEndereco() {
+  const pedaco = location.hash.startsWith('#') ? location.hash.slice(1) : '';
+  if (!pedaco) return '';
+
+  const campos = new URLSearchParams(pedaco);
+  const token = campos.get('access_token');
+  const tipo = campos.get('type') || '';
+  if (!token) return '';
+
+  guardarSessao({
+    access_token: token,
+    refresh_token: campos.get('refresh_token'),
+    expires_in: Number(campos.get('expires_in')) || 3600,
+    user: null,
+  });
+
+  history.replaceState(null, '', location.pathname);
+  return tipo;
+}
+
 export async function sair() {
   try {
     if (sessao && sessao.token) await chamar('/auth/v1/logout', { method: 'POST' });

@@ -1,0 +1,62 @@
+# Roda os testes a cada envio para o GitHub.
+#
+# Por que existe: todo push publica o site na hora. Sem isto, um erro só
+# aparece quando o dono do app abre o celular e encontra algo quebrado — e o
+# único a conferir antes seria eu, de memória. Memória já falhou aqui antes.
+#
+# Não bloqueia a publicação (o GitHub Pages é independente), mas deixa uma
+# marca vermelha bem visível na página do repositório e manda um e-mail.
+
+name: Testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Permite rodar à mão pelo botão "Run workflow", na aba Actions.
+  workflow_dispatch:
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+        with:
+          # Dois commits: preciso do anterior para saber o que mudou neste.
+          fetch-depth: 2
+
+      - name: Preparar o Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Sem `npm install`: o projeto não tem dependências, de propósito.
+      - name: Rodar os testes
+        run: npm test
+
+      # Os três lugares que guardam a versão precisam concordar entre si.
+      - name: Conferir se a versão está consistente
+        run: node ferramentas/conferir-versao.js
+
+      # E, principalmente: se este commit mexeu no que vai ao ar, ele TEM de
+      # ter carimbado a versão. Sem isso os celulares continuam servindo a
+      # cópia velha e ninguém é avisado — foi exatamente o que aconteceu por
+      # sete publicações seguidas.
+      - name: Conferir se a versão foi carimbada neste commit
+        if: github.event_name == 'push'
+        run: |
+          arquivos=$(git show --name-only --pretty=format: HEAD)
+          mudou_codigo=$(echo "$arquivos" | grep -E '^(js/|css/|index\.html|sw\.js)' || true)
+          carimbou=$(echo "$arquivos" | grep -E '^versao\.json' || true)
+
+          if [ -n "$mudou_codigo" ] && [ -z "$carimbou" ]; then
+            echo "Este commit mexeu no app mas não carimbou a versão:"
+            echo "$mudou_codigo" | sed 's/^/  /'
+            echo ""
+            echo "Rode 'npm run versao' e refaça o commit."
+            exit 1
+          fi
+
+          echo "Tudo certo."

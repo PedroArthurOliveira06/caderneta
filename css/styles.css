@@ -359,6 +359,17 @@ button { font: inherit; color: inherit; }
   font-size: 0.875rem;
 }
 
+/* Aviso de sucesso na tela escura de entrada — o vermelho do erro tem
+   companhia, senão toda mensagem parece problema. */
+.aviso-entrada {
+  background: rgba(18, 169, 97, 0.18);
+  border: 1px solid rgba(69, 211, 145, 0.45);
+  color: #bdf0d5;
+  border-radius: var(--raio-p);
+  padding: 10px 12px;
+  font-size: 0.875rem;
+}
+
 /* Aviso de envio pendente, na barra do mês. Fica discreto de propósito: é
    informação de fundo, não um erro — o lançamento já está salvo. */
 .barra-mes__envio {

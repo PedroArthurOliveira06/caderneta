@@ -82,10 +82,11 @@ async function iniciar() {
  * Decide qual das quatro telas de topo aparece. Chamada no arranque e sempre
  * que a situação da conta muda (entrar, sair, ser liberado).
  *
- *   'deslogado' -> entrar ou criar conta
- *   'pendente'  -> esperando liberação
- *   'local'     -> sem conta, só neste aparelho
- *   'aprovado'  -> conta liberada, sincronizando
+ *   'deslogado'  -> entrar ou criar conta
+ *   'nova-senha' -> chegou pelo link do e-mail, vai escolher senha
+ *   'pendente'   -> esperando liberação
+ *   'local'      -> sem conta, só neste aparelho
+ *   'aprovado'   -> conta liberada, sincronizando
  */
 let situacaoDaConta = 'local';
 
@@ -100,10 +101,12 @@ function mostrarTelaCerta(situacao) {
   $('tela-tranca').hidden = !naTranca;
 
   const entrada = !naTranca && situacaoDaConta === 'deslogado';
+  const novaSenha = !naTranca && situacaoDaConta === 'nova-senha';
   const pendente = !naTranca && situacaoDaConta === 'pendente';
-  const usandoApp = !naTranca && !entrada && !pendente;
+  const usandoApp = !naTranca && !entrada && !pendente && !novaSenha;
 
   $('tela-entrada').hidden = !entrada;
+  $('tela-nova-senha').hidden = !novaSenha;
   $('tela-pendente').hidden = !pendente;
   $('boas-vindas').hidden = !(usandoApp && !temBancos);
   $('app').hidden = !(usandoApp && temBancos);

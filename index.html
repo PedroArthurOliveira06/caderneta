@@ -76,9 +76,14 @@
       </div>
 
       <p class="erro-entrada" id="erro-entrada" hidden></p>
+      <p class="aviso-entrada" id="aviso-entrada" hidden></p>
 
       <button type="submit" class="botao botao--principal botao--largo" id="botao-entrada">
         Entrar
+      </button>
+
+      <button type="button" id="esqueci-senha" class="botao botao--texto">
+        Esqueci minha senha
       </button>
     </form>
 
@@ -92,6 +97,42 @@
         Usar só neste aparelho, sem conta
       </button>
     </p>
+  </div>
+</section>
+
+<!-- ===================== escolher senha nova ===================== -->
+<section id="tela-nova-senha" class="boas-vindas" hidden>
+  <div class="boas-vindas__miolo">
+    <svg class="marca" viewBox="0 0 512 512" aria-hidden="true">
+      <g fill="none" stroke-width="64" stroke-linecap="round" transform="rotate(42 256 256)">
+        <circle cx="256" cy="256" r="148" stroke="#4b8ae8" stroke-dasharray="300 630"/>
+        <circle cx="256" cy="256" r="148" stroke="#9a72e0" stroke-dasharray="150 780" stroke-dashoffset="-330"/>
+        <circle cx="256" cy="256" r="148" stroke="#d09a3c" stroke-dasharray="212 718" stroke-dashoffset="-510"/>
+      </g>
+    </svg>
+    <h1 class="boas-vindas__titulo">Nova senha</h1>
+    <p class="boas-vindas__texto">
+      Escolha uma senha nova. Ela passa a valer em todos os seus aparelhos.
+    </p>
+
+    <form id="form-nova-senha" class="formulario formulario--escuro">
+      <div class="campo">
+        <label for="nova-senha">Senha nova</label>
+        <input type="password" id="nova-senha" autocomplete="new-password" required minlength="6">
+        <p class="ajuda">Pelo menos 6 caracteres.</p>
+      </div>
+
+      <div class="campo">
+        <label for="nova-senha-confirma">Digite de novo</label>
+        <input type="password" id="nova-senha-confirma" autocomplete="new-password" required minlength="6">
+      </div>
+
+      <p class="erro-entrada" id="erro-nova-senha" hidden></p>
+
+      <button type="submit" class="botao botao--principal botao--largo" id="botao-nova-senha">
+        Salvar senha
+      </button>
+    </form>
   </div>
 </section>
 
