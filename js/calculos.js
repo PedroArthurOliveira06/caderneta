@@ -37,12 +37,34 @@ export function saldoDaConta(estado, contaId, ateISO) {
   );
 }
 
-/** [{conta, saldo}] na ordem de cadastro, mais o total somado. */
-export function saldos(estado, ateISO) {
+/** 'conta' para bancos, 'cartao' para cartão de crédito. Registro antigo,
+ *  gravado antes dos cartões existirem, conta como banco. */
+export function tipoDaConta(conta) {
+  return conta && conta.tipo === 'cartao' ? 'cartao' : 'conta';
+}
+
+/**
+ * [{conta, saldo}] na ordem de cadastro, mais o total somado. Passando
+ * `tipo`, devolve só os bancos ou só os cartões — que é o que separa
+ * "quanto eu tenho" de "quanto eu devo". Somar os dois num número só diria
+ * quanto sobraria se a fatura fosse paga hoje, que é outra pergunta.
+ */
+export function saldos(estado, ateISO, tipo) {
   const linhas = [...estado.contas]
+    .filter((c) => !tipo || tipoDaConta(c) === tipo)
     .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
     .map((conta) => ({ conta, saldo: saldoDaConta(estado, conta.id, ateISO) }));
   return { linhas, total: linhas.reduce((s, l) => s + l.saldo, 0) };
+}
+
+/**
+ * Quanto se deve nos cartões, como número positivo. O saldo de um cartão é
+ * negativo (dívida); um cartão com saldo positivo é fatura paga a mais e não
+ * vira "dívida negativa".
+ */
+export function faturaEmAberto(estado, ateISO) {
+  return saldos(estado, ateISO, 'cartao').linhas
+    .reduce((soma, l) => soma - Math.min(l.saldo, 0), 0);
 }
 
 /** Lançamentos do mês, do mais recente para o mais antigo. */

@@ -89,10 +89,10 @@
     <!-- ---------------------- ajustes ---------------------- -->
     <section id="tela-ajustes" class="tela" hidden aria-label="Ajustes">
       <div class="bloco">
-        <h2 class="bloco__titulo">Seus bancos</h2>
+        <h2 class="bloco__titulo">Bancos e cartões</h2>
         <div id="ajustes-contas" class="lista-ajuste"></div>
         <button type="button" id="nova-conta" class="botao botao--secundario botao--largo">
-          Adicionar banco
+          Adicionar banco ou cartão
         </button>
       </div>
 
@@ -173,7 +173,7 @@
     <div class="segmentado" role="group" aria-label="Tipo do lançamento">
       <button type="button" class="segmento segmento--ativo" data-tipo="saida">Gasto</button>
       <button type="button" class="segmento" data-tipo="entrada">Entrada</button>
-      <button type="button" class="segmento" data-tipo="transferencia">Entre bancos</button>
+      <button type="button" class="segmento" data-tipo="transferencia">Transferir</button>
     </div>
 
     <label class="campo-valor">
@@ -193,7 +193,7 @@
     </div>
 
     <div class="campo" id="campo-destino" hidden>
-      <label for="lancamento-destino">Para qual banco</label>
+      <label for="lancamento-destino">Para onde vai</label>
       <select id="lancamento-destino"></select>
     </div>
 
@@ -225,15 +225,20 @@
 
     <input type="hidden" id="conta-id">
 
+    <div class="segmentado segmentado--duplo" role="group" aria-label="É banco ou cartão">
+      <button type="button" class="segmento segmento--ativo" data-tipo-conta="conta">Banco</button>
+      <button type="button" class="segmento" data-tipo-conta="cartao">Cartão de crédito</button>
+    </div>
+
     <div class="campo">
-      <label for="conta-nome">Nome do banco</label>
+      <label for="conta-nome" id="rotulo-conta-nome">Nome do banco</label>
       <input type="text" id="conta-nome" maxlength="28" required autocomplete="off">
     </div>
 
     <div class="campo">
-      <label for="conta-saldo">Saldo inicial</label>
+      <label for="conta-saldo" id="rotulo-conta-saldo">Saldo inicial</label>
       <input type="text" id="conta-saldo" inputmode="decimal" placeholder="0,00" autocomplete="off">
-      <p class="ajuda">
+      <p class="ajuda" id="ajuda-conta-saldo">
         Quanto havia nesse banco quando você começou a usar a Caderneta.
       </p>
     </div>

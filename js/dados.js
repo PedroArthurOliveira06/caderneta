@@ -121,12 +121,34 @@ function mutar(fn) {
 
 /* ------------------------------- contas -------------------------------- */
 
+/**
+ * Uma conta é um lugar onde o dinheiro está (`tipo: 'conta'`) ou um cartão
+ * de crédito, que é o contrário: um lugar onde a dívida se acumula
+ * (`tipo: 'cartao'`).
+ *
+ * A diferença é só de sinal e de leitura — o saldo de um cartão é negativo e
+ * chama-se "fatura em aberto". Por isso nenhum cálculo precisa saber dos
+ * dois: comprar no crédito é uma saída no cartão, e pagar a fatura é uma
+ * transferência do banco para o cartão, que abate a dívida.
+ *
+ * Contas antigas, gravadas antes dos cartões existirem, não têm o campo —
+ * por isso todo lugar que lê trata a ausência como 'conta'.
+ */
+export function tipoDaConta(conta) {
+  return conta && conta.tipo === 'cartao' ? 'cartao' : 'conta';
+}
+
+export function ehCartao(conta) {
+  return tipoDaConta(conta) === 'cartao';
+}
+
 export function definirContasIniciais(lista) {
   mutar((e) => {
     e.contas = lista.map((c, i) => ({
       id: id(),
       nome: c.nome,
       cor: c.cor || CORES_CONTA[i % CORES_CONTA.length].id,
+      tipo: c.tipo === 'cartao' ? 'cartao' : 'conta',
       saldoInicial: c.saldoInicial || 0,
       ordem: i,
     }));
@@ -144,6 +166,7 @@ export function salvarConta(dados) {
         id: id(),
         nome: dados.nome,
         cor: dados.cor || CORES_CONTA[e.contas.length % CORES_CONTA.length].id,
+        tipo: dados.tipo === 'cartao' ? 'cartao' : 'conta',
         saldoInicial: dados.saldoInicial || 0,
         ordem: e.contas.length,
       });

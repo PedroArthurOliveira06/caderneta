@@ -264,6 +264,30 @@ button { font: inherit; color: inherit; }
 .saldo-conta__valor { font-weight: 600; font-size: 1.0625rem; }
 .saldo-conta__valor--negativo { color: var(--saida); }
 
+/* O cartão fica abaixo dos bancos e um degrau mais quieto: é dinheiro que
+   ainda vai sair, não dinheiro que existe. A linha acima separa as duas
+   leituras sem precisar de caixa nem sombra. */
+.cartoes {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--linha);
+}
+
+.cartoes__rotulo {
+  font-size: 0.8125rem;
+  color: var(--texto-fraco);
+  margin-bottom: 2px;
+}
+
+.cartoes__sobra {
+  margin-top: 10px;
+  font-size: 0.875rem;
+  color: var(--texto-suave);
+}
+
+.cartoes__sobra strong { color: var(--texto); font-weight: 600; }
+.cartoes__sobra .cartoes__sobra--negativa { color: var(--saida); }
+
 .mes-resumo {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -639,6 +663,10 @@ button { font: inherit; color: inherit; }
 }
 
 .segmento--ativo { background: var(--superficie); color: var(--texto); font-weight: 600; box-shadow: 0 1px 2px rgba(20, 35, 28, 0.12); }
+
+/* Depois de .segmentado, não antes: as duas regras têm a mesma força, então
+   quem vence é a última escrita. */
+.segmentado--duplo { grid-template-columns: repeat(2, 1fr); }
 
 .campo-valor {
   display: flex;

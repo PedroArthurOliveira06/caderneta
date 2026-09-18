@@ -14,7 +14,12 @@ export function pintarSaldos(estado, contexto) {
   const alvo = document.getElementById('painel-saldos');
   const { ano, mes, filtroContaId, aoTocarConta } = contexto;
   const { fim } = fmt.limitesDoMes(ano, mes);
-  const { linhas, total } = calc.saldos(estado, fim);
+
+  // Bancos e cartões são lidos separados de propósito: um diz quanto existe,
+  // o outro quanto se deve. Misturar num número só esconde as duas respostas.
+  const { linhas, total } = calc.saldos(estado, fim, 'conta');
+  const cartoes = calc.saldos(estado, fim, 'cartao');
+  const fatura = calc.faturaEmAberto(estado, fim);
   const totais = calc.totaisDoMes(estado, ano, mes, filtroContaId);
 
   // Só saldos positivos entram na proporção da faixa: um saldo negativo não
@@ -58,6 +63,8 @@ export function pintarSaldos(estado, contexto) {
         }),
       ]))),
 
+    cartoes.linhas.length ? blocoCartoes(cartoes, fatura, total, contexto) : null,
+
     el('div', { class: 'mes-resumo' }, [
       el('div', { class: 'mes-resumo__item' }, [
         el('p', { class: 'mes-resumo__rotulo', texto: 'Entrou no mês' }),
@@ -69,6 +76,53 @@ export function pintarSaldos(estado, contexto) {
       ]),
     ]),
   );
+}
+
+/**
+ * O que se deve no cartão. Fica embaixo dos bancos e visualmente mais quieto:
+ * é dinheiro que ainda vai sair, não dinheiro que existe.
+ *
+ * O saldo de um cartão é negativo, então a dívida mostrada é o mesmo número
+ * com o sinal virado. Se ficar positivo, é fatura paga a mais — dito com
+ * essas palavras, e não como "dívida de −R$ 70,00".
+ */
+function blocoCartoes(cartoes, fatura, totalNosBancos, contexto) {
+  const { aoTocarConta } = contexto;
+
+  return el('div', { class: 'cartoes' }, [
+    el('p', { class: 'cartoes__rotulo', texto: cartoes.linhas.length > 1 ? 'Cartões de crédito' : 'Cartão de crédito' }),
+
+    el('div', { class: 'saldos-contas' }, cartoes.linhas.map((l) => el('button', {
+      class: 'saldo-conta',
+      type: 'button',
+      onclick: () => aoTocarConta(l.conta.id),
+    }, [
+      el('span', { class: 'saldo-conta__spine', estilo: { background: hexDaConta(l.conta) } }),
+      el('span', { class: 'item__corpo' }, [
+        el('span', { class: 'saldo-conta__nome', texto: l.conta.nome }),
+        el('span', {
+          class: 'item__detalhe',
+          texto: l.saldo > 0 ? 'pago a mais' : 'fatura em aberto',
+        }),
+      ]),
+      el('span', {
+        class: `saldo-conta__valor${l.saldo < 0 ? ' saldo-conta__valor--negativo' : ''}`,
+        texto: fmt.moeda(Math.abs(l.saldo)),
+      }),
+    ]))),
+
+    // A pergunta que o cartão cria: "desse dinheiro que aparece no banco,
+    // quanto é realmente meu?". Sem isso, o saldo do topo engana para cima.
+    fatura > 0
+      ? el('p', { class: 'cartoes__sobra' }, [
+          'Pagando a fatura agora, sobram ',
+          el('strong', {
+            class: totalNosBancos - fatura < 0 ? 'cartoes__sobra--negativa' : '',
+            texto: fmt.moeda(totalNosBancos - fatura),
+          }),
+        ])
+      : null,
+  ]);
 }
 
 /* ============================= filtro ================================== */
@@ -141,7 +195,10 @@ function linhaDoExtrato(estado, l, aoTocar) {
   let classeValor;
 
   if (l.tipo === 'transferencia') {
-    titulo = l.descricao || 'Transferência entre bancos';
+    // Transferir para um cartão tem um nome só no mundo real: pagar a fatura.
+    // Chamar isso de "transferência" no extrato seria linguagem de sistema.
+    const pagaFatura = calc.tipoDaConta(destino) === 'cartao';
+    titulo = l.descricao || (pagaFatura ? 'Pagamento da fatura' : 'Transferência entre bancos');
     detalhe = `${conta ? conta.nome : '—'} → ${destino ? destino.nome : '—'}`;
     valorTexto = fmt.moeda(l.valor);
     classeValor = 'item__valor--transferencia';
@@ -284,6 +341,15 @@ export function pintarResumo(estado, contexto) {
 
 /* ============================= ajustes ================================= */
 
+/** A linha de apoio nos Ajustes: um banco tem saldo, um cartão tem fatura. */
+function descricaoDaConta(estado, conta) {
+  const saldo = calc.saldoDaConta(estado, conta.id);
+  if (calc.tipoDaConta(conta) !== 'cartao') return `saldo hoje ${fmt.moeda(saldo)}`;
+  return saldo > 0
+    ? `cartão · pago a mais ${fmt.moeda(saldo)}`
+    : `cartão · fatura em aberto ${fmt.moeda(-saldo)}`;
+}
+
 export function pintarAjustes(estado, contexto) {
   const { aoEditarConta, aoEditarCategoria } = contexto;
 
@@ -300,7 +366,7 @@ export function pintarAjustes(estado, contexto) {
           el('span', { class: 'linha-ajuste__nome', texto: conta.nome }),
           el('span', {
             class: 'linha-ajuste__meta',
-            texto: `saldo hoje ${fmt.moeda(calc.saldoDaConta(estado, conta.id))}`,
+            texto: descricaoDaConta(estado, conta),
           }),
         ]),
         el('span', { class: 'linha-ajuste__acao', texto: 'editar' }),

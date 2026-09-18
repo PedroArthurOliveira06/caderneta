@@ -84,6 +84,70 @@ test('gasto por categoria ordena pelo maior e calcula a fatia', () => {
   assert.equal(Math.round(linhas[0].fatia * 100), 52);
 });
 
+/* ------------------------- cartão de crédito ---------------------------- */
+
+/* O mesmo cenário, mais um cartão de crédito: uma compra de 500 no crédito e
+   um pagamento parcial de 300 da fatura, saindo do Banco do Brasil. */
+function cenarioComCartao() {
+  const e = cenario();
+  e.contas.push({ id: 'cc', nome: 'Cartão BB', cor: 'ardosia', tipo: 'cartao', saldoInicial: 0, ordem: 3 });
+  e.lancamentos.push(
+    { id: '7', data: '2026-09-09', tipo: 'saida', valor: 50000, contaId: 'cc', categoriaId: 'casa' },
+    { id: '8', data: '2026-09-20', tipo: 'transferencia', valor: 30000, contaId: 'a', contaDestinoId: 'cc' }
+  );
+  return e;
+}
+
+test('comprar no crédito não mexe no saldo do banco', () => {
+  const semCartao = calc.saldoDaConta(cenario(), 'a', '2026-09-19');
+  const comCartao = calc.saldoDaConta(cenarioComCartao(), 'a', '2026-09-19');
+  // Dia 19: a compra de 500 no crédito já aconteceu, o pagamento (dia 20)
+  // ainda não. O saldo do BB tem de ser exatamente o mesmo dos dois lados.
+  assert.equal(comCartao, semCartao);
+});
+
+test('a fatura em aberto é a soma do que foi comprado menos o que foi pago', () => {
+  const e = cenarioComCartao();
+  assert.equal(calc.faturaEmAberto(e, '2026-09-19'), 50000);
+  assert.equal(calc.faturaEmAberto(e, '2026-09-30'), 20000); // 500 − 300 pagos
+  assert.equal(calc.saldoDaConta(e, 'cc', '2026-09-30'), -20000);
+});
+
+test('pagar a fatura tira do banco e abate a dívida, sem virar gasto', () => {
+  const e = cenarioComCartao();
+  const antes = calc.saldoDaConta(e, 'a', '2026-09-19');
+  const depois = calc.saldoDaConta(e, 'a', '2026-09-20');
+  assert.equal(depois, antes - 30000);
+  // A compra de 500 no crédito é gasto do mês; o pagamento da fatura não —
+  // senão os mesmos 300 seriam contados duas vezes.
+  assert.equal(calc.totaisDoMes(e, 2026, 9).saiu, 44000 + 50000);
+});
+
+test('o total dos bancos não inclui a dívida do cartão', () => {
+  const e = cenarioComCartao();
+  const bancos = calc.saldos(e, '2026-09-30', 'conta');
+  const cartoes = calc.saldos(e, '2026-09-30', 'cartao');
+  assert.equal(bancos.linhas.length, 3);
+  assert.equal(cartoes.linhas.length, 1);
+  // Bancos: 3057,10 − 300 pagos + 290 + 912,90 = 3960,00
+  assert.equal(bancos.total, 396000);
+  assert.equal(cartoes.total, -20000);
+});
+
+test('conta gravada antes dos cartões existirem continua sendo banco', () => {
+  const e = cenario(); // nenhuma conta tem o campo `tipo`
+  assert.equal(calc.tipoDaConta(e.contas[0]), 'conta');
+  assert.equal(calc.saldos(e, '2026-09-30', 'conta').linhas.length, 3);
+  assert.equal(calc.faturaEmAberto(e, '2026-09-30'), 0);
+});
+
+test('fatura paga a mais não vira dívida negativa', () => {
+  const e = cenarioComCartao();
+  e.lancamentos.push({ id: '9', data: '2026-09-25', tipo: 'transferencia', valor: 90000, contaId: 'a', contaDestinoId: 'cc' });
+  assert.equal(calc.saldoDaConta(e, 'cc', '2026-09-30'), 70000); // crédito a favor
+  assert.equal(calc.faturaEmAberto(e, '2026-09-30'), 0);
+});
+
 test('dinheiro digitado em qualquer formato vira o mesmo inteiro', () => {
   assert.equal(fmt.paraCentavos('1.234,56'), 123456);
   assert.equal(fmt.paraCentavos('1234,56'), 123456);

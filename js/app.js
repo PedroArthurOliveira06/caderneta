@@ -50,6 +50,11 @@ function mostrarTelaCerta() {
 
 /* ========================== primeiro acesso ============================ */
 
+/* Os bancos do dono do app já vêm escritos: no celular, digitar três nomes
+   é justamente o atrito que faz alguém desistir na primeira tela. São
+   valores comuns de campo, não fixos — dá para apagar, trocar e adicionar. */
+const BANCOS_SUGERIDOS = ['Banco do Brasil', 'Nubank', 'Itaú'];
+
 function montarCamposBancos(quantidade = 3) {
   const alvo = $('campos-bancos');
   const atuais = [...alvo.querySelectorAll('input')].map((i) => i.value);
@@ -63,7 +68,7 @@ function montarCamposBancos(quantidade = 3) {
         placeholder: `Nome do ${i + 1}º banco`,
         maxlength: '28',
         'aria-label': `Nome do banco ${i + 1}`,
-        value: atuais[i] || '',
+        value: atuais[i] ?? BANCOS_SUGERIDOS[i] ?? '',
         'data-campo': 'nome',
       }),
       el('input', {
@@ -259,7 +264,7 @@ function aplicarTipo(dialogo) {
   const transferencia = tipoEmEdicao === 'transferencia';
   $('campo-destino').hidden = !transferencia;
   $('campo-categoria').hidden = transferencia;
-  $('rotulo-conta').textContent = transferencia ? 'De qual banco' : 'Banco';
+  $('rotulo-conta').textContent = transferencia ? 'De onde sai' : 'Banco ou cartão';
 
   // Transferir de um banco para ele mesmo não existe, e o app recusaria na
   // hora de salvar. Então já abre apontando para outro banco.
@@ -325,6 +330,7 @@ function abrirLancamento(lancamentoId) {
 /* ========================= diálogo de conta ============================ */
 
 let corEscolhida = dados.CORES_CONTA[0].id;
+let tipoContaEmEdicao = 'conta';
 
 function ligarDialogoConta() {
   const dialogo = $('dialogo-conta');
@@ -332,18 +338,25 @@ function ligarDialogoConta() {
   dialogo.querySelectorAll('[data-fechar]').forEach((b) =>
     b.addEventListener('click', () => dialogo.close()));
 
+  dialogo.querySelectorAll('[data-tipo-conta]').forEach((botao) => {
+    botao.addEventListener('click', () => {
+      tipoContaEmEdicao = botao.dataset.tipoConta;
+      aplicarTipoConta();
+    });
+  });
+
   aplicarMascaraDeValor($('conta-saldo'));
 
   $('excluir-conta').addEventListener('click', () => {
     const id = $('conta-id').value;
     if (!dados.podeRemoverConta(id)) {
-      recado('Este banco tem lançamentos. Apague-os antes, ou apenas renomeie o banco.');
+      recado(`Este ${palavraDaConta()} tem lançamentos. Apague-os antes, ou apenas renomeie.`);
       return;
     }
-    if (!confirm('Excluir este banco?')) return;
+    if (!confirm(`Excluir este ${palavraDaConta()}?`)) return;
     dados.removerConta(id);
     dialogo.close();
-    recado('Banco excluído.');
+    recado(tipoContaEmEdicao === 'cartao' ? 'Cartão excluído.' : 'Banco excluído.');
   });
 
   $('form-conta').addEventListener('submit', (evento) => {
@@ -352,26 +365,58 @@ function ligarDialogoConta() {
       evento.preventDefault();
       return;
     }
+    const informado = Math.abs(fmt.paraCentavos($('conta-saldo').value));
+
     dados.salvarConta({
       id: $('conta-id').value || undefined,
       nome,
       cor: corEscolhida,
-      saldoInicial: fmt.paraCentavos($('conta-saldo').value),
+      tipo: tipoContaEmEdicao,
+      // No cartão a pessoa digita quanto DEVE, um número positivo; por dentro
+      // isso é saldo negativo, que é o que faz pagar a fatura abater a dívida
+      // usando a mesma conta de transferência dos bancos.
+      saldoInicial: tipoContaEmEdicao === 'cartao' ? -informado : informado,
     });
-    recado('Banco salvo.');
+    recado(tipoContaEmEdicao === 'cartao' ? 'Cartão salvo.' : 'Banco salvo.');
   });
+}
+
+/** A palavra certa para o que está sendo editado, usada nos avisos. */
+function palavraDaConta() {
+  return tipoContaEmEdicao === 'cartao' ? 'cartão' : 'banco';
+}
+
+/** Banco e cartão são a mesma tela com outras palavras — e sinal invertido. */
+function aplicarTipoConta() {
+  const cartao = tipoContaEmEdicao === 'cartao';
+
+  $('dialogo-conta').querySelectorAll('[data-tipo-conta]').forEach((b) =>
+    b.classList.toggle('segmento--ativo', b.dataset.tipoConta === tipoContaEmEdicao));
+
+  $('rotulo-conta-nome').textContent = cartao ? 'Nome do cartão' : 'Nome do banco';
+  $('excluir-conta').textContent = cartao ? 'Excluir cartão' : 'Excluir banco';
+  $('rotulo-conta-saldo').textContent = cartao ? 'Quanto você já deve hoje' : 'Saldo inicial';
+  $('ajuda-conta-saldo').textContent = cartao
+    ? 'O valor da fatura em aberto agora. Compras no crédito não descontam do saldo do banco; elas somam aqui, e saem do banco quando você paga a fatura.'
+    : 'Quanto havia nesse banco quando você começou a usar a Caderneta.';
 }
 
 function abrirConta(contaId) {
   const conta = contaId ? dados.conta(contaId) : null;
   corEscolhida = conta ? conta.cor : dados.CORES_CONTA[dados.obter().contas.length % dados.CORES_CONTA.length].id;
+  tipoContaEmEdicao = dados.tipoDaConta(conta);
 
-  $('dialogo-conta-titulo').textContent = conta ? 'Editar banco' : 'Novo banco';
+  $('dialogo-conta-titulo').textContent = conta
+    ? (dados.ehCartao(conta) ? 'Editar cartão' : 'Editar banco')
+    : 'Novo banco ou cartão';
   $('conta-id').value = conta ? conta.id : '';
   $('conta-nome').value = conta ? conta.nome : '';
-  $('conta-saldo').value = conta && conta.saldoInicial ? fmt.valor(conta.saldoInicial) : '';
+  // Sempre em módulo: a dívida do cartão é guardada negativa, mas quem digita
+  // pensa "devo 500", não "tenho menos 500".
+  $('conta-saldo').value = conta && conta.saldoInicial ? fmt.valor(Math.abs(conta.saldoInicial)) : '';
   $('excluir-conta').hidden = !conta;
 
+  aplicarTipoConta();
   pintarCores();
   $('dialogo-conta').showModal();
 }

@@ -14,6 +14,11 @@ pode ser instalada como aplicativo e funciona sem internet.
 - **Gasto, entrada e transferência entre bancos.** Transferência move o
   dinheiro de um banco para outro sem contar como gasto do mês — é a conta
   que planilha costuma errar.
+- **Cartão de crédito de verdade.** O cartão é uma linha própria, separada
+  dos bancos. Comprar no crédito não mexe no saldo do banco: soma na fatura
+  em aberto. Quando você paga a fatura, aí o dinheiro sai do banco e a
+  dívida abate. Assim o saldo mostrado bate com o extrato do banco — e o app
+  ainda responde "pagando a fatura agora, sobra quanto?".
 - **Resumo do mês:** para onde foi o dinheiro (por categoria), quanto saiu de
   cada banco e a comparação dos últimos seis meses.
 - **Qualquer mês**, para frente ou para trás.

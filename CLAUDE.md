@@ -20,10 +20,23 @@ primeiro para o celular, hospedada no GitHub Pages. Ver
 3. **Transferência entre bancos não é gasto.** Muda o saldo dos dois lados,
    mas fica fora de "entrou" e "saiu" do mês. É o erro clássico de controle
    de gastos e está coberto por teste — não "consertar" isso.
-4. **Verde e vermelho significam entrou/saiu.** As cores de banco
+4. **Cartão de crédito é uma conta de sinal invertido.** `conta.tipo` é
+   `'conta'` (banco) ou `'cartao'`; a ausência do campo significa `'conta'`,
+   por causa dos registros gravados antes de os cartões existirem.
+   - Comprar no crédito é uma **saída no cartão**: não toca no saldo do banco
+     e o saldo do cartão fica negativo — essa dívida é a "fatura em aberto".
+   - Pagar a fatura é uma **transferência do banco para o cartão**. Por isso
+     nenhuma função de cálculo precisou mudar para os cartões existirem.
+   - A compra no crédito **conta** em "saiu no mês" (o gasto aconteceu); o
+     pagamento da fatura **não**, senão o mesmo dinheiro seria contado duas
+     vezes.
+   - O número grande do topo é só o dos bancos. Somar a dívida do cartão ali
+     responderia outra pergunta — a que a linha "pagando a fatura agora,
+     sobram…" responde separadamente.
+5. **Verde e vermelho significam entrou/saiu.** As cores de banco
    (`CORES_CONTA` em `js/dados.js`) excluem verde e vermelho de propósito,
    para um número vermelho nunca ter dois significados possíveis.
-5. **Só `js/dados.js` fala com o localStorage.** Toda escrita passa por
+6. **Só `js/dados.js` fala com o localStorage.** Toda escrita passa por
    `mutar()`, que grava e avisa a tela.
 
 ## Dependência em mão única
@@ -40,7 +53,7 @@ Cálculo nunca conhece tela; tela nunca grava dado. É isso que deixa
 
 ```bash
 npm run dev      # http://localhost:4173 (servidor próprio, sem dependências)
-npm test         # 12 testes, Node puro (node --test), sem instalar nada
+npm test         # 18 testes, Node puro (node --test), sem instalar nada
 npm run icones   # regera icons/ a partir de ferramentas/gerar-icones.js
 ```
 
@@ -82,7 +95,10 @@ tests/            testes dos cálculos
 Primeira versão completa, testada no navegador e commitada. Falta **publicar
 no GitHub**:
 
-- Conta do usuário: `PedroArthurOliviera06`
+- Conta do usuário: `PedroArthurOliviera06` (confirmado; grafia "Oliviera")
+- Bancos dele: Banco do Brasil, Nubank e Itaú. Cartão de crédito só no BB
+  (no BB ele usa crédito e pix). Os nomes já vêm preenchidos na tela de
+  primeiro acesso (`BANCOS_SUGERIDOS` em js/app.js)
 - Repositório a criar (ainda não existe): `caderneta`, **público** (decidido
   com o usuário — Pages gratuito exige público; o repositório guarda só
   código, nenhum dado de gasto)
