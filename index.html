@@ -18,6 +18,83 @@
 </head>
 <body>
 
+<!-- ======================== entrar / criar conta ======================== -->
+<section id="tela-entrada" class="boas-vindas" hidden>
+  <div class="boas-vindas__miolo">
+    <svg class="marca" viewBox="0 0 512 512" aria-hidden="true">
+      <g fill="none" stroke-width="64" stroke-linecap="round" transform="rotate(42 256 256)">
+        <circle cx="256" cy="256" r="148" stroke="#4b8ae8" stroke-dasharray="300 630"/>
+        <circle cx="256" cy="256" r="148" stroke="#9a72e0" stroke-dasharray="150 780" stroke-dashoffset="-330"/>
+        <circle cx="256" cy="256" r="148" stroke="#d09a3c" stroke-dasharray="212 718" stroke-dashoffset="-510"/>
+      </g>
+    </svg>
+    <h1 class="boas-vindas__titulo">Caderneta</h1>
+    <p class="boas-vindas__texto" id="entrada-explicacao">
+      Entre com a sua conta para os seus lançamentos acompanharem você em
+      qualquer aparelho.
+    </p>
+
+    <form id="form-entrada" class="formulario formulario--escuro">
+      <div class="campo" id="campo-nome-entrada" hidden>
+        <label for="entrada-nome">Seu nome</label>
+        <input type="text" id="entrada-nome" autocomplete="name" maxlength="60">
+      </div>
+
+      <div class="campo">
+        <label for="entrada-email">E-mail</label>
+        <input type="email" id="entrada-email" autocomplete="email" required inputmode="email">
+      </div>
+
+      <div class="campo">
+        <label for="entrada-senha">Senha</label>
+        <input type="password" id="entrada-senha" autocomplete="current-password" required minlength="6">
+        <p class="ajuda" id="ajuda-senha" hidden>Pelo menos 6 caracteres.</p>
+      </div>
+
+      <p class="erro-entrada" id="erro-entrada" hidden></p>
+
+      <button type="submit" class="botao botao--principal botao--largo" id="botao-entrada">
+        Entrar
+      </button>
+    </form>
+
+    <p class="boas-vindas__rodape">
+      <span id="pergunta-conta">Ainda não tem conta?</span>
+      <button type="button" id="alternar-entrada" class="botao botao--texto">Criar uma conta</button>
+    </p>
+
+    <p class="boas-vindas__rodape">
+      <button type="button" id="usar-sem-conta" class="botao botao--texto">
+        Usar só neste aparelho, sem conta
+      </button>
+    </p>
+  </div>
+</section>
+
+<!-- ===================== esperando liberação ===================== -->
+<section id="tela-pendente" class="boas-vindas" hidden>
+  <div class="boas-vindas__miolo">
+    <svg class="marca" viewBox="0 0 512 512" aria-hidden="true">
+      <g fill="none" stroke-width="64" stroke-linecap="round" transform="rotate(42 256 256)">
+        <circle cx="256" cy="256" r="148" stroke="#4b8ae8" stroke-dasharray="300 630"/>
+        <circle cx="256" cy="256" r="148" stroke="#9a72e0" stroke-dasharray="150 780" stroke-dashoffset="-330"/>
+        <circle cx="256" cy="256" r="148" stroke="#d09a3c" stroke-dasharray="212 718" stroke-dashoffset="-510"/>
+      </g>
+    </svg>
+    <h1 class="boas-vindas__titulo">Quase lá</h1>
+    <p class="boas-vindas__texto" id="texto-pendente">
+      Sua conta foi criada e está esperando liberação. Assim que ela for
+      aprovada, seus lançamentos aparecem aqui.
+    </p>
+    <div class="formulario">
+      <button type="button" id="conferir-liberacao" class="botao botao--principal botao--largo">
+        Já fui liberado, conferir
+      </button>
+      <button type="button" id="sair-pendente" class="botao botao--texto">Sair desta conta</button>
+    </div>
+  </div>
+</section>
+
 <!-- ===================== primeiro acesso ===================== -->
 <section id="boas-vindas" class="boas-vindas" hidden>
   <div class="boas-vindas__miolo">
@@ -70,6 +147,7 @@
     <div class="barra-mes__centro">
       <h1 id="rotulo-mes" class="barra-mes__titulo">—</h1>
       <button type="button" id="ir-para-hoje" class="barra-mes__hoje" hidden>voltar para hoje</button>
+      <p id="estado-envio" class="barra-mes__envio" hidden></p>
     </div>
     <button type="button" id="mes-proximo" class="barra-mes__seta" aria-label="Próximo mês">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
@@ -105,6 +183,29 @@
 
     <!-- ---------------------- ajustes ---------------------- -->
     <section id="tela-ajustes" class="tela" hidden aria-label="Ajustes">
+
+      <div class="bloco">
+        <h2 class="bloco__titulo">Sua conta</h2>
+        <p class="ajuda" id="estado-conta"></p>
+        <div class="botoes-backup">
+          <button type="button" id="entrar-na-conta" class="botao botao--principal" hidden>
+            Entrar na minha conta
+          </button>
+          <button type="button" id="sair-da-conta" class="botao botao--secundario" hidden>
+            Sair da conta
+          </button>
+        </div>
+      </div>
+
+      <div class="bloco" id="bloco-aprovacoes" hidden>
+        <h2 class="bloco__titulo">Quem pode entrar</h2>
+        <p class="ajuda">
+          Cada pessoa que se cadastra fica parada aqui até você liberar. Quem
+          está esperando não vê nada — nem os seus dados, nem os de ninguém.
+        </p>
+        <div id="lista-perfis" class="lista-ajuste"></div>
+      </div>
+
       <div class="bloco">
         <h2 class="bloco__titulo">Bancos e cartões</h2>
         <div id="ajustes-contas" class="lista-ajuste"></div>

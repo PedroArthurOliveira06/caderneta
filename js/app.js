@@ -11,6 +11,7 @@
 import * as dados from './dados.js';
 import * as fmt from './formato.js';
 import * as telas from './telas.js';
+import * as conta from './conta.js';
 import { interpretar, explicar, atalhosFrequentes } from './interpretar.js';
 import { el, trocar, hexDaConta, recado, baixarArquivo, nomeComData } from './ui.js';
 
@@ -26,9 +27,10 @@ const $ = (id) => document.getElementById(id);
 
 /* ============================= arranque ================================ */
 
-function iniciar() {
+async function iniciar() {
   dados.carregar();
   dados.assinar(() => pintar());
+  dados.definirAvisoDeFalha((erro) => recado(`O servidor recusou uma alteração: ${erro.message}`));
 
   ligarBoasVindas();
   ligarNavegacao();
@@ -38,16 +40,46 @@ function iniciar() {
   ligarAjustes();
   registrarServiceWorker();
 
-  mostrarTelaCerta();
+  // Quando a internet volta, o que ficou na fila sobe sozinho.
+  window.addEventListener('online', () => {
+    dados.tentarEscoar();
+    mostrarEstadoDoEnvio();
+  });
+  window.addEventListener('offline', mostrarEstadoDoEnvio);
+
+  try {
+    mostrarTelaCerta(await conta.iniciar(mostrarTelaCerta));
+  } catch (erro) {
+    // Falhar ao falar com o servidor não pode deixar a pessoa sem app.
+    console.error(erro);
+    mostrarTelaCerta(dados.obter().configurado ? 'local' : 'deslogado');
+  }
 }
 
-function mostrarTelaCerta() {
+/**
+ * Decide qual das quatro telas de topo aparece. Chamada no arranque e sempre
+ * que a situação da conta muda (entrar, sair, ser liberado).
+ *
+ *   'deslogado' -> entrar ou criar conta
+ *   'pendente'  -> esperando liberação
+ *   'local'     -> sem conta, só neste aparelho
+ *   'aprovado'  -> conta liberada, sincronizando
+ */
+function mostrarTelaCerta(situacao = 'local') {
   const estado = dados.obter();
-  const pronto = estado.configurado && estado.contas.length > 0;
-  $('boas-vindas').hidden = pronto;
-  $('app').hidden = !pronto;
-  if (pronto) pintar();
-  else montarCamposBancos();
+  const temBancos = estado.configurado && estado.contas.length > 0;
+
+  const entrada = situacao === 'deslogado';
+  const pendente = situacao === 'pendente';
+  const usandoApp = !entrada && !pendente;
+
+  $('tela-entrada').hidden = !entrada;
+  $('tela-pendente').hidden = !pendente;
+  $('boas-vindas').hidden = !(usandoApp && !temBancos);
+  $('app').hidden = !(usandoApp && temBancos);
+
+  if (usandoApp && temBancos) pintar();
+  else if (usandoApp) montarCamposBancos();
 }
 
 /* ========================== primeiro acesso ============================ */
@@ -161,6 +193,7 @@ function pintar() {
   $('tela-resumo').hidden = visao.tela !== 'resumo';
   $('tela-ajustes').hidden = visao.tela !== 'ajustes';
   $('botao-lancar').hidden = visao.tela === 'ajustes';
+  mostrarEstadoDoEnvio();
 
   const contexto = {
     ano: visao.ano,
@@ -182,7 +215,34 @@ function pintar() {
   } else {
     telas.pintarAjustes(estado, contexto);
     pintarAvisoDeBackup(estado);
+    conta.pintarAjustes();
   }
+}
+
+/**
+ * Aviso discreto na barra do mês sobre o que ainda não subiu. Fica pequeno
+ * de propósito: o lançamento já está salvo no aparelho, então isto é
+ * informação de fundo — não um erro que peça ação.
+ */
+function mostrarEstadoDoEnvio() {
+  const caixa = $('estado-envio');
+  if (dados.modoAtual() !== 'servidor') {
+    caixa.hidden = true;
+    return;
+  }
+
+  const pendentes = dados.enviosPendentes();
+  if (!navigator.onLine) {
+    caixa.textContent = pendentes
+      ? `sem internet · ${pendentes} para enviar`
+      : 'sem internet · seus dados estão salvos aqui';
+  } else if (pendentes) {
+    caixa.textContent = `enviando ${pendentes}…`;
+  } else {
+    caixa.hidden = true;
+    return;
+  }
+  caixa.hidden = false;
 }
 
 /* ========================= lançar escrevendo =========================== */

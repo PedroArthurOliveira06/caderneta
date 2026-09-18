@@ -92,18 +92,16 @@ tests/            testes dos cálculos
 
 ## Estado atual e próximo passo
 
-Primeira versão completa, testada no navegador e commitada. Falta **publicar
-no GitHub**:
+Publicado e no ar: **https://pedroarthuroliveira06.github.io/caderneta/**
+(GitHub Pages, branch , raiz). Cada  atualiza o site.
 
-- Conta do usuário: `PedroArthurOliviera06` (confirmado; grafia "Oliviera")
-- Bancos dele: Banco do Brasil, Nubank e Itaú. Cartão de crédito só no BB
-  (no BB ele usa crédito e pix). Os nomes já vêm preenchidos na tela de
-  primeiro acesso (`BANCOS_SUGERIDOS` em js/app.js)
-- Repositório a criar (ainda não existe): `caderneta`, **público** (decidido
-  com o usuário — Pages gratuito exige público; o repositório guarda só
-  código, nenhum dado de gasto)
-- Ainda falta: `git remote add origin`, primeiro `push`, e ligar
-  **Settings → Pages** na branch `main`, pasta `/ (root)`
+- Conta do usuário:  (confirmado pela API do GitHub)
+- Supabase: projeto , esquema já aplicado
+- Ele usa o app no celular, em modo local, com dados REAIS desde 18/09/2026
+
+**Falta:** o usuário criar a conta dele pelo app e rodar a linha de SQL que
+o promove a dono (está no fim de db/esquema.sql). Só depois dá para testar o
+caminho feliz do login e a fila de aprovação — eu não crio contas por ele.
 
 O usuário não conhece GitHub — explicar cada passo em linguagem simples,
 sem jargão.

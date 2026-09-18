@@ -149,6 +149,74 @@ button { font: inherit; color: inherit; }
 .boas-vindas .botao--texto { color: #cfe0d6; text-decoration: underline; }
 .boas-vindas .botao--principal { background: #fff; color: var(--tinta); }
 
+/* Formulário de entrar/criar conta: os mesmos campos do resto do app, mas
+   sobre o fundo escuro da abertura. */
+.formulario--escuro { display: grid; gap: 14px; }
+.formulario--escuro .campo label { color: #b9c7bf; }
+
+.formulario--escuro .campo input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--raio);
+  color: #fff;
+  padding: 12px;
+  font-size: 1rem;
+  min-height: 46px;
+}
+
+.formulario--escuro .campo input:focus { outline: 0; border-color: #fff; }
+.formulario--escuro .ajuda { color: #9fb1a7; margin: 0; }
+
+.erro-entrada {
+  background: rgba(184, 40, 28, 0.22);
+  border: 1px solid rgba(232, 120, 108, 0.5);
+  color: #ffd9d4;
+  border-radius: var(--raio-p);
+  padding: 10px 12px;
+  font-size: 0.875rem;
+}
+
+/* Aviso de envio pendente, na barra do mês. Fica discreto de propósito: é
+   informação de fundo, não um erro — o lançamento já está salvo. */
+.barra-mes__envio {
+  font-size: 0.6875rem;
+  color: #a9c0b4;
+  margin-top: 1px;
+}
+
+/* ---------------------- fila de aprovação ----------------------------- */
+
+.perfil {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 0;
+}
+
+.perfil + .perfil { border-top: 1px solid var(--superficie-2); }
+.perfil__nome { font-weight: 500; }
+.perfil__email { font-size: 0.8125rem; color: var(--texto-fraco); word-break: break-all; }
+.perfil__acoes { display: flex; gap: 8px; }
+
+.selo {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+
+.selo--pendente { background: #fdf3d8; color: #6b4e08; }
+.selo--aprovado { background: var(--entrada-bg); color: var(--entrada); }
+.selo--bloqueado { background: var(--saida-bg); color: var(--saida); }
+.selo--dono { background: var(--superficie-2); color: var(--texto-suave); }
+
+.botao--miudo { padding: 7px 12px; font-size: 0.8125rem; }
+
 /* =========================== estrutura ================================ */
 
 .app {
