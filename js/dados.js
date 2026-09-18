@@ -16,20 +16,37 @@ import * as mapear from './mapear.js';
 const CHAVE = 'caderneta.v1';
 const VERSAO = 1;
 
-/** Cores de identidade das contas. Cor aqui SIGNIFICA de qual banco é o
- *  dinheiro — não é decoração, e por isso são bem distintas entre si.
+/**
+ * Cores de identidade das contas. Cor aqui SIGNIFICA de qual banco é o
+ * dinheiro — não é decoração.
  *
- *  Verde e vermelho ficam de fora de propósito: no app inteiro eles já
- *  querem dizer "entrou" e "saiu". Se um banco também fosse vermelho, um
- *  valor vermelho passaria a ter dois significados possíveis. */
+ * Cada cor é o NOME de uma variável do CSS, não um código fixo. É isso que
+ * permite ela ter uma versão para o tema claro e outra para o escuro: um
+ * amarelo claro some no branco, e um roxo escuro some no preto. As duas
+ * versões estão em css/styles.css, junto das outras cores do app.
+ *
+ * Verde e vermelho continuam fora da lista, de propósito: no app inteiro
+ * eles já querem dizer "entrou" e "saiu".
+ */
 export const CORES_CONTA = [
-  { id: 'azul', nome: 'Azul', hex: '#2563d8' },
-  { id: 'roxo', nome: 'Roxo', hex: '#7a35dd' },
-  { id: 'ambar', nome: 'Âmbar', hex: '#e08a12' },
-  { id: 'petroleo', nome: 'Turquesa', hex: '#0a97ad' },
-  { id: 'magenta', nome: 'Magenta', hex: '#d11e77' },
-  { id: 'ardosia', nome: 'Ardósia', hex: '#4a5c78' },
+  { id: 'amarelo', nome: 'Amarelo' },
+  { id: 'azul', nome: 'Azul' },
+  { id: 'laranja', nome: 'Laranja' },
+  { id: 'roxo', nome: 'Roxo escuro' },
+  { id: 'roxo-claro', nome: 'Roxo claro' },
+  { id: 'turquesa', nome: 'Turquesa' },
+  { id: 'magenta', nome: 'Magenta' },
+  { id: 'ardosia', nome: 'Ardósia' },
 ];
+
+/* Contas criadas antes desta lista guardaram nomes que não existem mais.
+   Traduzir é mais seguro que renomear no banco de todo mundo. */
+const APELIDOS = { ambar: 'amarelo', petroleo: 'turquesa' };
+
+export function corValida(id) {
+  const traduzido = APELIDOS[id] || id;
+  return CORES_CONTA.some((c) => c.id === traduzido) ? traduzido : 'azul';
+}
 
 /* `natureza` diz se o gasto se repete todo mês ou aparece de vez em quando.
    Os padrões abaixo são um chute razoável para começar — a pessoa muda com
@@ -366,7 +383,7 @@ export function salvarConta(dados) {
       salva = {
         id: id(),
         nome: dados.nome,
-        cor: dados.cor || CORES_CONTA[e.contas.length % CORES_CONTA.length].id,
+        cor: corValida(dados.cor || CORES_CONTA[e.contas.length % CORES_CONTA.length].id),
         tipo: tipoValido(dados.tipo),
         saldoInicial: dados.saldoInicial || 0,
         ordem: e.contas.length,
@@ -521,16 +538,21 @@ export function adicionarLancamentos(lista, contasPedidas = []) {
     const procurado = semAcento(pedida.nome);
     const existente = estado.contas.find((c) => semAcento(c.nome) === procurado);
     if (existente) {
+      const mudancas = {};
       if (pedida.saldoInicial !== undefined && pedida.saldoInicial !== existente.saldoInicial) {
-        ajustadas.push({ ...existente, saldoInicial: pedida.saldoInicial });
+        mudancas.saldoInicial = pedida.saldoInicial;
       }
+      if (pedida.cor && corValida(pedida.cor) !== existente.cor) {
+        mudancas.cor = corValida(pedida.cor);
+      }
+      if (Object.keys(mudancas).length) ajustadas.push({ ...existente, ...mudancas });
       continue;
     }
     const posicao = estado.contas.length + novasContas.length;
     novasContas.push({
       id: id(),
       nome: String(pedida.nome).trim(),
-      cor: pedida.cor || CORES_CONTA[posicao % CORES_CONTA.length].id,
+      cor: corValida(pedida.cor || CORES_CONTA[posicao % CORES_CONTA.length].id),
       tipo: pedida.tipo === 'cartao' || pedida.tipo === 'reserva' ? pedida.tipo : 'conta',
       saldoInicial: pedida.saldoInicial || 0,
       ordem: posicao,
@@ -585,7 +607,7 @@ export function adicionarLancamentos(lista, contasPedidas = []) {
     e.contas.push(...novasContas);
     for (const a of ajustadas) {
       const alvo = e.contas.find((c) => c.id === a.id);
-      if (alvo) alvo.saldoInicial = a.saldoInicial;
+      if (alvo) Object.assign(alvo, a);
     }
     e.lancamentos.push(...novos);
     e.configurado = true;
@@ -599,7 +621,7 @@ export function adicionarLancamentos(lista, contasPedidas = []) {
   return {
     lancamentos: novos.length,
     contasCriadas: novasContas.map((c) => c.nome),
-    saldosAjustados: ajustadas.map((c) => c.nome),
+    contasAjustadas: ajustadas.map((c) => c.nome),
   };
 }
 

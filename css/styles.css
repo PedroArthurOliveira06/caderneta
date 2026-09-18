@@ -57,6 +57,24 @@
   --selecionado-fundo: var(--tinta);
   --selecionado-texto: #ffffff;
 
+  /* ---- cores de identidade das contas ----
+     Escolhidas para lembrar a marca de cada banco. Cada uma tem uma versão
+     para papel branco e outra para fundo escuro, porque um amarelo claro
+     some no branco e um roxo escuro some no preto — e essas cores aparecem
+     como tarja de 3px e pontinho de 7px, onde não há espaço para dúvida.
+
+     No tema claro elas são puxadas para baixo (mais pigmento), no escuro
+     para cima (mais luz). A cor continua sendo a mesma; muda o quanto dela
+     sobrevive ao fundo. */
+  --conta-amarelo: #d69a00;
+  --conta-azul: #1d4ed8;
+  --conta-laranja: #d94f04;
+  --conta-roxo: #5b21b6;
+  --conta-roxo-claro: #8b5cf6;
+  --conta-turquesa: #0e7490;
+  --conta-magenta: #be1558;
+  --conta-ardosia: #475569;
+
   --altura-abas: 58px;
   --rodape-seguro: env(safe-area-inset-bottom, 0px);
 }
@@ -101,6 +119,15 @@
 
     --selecionado-fundo: #e7eee9;
     --selecionado-texto: #101713;
+
+    --conta-amarelo: #f5c542;
+    --conta-azul: #6ba3f0;
+    --conta-laranja: #ff8a3d;
+    --conta-roxo: #a78bfa;
+    --conta-roxo-claro: #c9aafb;
+    --conta-turquesa: #3dd0e6;
+    --conta-magenta: #f472a8;
+    --conta-ardosia: #93a3bd;
   }
 }
 
@@ -132,6 +159,15 @@
 
   --selecionado-fundo: #e7eee9;
   --selecionado-texto: #101713;
+
+  --conta-amarelo: #f5c542;
+  --conta-azul: #6ba3f0;
+  --conta-laranja: #ff8a3d;
+  --conta-roxo: #a78bfa;
+  --conta-roxo-claro: #c9aafb;
+  --conta-turquesa: #3dd0e6;
+  --conta-magenta: #f472a8;
+  --conta-ardosia: #93a3bd;
 }
 
 * { box-sizing: border-box; }

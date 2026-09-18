@@ -127,7 +127,7 @@ function montarCamposBancos(quantidade = 3) {
   trocar(alvo, Array.from({ length: quantidade }, (_, i) => {
     const cor = dados.CORES_CONTA[i % dados.CORES_CONTA.length];
     return el('div', { class: 'banco-inicial' }, [
-      el('span', { class: 'banco-inicial__cor', estilo: { background: cor.hex } }),
+      el('span', { class: 'banco-inicial__cor', estilo: { background: hexDaConta({ cor: cor.id }) } }),
       el('input', {
         type: 'text',
         placeholder: `Nome do ${i + 1}º banco`,
@@ -780,7 +780,7 @@ function pintarCores() {
   trocar($('cores-conta'), dados.CORES_CONTA.map((cor) => el('button', {
     type: 'button',
     class: `cor${cor.id === corEscolhida ? ' cor--escolhida' : ''}`,
-    estilo: { background: cor.hex },
+    estilo: { background: hexDaConta({ cor: cor.id }) },
     'aria-label': cor.nome,
     'aria-pressed': String(cor.id === corEscolhida),
     onclick: () => { corEscolhida = cor.id; pintarCores(); },
@@ -956,7 +956,7 @@ async function adicionarDeArquivo(evento) {
   if (movidos) partes.push(`${movidos} lançamentos mudaram de data.`);
   if (!r.lancamentos && !movidos) partes.push('Bancos acertados.');
   if (r.contasCriadas.length) partes.push(`Criei: ${r.contasCriadas.join(', ')}.`);
-  if (r.saldosAjustados.length) partes.push(`Saldo inicial ajustado: ${r.saldosAjustados.join(', ')}.`);
+  if (r.contasAjustadas.length) partes.push(`Ajustei: ${r.contasAjustadas.join(', ')}.`);
   recado(partes.join(' '));
 }
 

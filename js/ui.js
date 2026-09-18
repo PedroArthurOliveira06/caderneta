@@ -6,7 +6,7 @@
    digitada como "<img onerror=...>" vire código rodando na página.
    ========================================================================= */
 
-import { CORES_CONTA } from './dados.js';
+import { corValida } from './dados.js';
 
 /** el('div', {class: 'x', onclick: fn}, ['texto', outroNo]) */
 export function el(tag, props = {}, filhos = []) {
@@ -31,8 +31,12 @@ export function trocar(alvo, ...conteudo) {
   alvo.replaceChildren(...conteudo.flat().filter(Boolean));
 }
 
+/**
+ * A cor de uma conta é uma variável do CSS, não um código fixo — é assim que
+ * ela troca sozinha entre o tema claro e o escuro.
+ */
 export function hexDaCor(corId) {
-  return (CORES_CONTA.find((c) => c.id === corId) || CORES_CONTA[0]).hex;
+  return `var(--conta-${corValida(corId)})`;
 }
 
 export function hexDaConta(conta) {
