@@ -491,6 +491,71 @@ export function registrarBackup() {
   mutar((e) => { e.ultimoBackupEm = new Date().toISOString(); });
 }
 
+/**
+ * ACRESCENTA lançamentos vindos de um arquivo, sem apagar nada.
+ *
+ * É diferente de restaurar um backup, que substitui tudo. Serve para trazer
+ * histórico de fora — uma planilha antiga, por exemplo — para dentro do que
+ * já existe.
+ *
+ * Os bancos vêm pelo NOME, não por identificador: um arquivo escrito fora do
+ * app não teria como saber os ids daqui. Nome que não existe vira conta nova,
+ * e a resposta diz quais foram criadas, para não haver surpresa silenciosa.
+ */
+export function adicionarLancamentos(lista) {
+  const semAcento = (t) => String(t || '').normalize('NFD')
+    .replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+  const novasContas = [];
+  const novos = [];
+  const agora = new Date().toISOString();
+
+  for (const item of lista) {
+    const procurado = semAcento(item.banco);
+    let conta = estado.contas.find((c) => semAcento(c.nome) === procurado)
+      || novasContas.find((c) => semAcento(c.nome) === procurado);
+
+    if (!conta) {
+      const posicao = estado.contas.length + novasContas.length;
+      conta = {
+        id: id(),
+        nome: String(item.banco || 'Sem banco').trim(),
+        cor: CORES_CONTA[posicao % CORES_CONTA.length].id,
+        // "Cartão BB" vira cartão sozinho: é o que o nome está dizendo.
+        tipo: /cart[aã]o/i.test(item.banco || '') ? 'cartao' : 'conta',
+        saldoInicial: 0,
+        ordem: posicao,
+      };
+      novasContas.push(conta);
+    }
+
+    novos.push({
+      id: id(),
+      criadoEm: agora,
+      data: item.data,
+      tipo: item.tipo === 'entrada' ? 'entrada' : 'saida',
+      valor: Math.abs(item.valor || 0),
+      contaId: conta.id,
+      contaDestinoId: null,
+      categoriaId: null,
+      descricao: item.descricao || '',
+    });
+  }
+
+  mutar((e) => {
+    e.contas.push(...novasContas);
+    e.lancamentos.push(...novos);
+    e.configurado = true;
+  }, () => [
+    // As contas sobem antes: o banco recusa um lançamento que aponte para
+    // uma conta que ainda não existe lá.
+    ...(novasContas.length ? enviarContas(novasContas) : []),
+    ...enviarLancamentos(novos),
+  ]);
+
+  return { lancamentos: novos.length, contasCriadas: novasContas.map((c) => c.nome) };
+}
+
 /** Substitui tudo pelo conteúdo do arquivo. Devolve {ok, erro}. */
 export function importarJSON(texto) {
   let dados;

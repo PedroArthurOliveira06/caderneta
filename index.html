@@ -306,8 +306,16 @@
           <button type="button" id="baixar-csv" class="botao botao--secundario">
             Exportar para planilha
           </button>
+          <button type="button" id="adicionar-arquivo" class="botao botao--secundario">
+            Adicionar lançamentos de um arquivo
+          </button>
         </div>
+        <p class="ajuda">
+          "Restaurar backup" substitui tudo. "Adicionar lançamentos" soma ao
+          que já existe — é o caminho para trazer histórico de fora.
+        </p>
         <input type="file" id="arquivo-backup" accept="application/json,.json" hidden>
+        <input type="file" id="arquivo-adicionar" accept="application/json,.json" hidden>
       </div>
 
       <div class="bloco bloco--perigo">

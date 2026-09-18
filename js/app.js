@@ -786,6 +786,8 @@ function ligarAjustes() {
   });
 
   $('importar-backup').addEventListener('click', () => $('arquivo-backup').click());
+  $('adicionar-arquivo').addEventListener('click', () => $('arquivo-adicionar').click());
+  $('arquivo-adicionar').addEventListener('change', adicionarDeArquivo);
 
   $('arquivo-backup').addEventListener('change', async (evento) => {
     const arquivo = evento.target.files[0];
@@ -854,6 +856,58 @@ function trocarNatureza(categoriaId) {
   if (!categoria) return;
   const nova = categoria.natureza === 'esporadico' ? 'frequente' : 'esporadico';
   dados.salvarCategoria({ ...categoria, natureza: nova });
+}
+
+/**
+ * Lê um arquivo de lançamentos e os acrescenta. Mostra antes o que vai
+ * acontecer, mês a mês: importar 161 linhas às cegas é pedir para alguém se
+ * arrepender depois.
+ */
+async function adicionarDeArquivo(evento) {
+  const arquivo = evento.target.files[0];
+  if (!arquivo) return;
+  const texto = await arquivo.text();
+  evento.target.value = '';
+
+  let dados_;
+  try {
+    dados_ = JSON.parse(texto);
+  } catch {
+    recado('Esse arquivo não é um JSON válido.');
+    return;
+  }
+
+  const lista = Array.isArray(dados_) ? dados_ : dados_.lancamentos;
+  if (!Array.isArray(lista) || !lista.length) {
+    recado('Não encontrei lançamentos nesse arquivo.');
+    return;
+  }
+
+  const invalidos = lista.filter((l) => !/^\d{4}-\d{2}-\d{2}$/.test(String(l.data)) || !(l.valor > 0));
+  if (invalidos.length) {
+    recado(`${invalidos.length} linhas estão sem data ou sem valor. Nada foi importado.`);
+    return;
+  }
+
+  const porMes = new Map();
+  for (const l of lista) {
+    const chave = String(l.data).slice(0, 7);
+    porMes.set(chave, (porMes.get(chave) || 0) + 1);
+  }
+  const meses = [...porMes.entries()].sort()
+    .map(([m, n]) => `  ${m}: ${n} lançamentos`).join('\n');
+
+  if (!confirm(`Adicionar ${lista.length} lançamentos?
+
+${meses}
+
+Eles somam ao que já existe, sem apagar nada.`)) return;
+
+  const r = dados.adicionarLancamentos(lista);
+  const aviso = r.contasCriadas.length
+    ? ` Criei também: ${r.contasCriadas.join(', ')}.`
+    : '';
+  recado(`${r.lancamentos} lançamentos adicionados.${aviso}`);
 }
 
 function pintarAvisoDeBackup(estado) {
