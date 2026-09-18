@@ -947,6 +947,11 @@ button { font: inherit; color: inherit; }
 .botao--texto { padding: 8px 4px; color: var(--texto-suave); }
 .botao--destaque { color: var(--tinta); font-weight: 600; }
 .botao--largo { width: 100%; }
+
+/* O Salvar do rodapé é o principal: é onde a mão termina de preencher. O do
+   cabeçalho continua, para quem só mudou uma coisa lá em cima e não quer
+   rolar. Ter os dois não é redundância — são dois momentos diferentes. */
+.botao--salvar { margin-top: 4px; padding-block: 14px; font-size: 1rem; font-weight: 600; }
 .botao[disabled] { opacity: 0.45; cursor: not-allowed; }
 
 .lancar {

@@ -898,9 +898,13 @@ async function adicionarDeArquivo(evento) {
     return;
   }
 
-  const lista = Array.isArray(dados_) ? dados_ : dados_.lancamentos;
-  if (!Array.isArray(lista) || !lista.length) {
-    recado('Não encontrei lançamentos nesse arquivo.');
+  const lista = (Array.isArray(dados_) ? dados_ : dados_.lancamentos) || [];
+  const contas = Array.isArray(dados_.contas) ? dados_.contas : [];
+
+  // Um arquivo só com contas é legítimo: serve para acertar saldo inicial e
+  // criar uma caixinha sem mexer em lançamento nenhum.
+  if (!lista.length && !contas.length) {
+    recado('Não encontrei lançamentos nem bancos nesse arquivo.');
     return;
   }
 
@@ -909,8 +913,6 @@ async function adicionarDeArquivo(evento) {
     recado(`${invalidos.length} linhas estão sem data ou sem valor. Nada foi importado.`);
     return;
   }
-
-  const contas = Array.isArray(dados_.contas) ? dados_.contas : [];
 
   const porMes = new Map();
   for (const l of lista) {
