@@ -534,33 +534,43 @@ export function adicionarLancamentos(lista, contasPedidas = []) {
     });
   }
 
-  for (const item of lista) {
-    const procurado = semAcento(item.banco);
-    let conta = estado.contas.find((c) => semAcento(c.nome) === procurado)
+  /* Acha a conta pelo nome, criando se for preciso. Vive aqui dentro porque
+     depende das contas que este mesmo laço acabou de criar. */
+  const acharOuCriar = (nome) => {
+    const procurado = semAcento(nome);
+    const achada = estado.contas.find((c) => semAcento(c.nome) === procurado)
       || novasContas.find((c) => semAcento(c.nome) === procurado);
+    if (achada) return achada;
 
-    if (!conta) {
-      const posicao = estado.contas.length + novasContas.length;
-      conta = {
-        id: id(),
-        nome: String(item.banco || 'Sem banco').trim(),
-        cor: CORES_CONTA[posicao % CORES_CONTA.length].id,
-        // "Cartão BB" vira cartão sozinho: é o que o nome está dizendo.
-        tipo: /cart[aã]o/i.test(item.banco || '') ? 'cartao' : 'conta',
-        saldoInicial: 0,
-        ordem: posicao,
-      };
-      novasContas.push(conta);
-    }
+    const posicao = estado.contas.length + novasContas.length;
+    const nova = {
+      id: id(),
+      nome: String(nome || 'Sem banco').trim(),
+      cor: CORES_CONTA[posicao % CORES_CONTA.length].id,
+      tipo: /cart[aã]o/i.test(nome || '') ? 'cartao' : 'conta',
+      saldoInicial: 0,
+      ordem: posicao,
+    };
+    novasContas.push(nova);
+    return nova;
+  };
+
+  for (const item of lista) {
+    const conta = acharOuCriar(item.banco);
+    // Pagar a fatura é transferência, não gasto: o arquivo diz para onde o
+    // dinheiro foi, e sem isso o mesmo valor seria contado duas vezes — uma
+    // nas compras do cartão, outra na saída do banco.
+    const ehTransferencia = item.tipo === 'transferencia' && item.bancoDestino;
+    const destino = ehTransferencia ? acharOuCriar(item.bancoDestino) : null;
 
     novos.push({
       id: id(),
       criadoEm: agora,
       data: item.data,
-      tipo: item.tipo === 'entrada' ? 'entrada' : 'saida',
+      tipo: ehTransferencia ? 'transferencia' : (item.tipo === 'entrada' ? 'entrada' : 'saida'),
       valor: Math.abs(item.valor || 0),
       contaId: conta.id,
-      contaDestinoId: null,
+      contaDestinoId: destino ? destino.id : null,
       categoriaId: null,
       descricao: item.descricao || '',
       // Só o cartão usa; em banco fica nulo.
