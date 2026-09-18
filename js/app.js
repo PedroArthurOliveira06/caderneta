@@ -238,11 +238,14 @@ function pintar() {
     aoTocarConta: (id) => { visao.filtroContaId = visao.filtroContaId === id ? null : id; pintar(); },
     aoTocarLancamento: (id) => abrirLancamento(id),
     aoEditarConta: (id) => abrirConta(id),
+    hoje,
+    aoPagarFatura: (fatura) => pagarFatura(fatura),
     aoEditarCategoria: (id) => editarCategoria(id),
   };
 
   if (visao.tela === 'extrato') {
     telas.pintarSaldos(estado, contexto);
+    telas.pintarAvisoDeFatura(estado, contexto);
     telas.pintarFiltro(estado, contexto);
     telas.pintarExtrato(estado, contexto);
   } else if (visao.tela === 'resumo') {
@@ -588,11 +591,36 @@ function preencherCategorias(tipo, selecionado) {
   ]);
 }
 
-function abrirLancamento(lancamentoId) {
+/**
+ * Abre o lançamento da fatura já preenchido: banco, cartão, valor e dia.
+ *
+ * Pagar fatura é sempre a mesma transferência, com números que o app já
+ * conhece. Fazer a pessoa redigitar o que está escrito na tela acima seria
+ * pedir para ela errar um centavo.
+ *
+ * A data é a do vencimento, não a de hoje — e se ela já passou, é a de hoje:
+ * um pagamento atrasado aconteceu quando aconteceu.
+ */
+function pagarFatura(fatura) {
+  const bancos = dados.obter().contas
+    .filter((c) => dados.tipoDaConta(c) === 'conta')
+    .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+
+  abrirLancamento(null, {
+    tipo: 'transferencia',
+    contaId: bancos.length ? bancos[0].id : '',
+    contaDestinoId: fatura.conta.id,
+    valor: fatura.falta,
+    data: fatura.vencimento > hoje ? hoje : fatura.vencimento,
+    descricao: `Fatura do ${fatura.conta.nome}`,
+  });
+}
+
+function abrirLancamento(lancamentoId, pronto) {
   const dialogo = $('dialogo-lancamento');
   const existente = lancamentoId ? dados.lancamento(lancamentoId) : null;
 
-  tipoEmEdicao = existente ? existente.tipo : 'saida';
+  tipoEmEdicao = existente ? existente.tipo : (pronto ? pronto.tipo : 'saida');
   naturezaEmEdicao = existente && existente.natureza === 'corrente' ? 'corrente' : 'esporadico';
   $('dialogo-titulo').textContent = existente
     ? (existente.parcelasTotal > 1
@@ -616,10 +644,17 @@ function abrirLancamento(lancamentoId) {
     $('lancamento-descricao').value = existente.descricao || '';
     preencherCategorias(existente.tipo === 'entrada' ? 'entrada' : 'saida', existente.categoriaId);
   } else {
-    $('lancamento-valor').value = '';
-    $('lancamento-data').value = hoje;
-    $('lancamento-descricao').value = '';
-    if (visao.filtroContaId) $('lancamento-conta').value = visao.filtroContaId;
+    $('lancamento-valor').value = pronto ? fmt.valor(pronto.valor) : '';
+    $('lancamento-data').value = pronto ? pronto.data : hoje;
+    $('lancamento-descricao').value = pronto ? pronto.descricao : '';
+    if (pronto) {
+      // Depois do aplicarTipo de propósito: é ele que revela o campo de
+      // destino e que escolhe um destino qualquer para não repetir a origem.
+      if (pronto.contaId) $('lancamento-conta').value = pronto.contaId;
+      $('lancamento-destino').value = pronto.contaDestinoId;
+    } else if (visao.filtroContaId) {
+      $('lancamento-conta').value = visao.filtroContaId;
+    }
   }
 
   pintarAtalhosDeData();
@@ -710,6 +745,7 @@ function ligarDialogoConta() {
       // isso é saldo negativo, que é o que faz pagar a fatura abater a dívida
       // usando a mesma conta de transferência dos bancos.
       saldoInicial: tipoContaEmEdicao === 'cartao' ? -informado : informado,
+      diaVencimento: Number($('conta-vencimento').value),
     });
     // Cada um tem o seu gênero: caixinha é salva, banco e cartão são salvos.
     recado({ conta: 'Banco salvo.', cartao: 'Cartão salvo.', reserva: 'Caixinha salva.' }[tipoContaEmEdicao]);
@@ -747,6 +783,7 @@ const PALAVRAS_DA_CONTA = {
 
 function aplicarTipoConta() {
   const cartao = tipoContaEmEdicao === 'cartao';
+  $('campo-vencimento').hidden = !cartao;
   const palavras = PALAVRAS_DA_CONTA[tipoContaEmEdicao] || PALAVRAS_DA_CONTA.conta;
 
   $('dialogo-conta').querySelectorAll('[data-tipo-conta]').forEach((b) =>
@@ -772,6 +809,7 @@ function abrirConta(contaId) {
   // Sempre em módulo: a dívida do cartão é guardada negativa, mas quem digita
   // pensa "devo 500", não "tenho menos 500".
   $('conta-saldo').value = conta && conta.saldoInicial ? fmt.valor(Math.abs(conta.saldoInicial)) : '';
+  $('conta-vencimento').value = String((conta && conta.diaVencimento) || 10);
   $('excluir-conta').hidden = !conta;
 
   aplicarTipoConta();

@@ -372,12 +372,22 @@ export function definirContasIniciais(lista) {
   ]);
 }
 
+/**
+ * O dia do mês em que a fatura é debitada. Preso entre 1 e 28 porque dia 29,
+ * 30 ou 31 não existe em todo mês — e um lembrete que some em fevereiro é
+ * pior que um lembrete com data aproximada.
+ */
+function diaValido(dia) {
+  const n = Math.round(Number(dia));
+  return Number.isFinite(n) ? Math.min(Math.max(n, 1), 28) : 10;
+}
+
 export function salvarConta(dados) {
   let salva;
   mutar((e) => {
     if (dados.id) {
       const alvo = e.contas.find((c) => c.id === dados.id);
-      if (alvo) Object.assign(alvo, dados);
+      if (alvo) Object.assign(alvo, dados, { diaVencimento: diaValido(dados.diaVencimento) });
       salva = alvo;
     } else {
       salva = {
@@ -386,6 +396,7 @@ export function salvarConta(dados) {
         cor: corValida(dados.cor || CORES_CONTA[e.contas.length % CORES_CONTA.length].id),
         tipo: tipoValido(dados.tipo),
         saldoInicial: dados.saldoInicial || 0,
+        diaVencimento: diaValido(dados.diaVencimento),
         ordem: e.contas.length,
       };
       e.contas.push(salva);

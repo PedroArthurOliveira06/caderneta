@@ -66,6 +66,9 @@ create table if not exists public.contas (
   -- 'reserva' é caixinha: dinheiro que existe mas está separado de propósito.
   tipo          text not null default 'conta' check (tipo in ('conta', 'cartao', 'reserva')),
   saldo_inicial bigint not null default 0,
+  -- Dia do mês em que a fatura do cartão é debitada. Entre 1 e 28 porque 29,
+  -- 30 e 31 não existem em todo mês, e o lembrete sumiria em fevereiro.
+  dia_vencimento integer not null default 10 check (dia_vencimento between 1 and 28),
   ordem         integer not null default 0,
   criado_em     timestamptz not null default now()
 );

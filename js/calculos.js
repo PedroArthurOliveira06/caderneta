@@ -77,6 +77,68 @@ export function faturaEmAberto(estado, ateISO) {
     .reduce((soma, l) => soma - Math.min(l.saldo, 0), 0);
 }
 
+/**
+ * A fatura fechada que está esperando pagamento, e quanto falta dela.
+ *
+ * O ciclo do cartão: as compras de um mês fecham no último dia dele e são
+ * cobradas no dia combinado do mês seguinte (no caso dele, dia 10). Então,
+ * em qualquer data, a fatura pendente é sempre a que fechou no fim do mês
+ * PASSADO — compras deste mês já pertencem à próxima.
+ *
+ * `pago` conta só as transferências feitas DEPOIS do fechamento: um
+ * pagamento anterior a ele já está embutido no saldo daquela data, e contar
+ * duas vezes faria a fatura parecer quitada antes da hora.
+ *
+ * Devolve null quando a conta não é cartão — quem pergunta não precisa
+ * checar antes.
+ */
+export function faturaAVencer(estado, contaId, hoje) {
+  const conta = estado.contas.find((c) => c.id === contaId);
+  if (!conta || tipoDaConta(conta) !== 'cartao') return null;
+
+  // Entre 1 e 28: dia 29, 30 ou 31 não existe em todo mês, e uma data que
+  // some em fevereiro é pior que uma data aproximada.
+  const dia = Math.min(Math.max(Number(conta.diaVencimento) || 10, 1), 28);
+
+  const [ano, mes] = String(hoje).split('-').map(Number);
+  const mm = String(mes).padStart(2, '0');
+  const vencimento = `${ano}-${mm}-${String(dia).padStart(2, '0')}`;
+
+  // Último dia do mês anterior: é quando a fatura que vence agora fechou.
+  const anterior = new Date(ano, mes - 1, 0);
+  const fechamento = [
+    anterior.getFullYear(),
+    String(anterior.getMonth() + 1).padStart(2, '0'),
+    String(anterior.getDate()).padStart(2, '0'),
+  ].join('-');
+
+  const devido = Math.max(0, -saldoDaConta(estado, contaId, fechamento));
+
+  const pago = estado.lancamentos
+    .filter((l) => l.tipo === 'transferencia'
+      && l.contaDestinoId === contaId
+      && l.data > fechamento
+      && l.data <= hoje)
+    .reduce((soma, l) => soma + l.valor, 0);
+
+  return {
+    conta,
+    fechamento,
+    vencimento,
+    devido,
+    pago,
+    falta: Math.max(0, devido - pago),
+  };
+}
+
+/** Todas as faturas que ainda esperam pagamento, para a tela avisar. */
+export function faturasAVencer(estado, hoje) {
+  return estado.contas
+    .filter((c) => tipoDaConta(c) === 'cartao')
+    .map((c) => faturaAVencer(estado, c.id, hoje))
+    .filter((f) => f && f.falta > 0);
+}
+
 /** Lançamentos do mês, do mais recente para o mais antigo. */
 export function lancamentosDoMes(estado, ano, mes, filtroContaId) {
   const prefixo = `${ano}-${String(mes).padStart(2, '0')}`;

@@ -22,6 +22,7 @@ export function contaParaApp(linha) {
     cor: linha.cor,
     tipo: tipoDeConta(linha.tipo),
     saldoInicial: Number(linha.saldo_inicial) || 0,
+    diaVencimento: Number(linha.dia_vencimento) || 10,
     ordem: Number(linha.ordem) || 0,
   };
 }
@@ -34,6 +35,7 @@ export function contaParaBanco(conta, usuario) {
     cor: conta.cor,
     tipo: tipoDeConta(conta.tipo),
     saldo_inicial: conta.saldoInicial || 0,
+    dia_vencimento: conta.diaVencimento || 10,
     ordem: conta.ordem || 0,
   };
 }

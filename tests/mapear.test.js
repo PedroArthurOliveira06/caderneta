@@ -7,7 +7,7 @@ const USUARIO = '11111111-1111-1111-1111-111111111111';
 test('conta vai e volta sem perder nada', () => {
   const original = {
     id: 'c1', nome: 'Banco do Brasil', cor: 'azul',
-    tipo: 'conta', saldoInicial: 248050, ordem: 0,
+    tipo: 'conta', saldoInicial: 248050, diaVencimento: 10, ordem: 0,
   };
   const volta = mapear.contaParaApp(mapear.contaParaBanco(original, USUARIO));
   assert.deepEqual(volta, original);
@@ -16,12 +16,24 @@ test('conta vai e volta sem perder nada', () => {
 test('cartão mantém o tipo e a dívida negativa na ida e na volta', () => {
   const cartao = {
     id: 'c2', nome: 'Cartão BB', cor: 'ardosia',
-    tipo: 'cartao', saldoInicial: -35740, ordem: 3,
+    tipo: 'cartao', saldoInicial: -35740, diaVencimento: 5, ordem: 3,
   };
   const noBanco = mapear.contaParaBanco(cartao, USUARIO);
   assert.equal(noBanco.tipo, 'cartao');
   assert.equal(noBanco.saldo_inicial, -35740); // dívida continua negativa
+  assert.equal(noBanco.dia_vencimento, 5);
   assert.deepEqual(mapear.contaParaApp(noBanco), cartao);
+});
+
+// Contas gravadas antes de o lembrete existir não têm o campo. Sem um padrão
+// aqui, elas voltariam do servidor com `diaVencimento: undefined` e o aviso
+// da fatura nunca apareceria para elas.
+test('conta antiga, sem dia de vencimento, assume o dia 10', () => {
+  const doBanco = {
+    id: 'c3', nome: 'Cartão antigo', cor: 'azul',
+    tipo: 'cartao', saldo_inicial: -1000, ordem: 1,
+  };
+  assert.equal(mapear.contaParaApp(doBanco).diaVencimento, 10);
 });
 
 test('lançamento simples vai e volta', () => {

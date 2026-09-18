@@ -224,6 +224,7 @@
     <!-- ---------------------- extrato ---------------------- -->
     <section id="tela-extrato" class="tela" aria-labelledby="rotulo-mes">
       <div id="painel-saldos" class="painel-saldos"></div>
+      <div id="aviso-fatura"></div>
       <div id="filtro-contas" class="filtro"></div>
 
       <form id="lancamento-rapido" class="rapido">
@@ -512,6 +513,15 @@
       <input type="text" id="conta-saldo" inputmode="decimal" placeholder="0,00" autocomplete="off">
       <p class="ajuda" id="ajuda-conta-saldo">
         Quanto havia nesse banco quando você começou a usar a Caderneta.
+      </p>
+    </div>
+
+    <div class="campo" id="campo-vencimento" hidden>
+      <label for="conta-vencimento">Dia do débito da fatura</label>
+      <input type="number" id="conta-vencimento" min="1" max="28" step="1" value="10" inputmode="numeric">
+      <p class="ajuda">
+        O dia em que o banco desconta a fatura. O app avisa quando ela fecha
+        e some quando você lança o pagamento.
       </p>
     </div>
 

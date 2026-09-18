@@ -170,6 +170,80 @@ test('a fatura fica em aberto desde a compra até o dia do débito', () => {
   assert.equal(calc.totaisDoMes(e, 2026, 9).saiu, 0);
 });
 
+/* ------------------------ a fatura que vai vencer ----------------------- */
+
+/* Compras em agosto (652,29) que vencem no dia 10 de setembro. */
+function cenarioDeFatura() {
+  const e = cenario();
+  e.contas.push({ id: 'cc', nome: 'Cartão BB', tipo: 'cartao', saldoInicial: 0, ordem: 3, diaVencimento: 10 });
+  e.lancamentos = [
+    { id: 'c1', data: '2026-08-12', tipo: 'saida', valor: 40000, contaId: 'cc' },
+    { id: 'c2', data: '2026-08-25', tipo: 'saida', valor: 25229, contaId: 'cc' },
+  ];
+  return e;
+}
+
+test('a fatura pendente é a que fechou no fim do mês passado', () => {
+  const f = calc.faturaAVencer(cenarioDeFatura(), 'cc', '2026-09-03');
+  assert.equal(f.fechamento, '2026-08-31');
+  assert.equal(f.vencimento, '2026-09-10');
+  assert.equal(f.devido, 65229);
+  assert.equal(f.falta, 65229);
+});
+
+test('compra feita depois do fechamento é da PRÓXIMA fatura', () => {
+  const e = cenarioDeFatura();
+  e.lancamentos.push({ id: 'c3', data: '2026-09-02', tipo: 'saida', valor: 9900, contaId: 'cc' });
+
+  // Os 99,00 de setembro não podem inflar a fatura que vence dia 10.
+  assert.equal(calc.faturaAVencer(e, 'cc', '2026-09-03').falta, 65229);
+});
+
+test('pagar zera o aviso, e pagar a menos deixa o que falta', () => {
+  const e = cenarioDeFatura();
+  e.lancamentos.push({ id: 'p', data: '2026-09-10', tipo: 'transferencia', valor: 65229, contaId: 'a', contaDestinoId: 'cc' });
+
+  assert.equal(calc.faturaAVencer(e, 'cc', '2026-09-09').falta, 65229, 'na véspera ainda falta');
+  assert.equal(calc.faturaAVencer(e, 'cc', '2026-09-10').falta, 0, 'pago no dia');
+  assert.deepEqual(calc.faturasAVencer(e, '2026-09-10'), [], 'e o aviso some');
+
+  const parcial = cenarioDeFatura();
+  parcial.lancamentos.push({ id: 'p', data: '2026-09-05', tipo: 'transferencia', valor: 20000, contaId: 'a', contaDestinoId: 'cc' });
+  assert.equal(calc.faturaAVencer(parcial, 'cc', '2026-09-06').falta, 45229);
+});
+
+test('pagamento anterior ao fechamento não é contado duas vezes', () => {
+  const e = cenarioDeFatura();
+  // Pagou 200 ainda em agosto: isso já abateu o saldo daquela data.
+  e.lancamentos.push({ id: 'p', data: '2026-08-28', tipo: 'transferencia', valor: 20000, contaId: 'a', contaDestinoId: 'cc' });
+
+  const f = calc.faturaAVencer(e, 'cc', '2026-09-03');
+  assert.equal(f.devido, 45229, 'o adiantamento já está no saldo do fechamento');
+  assert.equal(f.pago, 0, 'e não conta de novo como pagamento da fatura');
+  assert.equal(f.falta, 45229);
+});
+
+test('o vencimento acompanha o mês em que se está olhando', () => {
+  const e = cenarioDeFatura();
+  assert.equal(calc.faturaAVencer(e, 'cc', '2026-09-25').vencimento, '2026-09-10');
+  // Em fevereiro o mês anterior é janeiro, com 31 dias.
+  assert.equal(calc.faturaAVencer(e, 'cc', '2027-02-05').fechamento, '2027-01-31');
+  // E em março, fevereiro — que tem 28 em ano normal.
+  assert.equal(calc.faturaAVencer(e, 'cc', '2027-03-05').fechamento, '2027-02-28');
+});
+
+test('dia de vencimento fora do calendário é puxado para um que existe', () => {
+  const e = cenarioDeFatura();
+  e.contas.find((c) => c.id === 'cc').diaVencimento = 31;
+  // Dia 31 não existe em todo mês. Uma data que some é pior que uma
+  // aproximada, então ela é limitada a 28.
+  assert.equal(calc.faturaAVencer(e, 'cc', '2026-09-03').vencimento, '2026-09-28');
+});
+
+test('conta que não é cartão não tem fatura', () => {
+  assert.equal(calc.faturaAVencer(cenarioDeFatura(), 'a', '2026-09-03'), null);
+});
+
 /* --------------------- caixinha e natureza do gasto --------------------- */
 
 test('caixinha é dinheiro seu, mas fora do que dá para gastar hoje', () => {

@@ -127,6 +127,13 @@ export function limitesDoMes(ano, mes) {
   return { inicio: `${ano}-${mm}-01`, fim: `${ano}-${mm}-${String(ultimo).padStart(2, '0')}` };
 }
 
+/** Quantos dias faltam de `de` até `ate`. Negativo quer dizer que já passou. */
+export function diasEntre(de, ate) {
+  const um = paraData(de).getTime();
+  const outro = paraData(ate).getTime();
+  return Math.round((outro - um) / 86400000);
+}
+
 /** Mesma data, N dias à frente (ou atrás, com número negativo). */
 export function somarDias(iso, quantidade) {
   const [ano, mes, dia] = String(iso).split('-').map(Number);

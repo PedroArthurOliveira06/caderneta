@@ -130,6 +130,57 @@ function ladrilhos(reservas, cartoes, fatura, contexto) {
   return peças.length ? el('div', { class: 'ladrilhos' }, peças) : null;
 }
 
+/**
+ * O aviso da fatura que fechou e ainda não foi paga.
+ *
+ * Aparece só quando há o que pagar, e some sozinho quando o pagamento é
+ * lançado. Um aviso que fica na tela mesmo resolvido vira paisagem, e aí
+ * deixa de avisar qualquer coisa.
+ *
+ * O botão não abre uma tela para a pessoa preencher: ele já chega com banco,
+ * valor e data prontos. Lembrar sem ajudar a resolver é só cobrança.
+ */
+export function pintarAvisoDeFatura(estado, contexto) {
+  const alvo = document.getElementById('aviso-fatura');
+  const { hoje, aoPagarFatura } = contexto;
+  const pendentes = calc.faturasAVencer(estado, hoje);
+
+  if (!pendentes.length) {
+    trocar(alvo);
+    return;
+  }
+
+  trocar(alvo, pendentes.map((f) => {
+    const dias = fmt.diasEntre(hoje, f.vencimento);
+    const atrasada = dias < 0;
+
+    const quando = atrasada
+      ? `Venceu dia ${fmt.dataCurta(f.vencimento)}`
+      : dias === 0
+        ? 'Vence hoje'
+        : dias === 1
+          ? 'Vence amanhã'
+          : `Vence em ${dias} dias, no dia ${Number(f.vencimento.slice(-2))}`;
+
+    return el('div', { class: `fatura${atrasada ? ' fatura--atrasada' : ''}` }, [
+      el('div', { class: 'fatura__corpo' }, [
+        el('p', { class: 'fatura__titulo', texto: `Fatura do ${f.conta.nome}` }),
+        el('p', { class: 'fatura__valor', texto: fmt.moeda(f.falta) }),
+        el('p', {
+          class: 'fatura__quando',
+          texto: f.pago > 0 ? `${quando} · já pagou ${fmt.moeda(f.pago)}` : quando,
+        }),
+      ]),
+      el('button', {
+        class: 'botao botao--principal',
+        type: 'button',
+        texto: 'Lançar pagamento',
+        onclick: () => aoPagarFatura(f),
+      }),
+    ]);
+  }));
+}
+
 /* ============================= filtro ================================== */
 
 export function pintarFiltro(estado, contexto) {

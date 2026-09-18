@@ -783,6 +783,37 @@ button { font: inherit; color: inherit; }
 .mes-resumo__valor--entrada { color: var(--entrada); }
 .mes-resumo__valor--saida { color: var(--saida); }
 
+/* ========================= aviso da fatura ============================ */
+
+/* Card de aviso, não faixa vermelha: a fatura fechada é o esperado do mês,
+   não um erro. O vermelho fica reservado para quando ela já venceu. */
+.fatura {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: var(--superficie);
+  border: 1px solid var(--linha-forte);
+  border-left: 4px solid var(--conta-azul, var(--linha-forte));
+  border-radius: var(--raio);
+}
+
+.fatura--atrasada {
+  border-color: var(--saida);
+  border-left-color: var(--saida);
+  background: var(--saida-bg);
+}
+
+.fatura__corpo { flex: 1 1 140px; min-width: 0; display: grid; gap: 1px; }
+.fatura__titulo { font-size: 0.75rem; color: var(--texto-fraco); }
+.fatura__valor { font-size: 1.25rem; font-weight: 700; }
+.fatura__quando { font-size: 0.8125rem; color: var(--texto-suave); }
+.fatura--atrasada .fatura__quando { color: var(--saida); font-weight: 600; }
+
+.fatura .botao { flex: 0 0 auto; }
+
 /* ============================= filtro ================================= */
 
 .filtro {
