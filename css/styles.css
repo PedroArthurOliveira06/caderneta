@@ -700,6 +700,32 @@ button { font: inherit; color: inherit; }
 }
 
 .rapido__leitura--erro { color: var(--saida); }
+.rapido__dica { color: var(--texto-fraco); }
+.rapido__dica strong { color: var(--texto-suave); font-weight: 600; }
+
+/* Atalhos de data: no celular, abrir o seletor de calendário para dizer
+   "ontem" é trabalho demais para a resposta mais comum. */
+.atalhos-data { display: flex; gap: 8px; margin-top: 2px; }
+
+.botao-data {
+  border: 1px solid var(--linha-forte);
+  background: var(--superficie);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.botao-data--ativo { border-color: var(--tinta); background: var(--tinta); color: #fff; }
+
+/* A lista é tocável, mas nada dizia isso. */
+.dica-extrato {
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--texto-fraco);
+  padding: 14px 20px 4px;
+}
 
 /* ------------------------------ atalhos ------------------------------- */
 

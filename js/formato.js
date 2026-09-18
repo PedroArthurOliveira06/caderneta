@@ -127,6 +127,17 @@ export function limitesDoMes(ano, mes) {
   return { inicio: `${ano}-${mm}-01`, fim: `${ano}-${mm}-${String(ultimo).padStart(2, '0')}` };
 }
 
+/** Mesma data, N dias à frente (ou atrás, com número negativo). */
+export function somarDias(iso, quantidade) {
+  const [ano, mes, dia] = String(iso).split('-').map(Number);
+  const d = new Date(ano, mes - 1, dia + quantidade);
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
 /**
  * Mesma data, N meses à frente. Dia que não existe no mês de destino cai no
  * último dia dele: 31/01 + 1 mês é 28/02, não 03/03. É o que os bancos fazem

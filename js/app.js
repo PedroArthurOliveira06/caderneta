@@ -297,6 +297,7 @@ function ligarLancamentoRapido() {
   const leitura = $('leitura-rapida');
 
   campo.addEventListener('input', () => {
+    $('dica-rapida').hidden = Boolean(campo.value.trim());
     if (!campo.value.trim()) {
       leitura.hidden = true;
       return;
@@ -330,6 +331,7 @@ function ligarLancamentoRapido() {
 
     campo.value = '';
     leitura.hidden = true;
+    $('dica-rapida').hidden = false;
     recado(`${lido.tipo === 'entrada' ? 'Entrada' : 'Gasto'} de ${fmt.moeda(lido.valor)} lançado.`);
   });
 }
@@ -357,6 +359,15 @@ function ligarDialogoLancamento() {
     value: String(i + 1),
     texto: i === 0 ? 'À vista' : `${i + 1}x`,
   })));
+
+  $('dialogo-lancamento').querySelectorAll('.botao-data').forEach((botao) => {
+    botao.addEventListener('click', () => {
+      $('lancamento-data').value = fmt.somarDias(hoje, Number(botao.dataset.dia));
+      pintarAtalhosDeData();
+      mostrarContaDasParcelas();
+    });
+  });
+  $('lancamento-data').addEventListener('change', pintarAtalhosDeData);
 
   $('lancamento-parcelas').addEventListener('change', mostrarContaDasParcelas);
   $('lancamento-valor').addEventListener('input', mostrarContaDasParcelas);
@@ -497,6 +508,15 @@ function mostrarContaDasParcelas() {
   aviso.hidden = false;
 }
 
+/** Marca qual dos atalhos corresponde à data escolhida, inclusive quando ela
+ *  veio do calendário ou de um lançamento antigo sendo editado. */
+function pintarAtalhosDeData() {
+  const atual = $('lancamento-data').value;
+  $('dialogo-lancamento').querySelectorAll('.botao-data').forEach((botao) => {
+    botao.classList.toggle('botao-data--ativo', fmt.somarDias(hoje, Number(botao.dataset.dia)) === atual);
+  });
+}
+
 function garantirDestinoDiferente() {
   const origem = $('lancamento-conta');
   const destino = $('lancamento-destino');
@@ -554,6 +574,8 @@ function abrirLancamento(lancamentoId) {
     $('lancamento-descricao').value = '';
     if (visao.filtroContaId) $('lancamento-conta').value = visao.filtroContaId;
   }
+
+  pintarAtalhosDeData();
 
   dialogo.showModal();
   if (!existente) $('lancamento-valor').focus();

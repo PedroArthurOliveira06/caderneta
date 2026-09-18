@@ -193,6 +193,10 @@
         </button>
       </form>
       <p id="leitura-rapida" class="rapido__leitura" hidden></p>
+      <p id="dica-rapida" class="rapido__leitura rapido__dica">
+        Esqueceu de lançar no dia? Escreva <strong>ontem</strong> ou
+        <strong>12/09</strong> junto — ex.: "ontem mercado 45".
+      </p>
 
       <div id="lista-extrato" class="extrato"></div>
     </section>
@@ -362,6 +366,12 @@
     <div class="campo">
       <label for="lancamento-data">Data</label>
       <input type="date" id="lancamento-data" required>
+      <div class="atalhos-data">
+        <button type="button" class="botao-data" data-dia="0">Hoje</button>
+        <button type="button" class="botao-data" data-dia="-1">Ontem</button>
+        <button type="button" class="botao-data" data-dia="-2">Anteontem</button>
+      </div>
+      <p class="ajuda">Lançando depois? É só mudar o dia aqui.</p>
     </div>
 
     <div class="campo">

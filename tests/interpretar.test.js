@@ -108,10 +108,12 @@ test('sem valor, o app não finge que entendeu', () => {
   assert.equal(ler('   ').entendido, false);
 });
 
-test('a explicação diz em português o que foi entendido', () => {
-  const r = ler('12/09 mercado 45 nubank');
-  assert.equal(explicar(r, CONTEXTO), 'Gasto · Mercado · Nubank · 12/09');
-  assert.equal(explicar(ler('salario 3200'), CONTEXTO), 'Entrada · Salário');
+test('a explicação diz em português o que foi entendido, com a data sempre', () => {
+  // A data aparece mesmo quando é hoje: é o que faz a pessoa perceber que
+  // pode lançar em outro dia, em vez de registrar tudo no dia errado.
+  assert.equal(explicar(ler('12/09 mercado 45 nubank'), CONTEXTO), 'Gasto · Mercado · Nubank · 12/09');
+  assert.equal(explicar(ler('salario 3200'), CONTEXTO), 'Entrada · Salário · hoje');
+  assert.equal(explicar(ler('ontem farmacia 89'), CONTEXTO), 'Gasto · "Farmacia" · ontem');
 });
 
 /* ----------------------------- atalhos ---------------------------------- */

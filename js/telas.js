@@ -201,7 +201,14 @@ export function pintarExtrato(estado, contexto) {
     return;
   }
 
-  trocar(alvo, calc.agruparPorDia(lista).map((grupo) => {
+  // A lista inteira é tocável, mas nada dizia isso — e quem lança dois dias
+  // depois precisa justamente disso para corrigir a data. A dica aparece só
+  // enquanto o mês tem poucos lançamentos, que é quando ainda se aprende.
+  const dica = lista.length <= 6
+    ? el('p', { class: 'dica-extrato', texto: 'Toque em um lançamento para mudar valor, data ou banco.' })
+    : null;
+
+  trocar(alvo, [dica, ...calc.agruparPorDia(lista).map((grupo) => {
     // O total do dia é o efeito real no bolso: transferência entre bancos
     // não soma nem subtrai, porque o dinheiro continua sendo seu.
     const doDia = grupo.itens.reduce((s, l) => {
@@ -217,7 +224,7 @@ export function pintarExtrato(estado, contexto) {
       ]),
       el('div', { class: 'dia__itens' }, grupo.itens.map((l) => linhaDoExtrato(estado, l, aoTocarLancamento))),
     ]);
-  }));
+  })]);
 }
 
 function linhaDoExtrato(estado, l, aoTocar) {

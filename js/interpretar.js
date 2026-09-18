@@ -152,11 +152,31 @@ export function explicar(leitura, contexto = {}) {
   if (categoria) partes.push(categoria.nome);
   if (conta) partes.push(conta.nome);
   if (leitura.descricao) partes.push(`"${leitura.descricao}"`);
-  if (leitura.data !== (contexto.hoje || hojeISO())) {
-    const [, mes, dia] = leitura.data.split('-');
-    partes.push(`${dia}/${mes}`);
-  }
+
+  // A data aparece SEMPRE, inclusive quando é hoje. Antes ela só aparecia
+  // quando era outro dia, e o efeito era que ninguém percebia que a data
+  // fazia parte do que se podia escrever — quem lança dois dias depois
+  // registrava tudo no dia errado sem notar.
+  partes.push(nomeDoDia(leitura.data, contexto.hoje || hojeISO()));
+
   return partes.join(' · ');
+}
+
+/** 'hoje', 'ontem' ou '12/09' — como uma pessoa diria. */
+export function nomeDoDia(data, hoje) {
+  if (data === hoje) return 'hoje';
+
+  const [a, m, d] = String(hoje).split('-').map(Number);
+  const anterior = new Date(a, m - 1, d - 1);
+  const ontem = [
+    anterior.getFullYear(),
+    String(anterior.getMonth() + 1).padStart(2, '0'),
+    String(anterior.getDate()).padStart(2, '0'),
+  ].join('-');
+  if (data === ontem) return 'ontem';
+
+  const [, mes, dia] = String(data).split('-');
+  return `${dia}/${mes}`;
 }
 
 /**
