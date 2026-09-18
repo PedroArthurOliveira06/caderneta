@@ -53,7 +53,7 @@ testáveis sem navegador.
 
 ```bash
 npm run dev      # http://localhost:4173 (servidor próprio, sem dependências)
-npm test         # 61 testes, Node puro, sem instalar nada
+npm test         # 76 testes, Node puro, sem instalar nada
 npm run versao   # OBRIGATÓRIO antes de cada publicação (ver armadilhas)
 npm run icones   # regera icons/
 ```
@@ -128,8 +128,18 @@ No ar: **https://pedroarthuroliveira06.github.io/caderneta/**
   Cartão BB (azul), Caixinha do Nubank (roxo claro)
 
 **Pronto:** cartão de crédito, parcelamento, caixinha, lançar escrevendo,
-login com aprovação manual, PIN, modo escuro, importação de arquivo
-(adicionar, acertar contas, mover datas), aviso e botão de atualização.
+login com aprovação manual, recuperação de senha, PIN, modo escuro,
+importação de arquivo (adicionar, acertar contas, mover datas), aviso e
+botão de atualização.
+
+A cada envio o GitHub roda sozinho os 76 testes e confere se a versão foi
+carimbada — inclusive se o commit mexeu no app sem carimbar, que é o erro
+que os três arquivos de versão concordando entre si NÃO pegam.
+
+`js/dados.js` tem teste desde 18/09/2026, com um localStorage de mentira
+montado antes de importar o módulo. Continuam sem teste: `app.js`,
+`telas.js`, `conta.js`, `tranca.js`, `servidor.js` e `ui.js` — todos
+pesados em tela e rede.
 
 **Ele quer, em ordem de valor conversada:**
 
