@@ -18,7 +18,7 @@
    lembrar, eu esqueci sete vezes seguidas.
    ========================================================================= */
 
-const VERSAO = 'caderneta-2026-09-18-1143';
+const VERSAO = 'caderneta-2026-09-18-1150';
 
 const ARQUIVOS = [
   './',
@@ -72,11 +72,19 @@ self.addEventListener('fetch', (evento) => {
   evento.respondWith((async () => {
     try {
       const resposta = await fetch(requisicao);
+
       if (resposta && resposta.ok) {
         const cache = await caches.open(VERSAO);
         cache.put(requisicao, resposta.clone());
+        return resposta;
       }
-      return resposta;
+
+      // Servidor respondeu, mas respondeu errado (404, 500, página de erro do
+      // GitHub). Isso não é o app: é o endereço fora do ar. A cópia guardada
+      // é mais útil que uma tela de erro — e foi exatamente o que faltou
+      // quando a publicação caiu.
+      const copia = await caches.match(requisicao);
+      return copia || resposta;
     } catch (erro) {
       const guardado = await caches.match(requisicao);
       if (guardado) return guardado;
