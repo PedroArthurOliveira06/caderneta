@@ -521,7 +521,7 @@ button { font: inherit; color: inherit; }
   top: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: 44px 1fr 44px;
+  grid-template-columns: 44px 1fr 44px 44px;
   align-items: center;
   gap: 4px;
   background: var(--tinta);
@@ -782,6 +782,62 @@ button { font: inherit; color: inherit; }
 .mes-resumo__valor { font-weight: 600; font-size: 1.0625rem; }
 .mes-resumo__valor--entrada { color: var(--entrada); }
 .mes-resumo__valor--saida { color: var(--saida); }
+
+/* ============================== busca ================================= */
+
+/* Com a busca aberta, os quatro botões do mês somem e o formulário fica
+   sozinho na barra — por isso ele atravessa as colunas todas. */
+.barra-busca {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 4px;
+}
+
+.barra-busca__campo {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 1rem;           /* menos que isto e o iPhone dá zoom ao focar */
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--raio);
+  padding: 9px 12px;
+  -webkit-appearance: none;
+}
+
+.barra-busca__campo::placeholder { color: rgba(255, 255, 255, 0.6); }
+
+.barra-busca__campo:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+/* O "x" que alguns navegadores põem dentro do type=search fica ilegível no
+   fundo escuro, e já existe um botão de fechar do lado. */
+.barra-busca__campo::-webkit-search-cancel-button { display: none; }
+
+.busca-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  background: var(--superficie-2);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+}
+
+.busca-total__conta { font-size: 0.8125rem; color: var(--texto-suave); }
+.busca-total__numeros { display: flex; gap: 12px; font-weight: 600; }
+.busca-total__saida { color: var(--saida); }
+.busca-total__entrada { color: var(--entrada); }
 
 /* ========================= aviso da fatura ============================ */
 

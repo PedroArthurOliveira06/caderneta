@@ -24,6 +24,7 @@ const visao = {
   mes: Number(hoje.slice(5, 7)),
   tela: 'extrato',
   filtroContaId: null,
+  busca: null,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -183,6 +184,7 @@ function ligarBoasVindas() {
 /* ============================ navegação ================================ */
 
 function ligarNavegacao() {
+  ligarBusca();
   $('mes-anterior').addEventListener('click', () => mudarMes(-1));
   $('mes-proximo').addEventListener('click', () => mudarMes(1));
   $('ir-para-hoje').addEventListener('click', () => {
@@ -200,12 +202,55 @@ function ligarNavegacao() {
         if (ativa) outra.setAttribute('aria-current', 'page');
         else outra.removeAttribute('aria-current');
       });
+      visao.busca = null;
       pintar();
       window.scrollTo({ top: 0 });
     });
   });
 
   $('botao-lancar').addEventListener('click', () => abrirLancamento(null));
+}
+
+/**
+ * Abrir, digitar e fechar a busca.
+ *
+ * Fechar devolve o mês que estava aberto, intacto: quem procurou uma coisa
+ * quase sempre quer voltar para onde estava, não para hoje.
+ */
+function ligarBusca() {
+  const campo = $('campo-busca');
+
+  $('abrir-busca').addEventListener('click', () => {
+    visao.busca = '';
+    campo.value = '';
+    pintar();
+    campo.focus();
+    window.scrollTo({ top: 0 });
+  });
+
+  $('fechar-busca').addEventListener('click', fecharBusca);
+
+  campo.addEventListener('input', () => {
+    visao.busca = campo.value;
+    pintar();
+  });
+
+  // Enter no celular fecha o teclado e deixa o resultado à vista; sem isto o
+  // formulário recarregaria a página e a busca se perderia.
+  $('barra-busca').addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    campo.blur();
+  });
+
+  campo.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Escape') fecharBusca();
+  });
+}
+
+function fecharBusca() {
+  visao.busca = null;
+  $('campo-busca').value = '';
+  pintar();
 }
 
 function mudarMes(passo) {
@@ -219,15 +264,33 @@ function pintar() {
   const estado = dados.obter();
   if (!estado.configurado || !estado.contas.length) return;
 
+  const buscando = visao.busca !== null && visao.tela === 'extrato';
+
   $('rotulo-mes').textContent = fmt.mesPorExtenso(visao.ano, visao.mes);
   const mesCorrente = `${visao.ano}-${String(visao.mes).padStart(2, '0')}` === fmt.chaveMes(hoje);
-  $('ir-para-hoje').hidden = mesCorrente;
+  $('ir-para-hoje').hidden = mesCorrente || buscando;
+
+  // Buscando, o mês sai da barra: os achados vêm de meses diferentes, e um
+  // título dizendo "Setembro" em cima de um gasto de março seria mentira.
+  $('mes-anterior').hidden = buscando;
+  $('mes-proximo').hidden = buscando;
+  $('barra-mes-centro').hidden = buscando;
+  $('abrir-busca').hidden = buscando || visao.tela !== 'extrato';
+  $('barra-busca').hidden = !buscando;
+
+  // O painel de saldos e o campo de lançar saem de cena: um responde sobre o
+  // mês, o outro cria lançamento. Nenhum dos dois é o que se quer no meio de
+  // uma busca, e os dois roubam a tela inteira do celular.
+  $('painel-saldos').hidden = buscando;
+  $('aviso-fatura').hidden = buscando;
+  $('lancamento-rapido').hidden = buscando;
 
   $('tela-extrato').hidden = visao.tela !== 'extrato';
   $('tela-resumo').hidden = visao.tela !== 'resumo';
   $('tela-ajustes').hidden = visao.tela !== 'ajustes';
   $('botao-lancar').hidden = visao.tela === 'ajustes';
-  $('dica-rapida').hidden = jaAprendeu() || Boolean($('texto-rapido').value.trim());
+  $('dica-rapida').hidden = buscando || jaAprendeu() || Boolean($('texto-rapido').value.trim());
+  if (buscando) $('leitura-rapida').hidden = true;
   mostrarEstadoDoEnvio();
 
   const contexto = {
@@ -241,9 +304,15 @@ function pintar() {
     hoje,
     aoPagarFatura: (fatura) => pagarFatura(fatura),
     aoEditarCategoria: (id) => editarCategoria(id),
+    termo: visao.busca,
   };
 
-  if (visao.tela === 'extrato') {
+  if (visao.tela === 'extrato' && buscando) {
+    // O filtro de banco continua à vista de propósito: se ele estiver ligado,
+    // a busca obedece a ele, e esconder isso faria o resultado parecer errado.
+    telas.pintarFiltro(estado, contexto);
+    telas.pintarBusca(estado, contexto);
+  } else if (visao.tela === 'extrato') {
     telas.pintarSaldos(estado, contexto);
     telas.pintarAvisoDeFatura(estado, contexto);
     telas.pintarFiltro(estado, contexto);

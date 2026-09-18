@@ -16,17 +16,11 @@
    objeto. Não lê banco, não toca na tela — por isso dá para testar tudo.
    ========================================================================= */
 
-import { hojeISO, paraCentavos, somarMeses } from './formato.js';
+import { hojeISO, paraCentavos, somarMeses, simplificar } from './formato.js';
 
-/** "Alimentação" -> "alimentacao". Acento e maiúscula não podem atrapalhar
- *  quem digita com pressa. */
-export function simplificar(texto) {
-  return String(texto || '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim();
-}
+// Reexportado porque quem já usava a partir daqui não precisa saber que ela
+// mudou de casa.
+export { simplificar };
 
 function diaAnterior(iso) {
   const [ano, mes, dia] = iso.split('-').map(Number);

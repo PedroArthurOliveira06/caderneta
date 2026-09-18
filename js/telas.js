@@ -247,26 +247,87 @@ export function pintarExtrato(estado, contexto) {
   })]);
 }
 
+/**
+ * O resultado da busca, no lugar do extrato do mês.
+ *
+ * Mostra o ano em cada dia, coisa que o extrato do mês não precisa: aqui os
+ * achados vêm de meses diferentes, e "14 de março" sem o ano é ambíguo assim
+ * que o app tiver mais de um ano de histórico.
+ *
+ * O total vem em cima porque é o que quase sempre se quer saber: a pergunta
+ * costuma ser "quanto eu já gastei com isso?", não "quais foram".
+ */
+export function pintarBusca(estado, contexto) {
+  const alvo = document.getElementById('lista-extrato');
+  const { termo, filtroContaId, aoTocarLancamento } = contexto;
+
+  if (!String(termo || '').trim()) {
+    trocar(alvo, vazio(
+      'Procure em todo o histórico',
+      'Serve o nome do gasto, a categoria, o banco, o valor ou a data — "ifood", "45,90", "10/09".'
+    ));
+    return;
+  }
+
+  const achados = calc.buscar(estado, termo, filtroContaId);
+
+  if (!achados.length) {
+    trocar(alvo, vazio(
+      `Nada encontrado para "${termo.trim()}"`,
+      filtroContaId
+        ? 'Talvez esteja em outro banco: toque em "Todos os bancos" logo acima.'
+        : 'Tente uma palavra só, ou parte dela.'
+    ));
+    return;
+  }
+
+  const totais = calc.totaisDe(achados);
+
+  trocar(alvo, [
+    el('div', { class: 'busca-total' }, [
+      el('p', {
+        class: 'busca-total__conta',
+        texto: achados.length === 1 ? '1 lançamento' : `${achados.length} lançamentos`,
+      }),
+      el('div', { class: 'busca-total__numeros' }, [
+        totais.saiu
+          ? el('span', { class: 'busca-total__saida', texto: `− ${fmt.moeda(totais.saiu)}` })
+          : null,
+        totais.entrou
+          ? el('span', { class: 'busca-total__entrada', texto: `+ ${fmt.moeda(totais.entrou)}` })
+          : null,
+      ]),
+    ]),
+
+    ...calc.agruparPorDia(achados).map((grupo) => el('section', { class: 'dia' }, [
+      el('header', { class: 'dia__cabecalho' }, [
+        el('span', { texto: `${fmt.dataLonga(grupo.data)} de ${grupo.data.slice(0, 4)}` }),
+      ]),
+      el('div', { class: 'dia__itens' },
+        grupo.itens.map((l) => linhaDoExtrato(estado, l, aoTocarLancamento))),
+    ])),
+  ]);
+}
+
 function linhaDoExtrato(estado, l, aoTocar) {
   const conta = estado.contas.find((c) => c.id === l.contaId);
   const destino = estado.contas.find((c) => c.id === l.contaDestinoId);
   const categoria = estado.categorias.find((c) => c.id === l.categoriaId);
 
-  let titulo;
   let detalhe;
   let valorTexto;
   let classeValor;
 
+  // O rótulo vem do calculos.js para a busca poder procurar exatamente o
+  // texto que aparece aqui. Transferir para um cartão tem um nome só no mundo
+  // real — pagar a fatura — e "transferência" seria linguagem de sistema.
+  const titulo = calc.rotuloDoLancamento(estado, l);
+
   if (l.tipo === 'transferencia') {
-    // Transferir para um cartão tem um nome só no mundo real: pagar a fatura.
-    // Chamar isso de "transferência" no extrato seria linguagem de sistema.
-    const pagaFatura = calc.tipoDaConta(destino) === 'cartao';
-    titulo = l.descricao || (pagaFatura ? 'Pagamento da fatura' : 'Transferência entre bancos');
     detalhe = `${conta ? conta.nome : '—'} → ${destino ? destino.nome : '—'}`;
     valorTexto = fmt.moeda(l.valor);
     classeValor = 'item__valor--transferencia';
   } else {
-    titulo = l.descricao || (categoria ? categoria.nome : 'Sem categoria');
     const partes = [conta ? conta.nome : 'Banco removido'];
     if (l.descricao && categoria) partes.unshift(categoria.nome);
     // "3/10" vem antes do resto: numa compra parcelada é a informação que a

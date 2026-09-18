@@ -12,6 +12,7 @@
 
 import * as servidor from './servidor.js';
 import * as mapear from './mapear.js';
+import { simplificar } from './formato.js';
 
 const CHAVE = 'caderneta.v1';
 const VERSAO = 1;
@@ -69,10 +70,7 @@ const CATEGORIAS_INICIAIS = [
 ];
 
 /** "Itaú" e "itau" são o mesmo banco para quem digita. */
-function semAcento(texto) {
-  return String(texto || '').normalize('NFD')
-    .replace(/[̀-ͯ]/g, '').toLowerCase().trim();
-}
+const semAcento = simplificar;
 
 /**
  * Identificador de registro. UUID de verdade porque é o formato que o banco

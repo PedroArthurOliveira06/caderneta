@@ -209,7 +209,7 @@
     <button type="button" id="mes-anterior" class="barra-mes__seta" aria-label="Mês anterior">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
     </button>
-    <div class="barra-mes__centro">
+    <div id="barra-mes-centro" class="barra-mes__centro">
       <h1 id="rotulo-mes" class="barra-mes__titulo">—</h1>
       <button type="button" id="ir-para-hoje" class="barra-mes__hoje" hidden>Voltar para hoje</button>
       <p id="estado-envio" class="barra-mes__envio" hidden></p>
@@ -217,6 +217,23 @@
     <button type="button" id="mes-proximo" class="barra-mes__seta" aria-label="Próximo mês">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
     </button>
+    <button type="button" id="abrir-busca" class="barra-mes__seta" aria-label="Buscar no extrato">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="11" cy="11" r="6"/><path d="M15.5 15.5L20 20"/>
+      </svg>
+    </button>
+
+    <!-- Buscar é um modo, não mais um campo na tela: enquanto ele está
+         aberto, o mês some da barra porque a busca não é de um mês só. -->
+    <form id="barra-busca" class="barra-busca" role="search" hidden>
+      <input type="search" id="campo-busca" class="barra-busca__campo"
+             autocomplete="off" enterkeyhint="search" spellcheck="false"
+             placeholder="Procurar em todo o histórico"
+             aria-label="Procurar em todo o histórico">
+      <button type="button" id="fechar-busca" class="barra-mes__seta" aria-label="Fechar a busca">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </form>
   </header>
 
   <main class="conteudo">

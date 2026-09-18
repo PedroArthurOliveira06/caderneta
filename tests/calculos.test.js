@@ -393,3 +393,105 @@ test('fevereiro de ano bissexto termina no dia 29', () => {
   assert.equal(fmt.limitesDoMes(2028, 2).fim, '2028-02-29');
   assert.equal(fmt.limitesDoMes(2026, 2).fim, '2026-02-28');
 });
+
+/* =========================== busca no extrato =========================== */
+
+/* Cenário próprio: a busca só prova o que promete se os achados estiverem
+   espalhados por meses diferentes e escritos com acento. */
+function paraBuscar() {
+  return {
+    contas: [
+      { id: 'bb', nome: 'Banco do Brasil', tipo: 'conta', saldoInicial: 0, ordem: 0 },
+      { id: 'nu', nome: 'Nubank', tipo: 'conta', saldoInicial: 0, ordem: 1 },
+      { id: 'cbb', nome: 'Cartão BB', tipo: 'cartao', saldoInicial: 0, ordem: 2 },
+    ],
+    categorias: [
+      { id: 'alim', nome: 'Alimentação', tipo: 'saida' },
+      { id: 'saude', nome: 'Saúde', tipo: 'saida' },
+    ],
+    lancamentos: [
+      { id: '1', data: '2026-03-14', tipo: 'saida', valor: 4590, contaId: 'nu', categoriaId: 'alim', descricao: 'iFood' },
+      { id: '2', data: '2026-07-02', tipo: 'saida', valor: 18000, contaId: 'bb', categoriaId: 'saude', descricao: 'Veterinário' },
+      { id: '3', data: '2026-09-08', tipo: 'saida', valor: 4590, contaId: 'cbb', categoriaId: 'alim', descricao: 'iFood' },
+      { id: '4', data: '2026-09-10', tipo: 'transferencia', valor: 57050, contaId: 'bb', contaDestinoId: 'cbb', descricao: 'Fatura do Cartão BB' },
+      { id: '5', data: '2026-09-11', tipo: 'entrada', valor: 200000, contaId: 'bb', descricao: 'Ajuda da família' },
+    ],
+  };
+}
+
+// O motivo de a busca existir: quem procura não lembra o mês.
+test('a busca atravessa os meses, do mais recente para o mais antigo', () => {
+  const achados = calc.buscar(paraBuscar(), 'ifood');
+  assert.deepEqual(achados.map((l) => l.data), ['2026-09-08', '2026-03-14']);
+});
+
+test('acento e maiúscula não atrapalham quem digita com pressa', () => {
+  const e = paraBuscar();
+  assert.equal(calc.buscar(e, 'veterinario').length, 1);
+  assert.equal(calc.buscar(e, 'VETERINÁRIO').length, 1);
+  assert.equal(calc.buscar(e, 'alimentacao').length, 2); // acha pela categoria
+  assert.equal(calc.buscar(e, 'família').length, 1);
+});
+
+// Duas palavras estreitam o resultado mesmo vindo de pedaços diferentes do
+// lançamento: uma da descrição, outra do nome do banco.
+test('cada palavra pode vir de um pedaço diferente do lançamento', () => {
+  const e = paraBuscar();
+  assert.deepEqual(calc.buscar(e, 'ifood nubank').map((l) => l.id), ['1']);
+  assert.deepEqual(calc.buscar(e, 'ifood cartão').map((l) => l.id), ['3']);
+  assert.equal(calc.buscar(e, 'ifood veterinário').length, 0);
+});
+
+test('o valor escrito e a data também são procuráveis', () => {
+  const e = paraBuscar();
+  assert.equal(calc.buscar(e, '45,90').length, 2);
+  assert.deepEqual(calc.buscar(e, '10/09').map((l) => l.id), ['4']);
+});
+
+// Buscar com um banco filtrado tem de continuar respeitando o filtro, senão
+// a tela mostraria lançamento de um banco que a pessoa acabou de excluir.
+test('a busca respeita o banco filtrado, inclusive como destino', () => {
+  const e = paraBuscar();
+  assert.deepEqual(calc.buscar(e, 'ifood', 'nu').map((l) => l.id), ['1']);
+  // A fatura sai do BB e entra no cartão: o cartão a vê como destino.
+  assert.deepEqual(calc.buscar(e, 'fatura', 'cbb').map((l) => l.id), ['4']);
+});
+
+test('busca vazia ou só com espaços não devolve o histórico inteiro', () => {
+  const e = paraBuscar();
+  assert.deepEqual(calc.buscar(e, ''), []);
+  assert.deepEqual(calc.buscar(e, '   '), []);
+  assert.deepEqual(calc.buscar(e, undefined), []);
+});
+
+// O total do que foi achado obedece à mesma regra do mês: a transferência
+// aparece na lista, porque é um lançamento de verdade, mas não entra nem em
+// "entrou" nem em "saiu".
+test('o total do que foi achado deixa a transferência de fora', () => {
+  const e = paraBuscar();
+  const achados = calc.buscar(e, 'cartão bb'); // pega a compra e a fatura
+  assert.equal(achados.length, 2);
+  assert.deepEqual(calc.totaisDe(achados), {
+    entrou: 0, saiu: 4590, sobrou: -4590, quantidade: 2,
+  });
+});
+
+// A linha do extrato e a busca leem o mesmo rótulo. Se cada uma tivesse o
+// seu, procurar por "fatura" não acharia a linha escrita "Pagamento da
+// fatura" — e ninguém teria como adivinhar o porquê.
+test('o rótulo mostrado na tela é o mesmo que a busca procura', () => {
+  const e = paraBuscar();
+  const fatura = e.lancamentos.find((l) => l.id === '4');
+  fatura.descricao = '';   // como o app grava quando ninguém escreve nada
+
+  assert.equal(calc.rotuloDoLancamento(e, fatura), 'Pagamento da fatura');
+  assert.deepEqual(calc.buscar(e, 'fatura').map((l) => l.id), ['4']);
+
+  // Sem descrição e sem cartão no destino, o nome é o do mundo real também.
+  const entreBancos = { id: '9', data: '2026-05-01', tipo: 'transferencia', valor: 100, contaId: 'bb', contaDestinoId: 'nu', descricao: '' };
+  assert.equal(calc.rotuloDoLancamento(e, entreBancos), 'Transferência entre bancos');
+
+  // Gasto sem descrição se chama pela categoria, e é por ela que se acha.
+  const semDescricao = { id: '8', data: '2026-05-02', tipo: 'saida', valor: 900, contaId: 'bb', categoriaId: 'saude', descricao: '' };
+  assert.equal(calc.rotuloDoLancamento(e, semDescricao), 'Saúde');
+});

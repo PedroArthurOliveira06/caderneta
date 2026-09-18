@@ -9,6 +9,8 @@
    de gastos mentir para o dono.
    ========================================================================= */
 
+import { simplificar, valor as textoDoValor, dataCurta } from './formato.js';
+
 /** Quanto o lançamento mexe no saldo DESTA conta. Positivo entra, negativo sai. */
 export function efeitoNaConta(lancamento, contaId) {
   if (lancamento.tipo === 'entrada' && lancamento.contaId === contaId) {
@@ -139,6 +141,29 @@ export function faturasAVencer(estado, hoje) {
     .filter((f) => f && f.falta > 0);
 }
 
+/**
+ * O nome que o lançamento tem na tela.
+ *
+ * Mora aqui, e não no desenho, porque a busca precisa procurar exatamente o
+ * que a pessoa LÊ. Transferir para um cartão se chama "Pagamento da fatura"
+ * no extrato; se esse nome só existisse na hora de desenhar, procurar por
+ * "fatura" não acharia nada — e quem procura não tem como saber que aquela
+ * linha na verdade não tem descrição nenhuma.
+ */
+export function rotuloDoLancamento(estado, l) {
+  if (l.descricao) return l.descricao;
+
+  if (l.tipo === 'transferencia') {
+    const destino = estado.contas.find((c) => c.id === l.contaDestinoId);
+    return tipoDaConta(destino) === 'cartao'
+      ? 'Pagamento da fatura'
+      : 'Transferência entre bancos';
+  }
+
+  const categoria = estado.categorias.find((c) => c.id === l.categoriaId);
+  return categoria ? categoria.nome : 'Sem categoria';
+}
+
 /** Lançamentos do mês, do mais recente para o mais antigo. */
 export function lancamentosDoMes(estado, ano, mes, filtroContaId) {
   const prefixo = `${ano}-${String(mes).padStart(2, '0')}`;
@@ -152,9 +177,11 @@ export function lancamentosDoMes(estado, ano, mes, filtroContaId) {
       : b.data.localeCompare(a.data)));
 }
 
-/** Entrou / saiu / sobrou no mês. Transferências ficam de fora dos dois lados. */
-export function totaisDoMes(estado, ano, mes, filtroContaId) {
-  const lista = lancamentosDoMes(estado, ano, mes, filtroContaId);
+/**
+ * Entrou / saiu / sobrou numa lista qualquer de lançamentos. Transferências
+ * ficam de fora dos dois lados — é a regra do arquivo inteiro.
+ */
+export function totaisDe(lista) {
   let entrou = 0;
   let saiu = 0;
   for (const l of lista) {
@@ -162,6 +189,49 @@ export function totaisDoMes(estado, ano, mes, filtroContaId) {
     else if (l.tipo === 'saida') saiu += l.valor;
   }
   return { entrou, saiu, sobrou: entrou - saiu, quantidade: lista.length };
+}
+
+/** Entrou / saiu / sobrou no mês. */
+export function totaisDoMes(estado, ano, mes, filtroContaId) {
+  return totaisDe(lancamentosDoMes(estado, ano, mes, filtroContaId));
+}
+
+/**
+ * Busca em TODO o histórico, não só no mês aberto.
+ *
+ * É a razão de a busca existir: quem procura "veterinário" não lembra em que
+ * mês foi — se lembrasse, folhearia. Uma busca presa ao mês devolveria vazio
+ * justamente nas perguntas que valem a pena.
+ *
+ * Cada palavra digitada tem de aparecer em ALGUM pedaço do lançamento, não
+ * todas no mesmo: "ifood nubank" acha o iFood pago no Nubank. O pedaço inclui
+ * o valor escrito e a data em dia/mês, então "45,90" e "10/09" também acham.
+ */
+export function buscar(estado, termo, filtroContaId) {
+  const palavras = simplificar(termo).split(/\s+/).filter(Boolean);
+  if (!palavras.length) return [];
+
+  const nomeDaConta = new Map(estado.contas.map((c) => [c.id, c.nome]));
+  const nomeDaCategoria = new Map(estado.categorias.map((c) => [c.id, c.nome]));
+
+  return estado.lancamentos
+    .filter((l) => !filtroContaId
+      || l.contaId === filtroContaId
+      || l.contaDestinoId === filtroContaId)
+    .filter((l) => {
+      const palheiro = simplificar([
+        rotuloDoLancamento(estado, l),
+        nomeDaCategoria.get(l.categoriaId),
+        nomeDaConta.get(l.contaId),
+        nomeDaConta.get(l.contaDestinoId),
+        textoDoValor(l.valor),
+        dataCurta(l.data),
+      ].filter(Boolean).join(' '));
+      return palavras.every((palavra) => palheiro.includes(palavra));
+    })
+    .sort((a, b) => (a.data === b.data
+      ? String(b.criadoEm || '').localeCompare(String(a.criadoEm || ''))
+      : b.data.localeCompare(a.data)));
 }
 
 /** Gasto por categoria no mês, da maior para a menor, com o % do total. */

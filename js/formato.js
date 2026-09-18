@@ -56,6 +56,21 @@ export function paraCentavos(texto) {
   return negativo ? -n : n;
 }
 
+/**
+ * "Alimentação" -> "alimentacao". Acento e maiúscula não podem atrapalhar
+ * quem digita com pressa, nem no lançamento escrito nem na busca.
+ *
+ * Mora aqui, no arquivo mais de baixo, porque três lugares precisam dela e
+ * três cópias da mesma regra é como uma delas envelhece sozinha.
+ */
+export function simplificar(texto) {
+  return String(texto || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
 /* ------------------------------ datas ---------------------------------- */
 
 const DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
