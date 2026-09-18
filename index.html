@@ -18,6 +18,30 @@
 </head>
 <body>
 
+<!-- ============================== tranca ================================ -->
+<section id="tela-tranca" class="tranca" hidden>
+  <div class="tranca__miolo">
+    <svg class="marca marca--miuda" viewBox="0 0 512 512" aria-hidden="true">
+      <g fill="none" stroke-width="64" stroke-linecap="round" transform="rotate(42 256 256)">
+        <circle cx="256" cy="256" r="148" stroke="#4b8ae8" stroke-dasharray="300 630"/>
+        <circle cx="256" cy="256" r="148" stroke="#9a72e0" stroke-dasharray="150 780" stroke-dashoffset="-330"/>
+        <circle cx="256" cy="256" r="148" stroke="#d09a3c" stroke-dasharray="212 718" stroke-dashoffset="-510"/>
+      </g>
+    </svg>
+
+    <h1 class="tranca__titulo" id="tranca-titulo">Digite seu PIN</h1>
+    <div class="tranca__pontos" id="tranca-pontos" aria-hidden="true"></div>
+    <p class="erro-entrada tranca__erro" id="tranca-erro" hidden></p>
+
+    <div class="teclado" id="teclado"></div>
+
+    <button type="button" id="tranca-confirmar" class="botao botao--principal botao--largo">
+      Confirmar
+    </button>
+    <button type="button" id="esqueci-pin" class="botao botao--texto">Esqueci meu PIN</button>
+  </div>
+</section>
+
 <!-- ======================== entrar / criar conta ======================== -->
 <section id="tela-entrada" class="boas-vindas" hidden>
   <div class="boas-vindas__miolo">
@@ -193,6 +217,29 @@
           </button>
           <button type="button" id="sair-da-conta" class="botao botao--secundario" hidden>
             Sair da conta
+          </button>
+        </div>
+      </div>
+
+      <div class="bloco">
+        <h2 class="bloco__titulo">Tranca do app</h2>
+        <p class="ajuda">
+          Pede um PIN ao abrir a Caderneta neste aparelho, e de novo depois de
+          alguns minutos fora dela. Serve para quem pegar seu celular já
+          destravado não ver seus gastos. <strong>Não é um cofre:</strong>
+          quem entende de computador consegue contornar, porque o app roda
+          dentro do seu aparelho. O PIN não é guardado — fica salvo só um
+          resultado embaralhado, do qual não dá para voltar ao número.
+        </p>
+        <div class="botoes-backup">
+          <button type="button" id="criar-pin" class="botao botao--principal" hidden>
+            Criar um PIN
+          </button>
+          <button type="button" id="trocar-pin" class="botao botao--secundario" hidden>
+            Trocar o PIN
+          </button>
+          <button type="button" id="remover-pin" class="botao botao--perigo" hidden>
+            Remover a tranca
           </button>
         </div>
       </div>

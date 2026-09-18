@@ -12,6 +12,7 @@ import * as dados from './dados.js';
 import * as fmt from './formato.js';
 import * as telas from './telas.js';
 import * as conta from './conta.js';
+import * as tranca from './tranca.js';
 import { interpretar, explicar, atalhosFrequentes } from './interpretar.js';
 import { el, trocar, hexDaConta, recado, baixarArquivo, nomeComData } from './ui.js';
 
@@ -31,6 +32,14 @@ async function iniciar() {
   dados.carregar();
   dados.assinar(() => pintar());
   dados.definirAvisoDeFalha((erro) => recado(`O servidor recusou uma alteração: ${erro.message}`));
+
+  tranca.iniciar({
+    aoAbrir: () => mostrarTelaCerta(),
+    aoSair: {
+      temConta: () => dados.modoAtual() === 'servidor',
+      sair: () => conta.sair(),
+    },
+  });
 
   ligarBoasVindas();
   ligarNavegacao();
@@ -65,20 +74,29 @@ async function iniciar() {
  *   'local'     -> sem conta, só neste aparelho
  *   'aprovado'  -> conta liberada, sincronizando
  */
-function mostrarTelaCerta(situacao = 'local') {
+let situacaoDaConta = 'local';
+
+function mostrarTelaCerta(situacao) {
+  if (situacao) situacaoDaConta = situacao;
+
   const estado = dados.obter();
   const temBancos = estado.configurado && estado.contas.length > 0;
 
-  const entrada = situacao === 'deslogado';
-  const pendente = situacao === 'pendente';
-  const usandoApp = !entrada && !pendente;
+  // A tranca vem antes de tudo: nenhuma outra tela aparece atrás dela.
+  const naTranca = tranca.estaTrancado();
+  $('tela-tranca').hidden = !naTranca;
+
+  const entrada = !naTranca && situacaoDaConta === 'deslogado';
+  const pendente = !naTranca && situacaoDaConta === 'pendente';
+  const usandoApp = !naTranca && !entrada && !pendente;
 
   $('tela-entrada').hidden = !entrada;
   $('tela-pendente').hidden = !pendente;
   $('boas-vindas').hidden = !(usandoApp && !temBancos);
   $('app').hidden = !(usandoApp && temBancos);
 
-  if (usandoApp && temBancos) pintar();
+  if (naTranca) tranca.pintar();
+  else if (usandoApp && temBancos) pintar();
   else if (usandoApp) montarCamposBancos();
 }
 
@@ -215,6 +233,7 @@ function pintar() {
   } else {
     telas.pintarAjustes(estado, contexto);
     pintarAvisoDeBackup(estado);
+    pintarBotoesDaTranca();
     conta.pintarAjustes();
   }
 }
@@ -676,6 +695,14 @@ function pintarCores() {
 function ligarAjustes() {
   $('nova-conta').addEventListener('click', () => abrirConta(null));
 
+  $('criar-pin').addEventListener('click', () => tranca.comecarADefinir());
+  $('trocar-pin').addEventListener('click', () => tranca.comecarADefinir());
+  $('remover-pin').addEventListener('click', () => {
+    if (!confirm('Remover a tranca? O app passa a abrir direto neste aparelho.')) return;
+    tranca.remover();
+    pintarBotoesDaTranca();
+  });
+
   $('form-nova-categoria').addEventListener('submit', (evento) => {
     evento.preventDefault();
     const nome = $('nome-categoria').value.trim();
@@ -780,6 +807,14 @@ function pintarAvisoDeBackup(estado) {
   } else {
     caixa.hidden = true;
   }
+}
+
+/** A tranca tem três botões, e só dois fazem sentido por vez. */
+function pintarBotoesDaTranca() {
+  const tem = tranca.existe();
+  $('criar-pin').hidden = tem;
+  $('trocar-pin').hidden = !tem;
+  $('remover-pin').hidden = !tem;
 }
 
 /* ======================= exportação para planilha ====================== */

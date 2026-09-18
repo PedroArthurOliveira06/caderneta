@@ -217,6 +217,82 @@ button { font: inherit; color: inherit; }
 
 .botao--miudo { padding: 7px 12px; font-size: 0.8125rem; }
 
+/* ============================== tranca ================================= */
+
+.tranca {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  background: var(--tinta);
+  color: #eef2ee;
+  padding: 32px 20px calc(28px + var(--rodape-seguro));
+}
+
+.tranca__miolo {
+  width: 100%;
+  max-width: 19rem;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.marca--miuda { width: 44px; height: 44px; margin-bottom: 10px; }
+
+.tranca__titulo {
+  font-size: 1.125rem;
+  font-weight: 500;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+/* Os pontinhos dizem quantos números já foram digitados sem mostrar quais —
+   é o que deixa a pessoa conferir o próprio toque sem expor o PIN a quem
+   estiver olhando por cima do ombro. */
+.tranca__pontos {
+  display: flex;
+  gap: 12px;
+  height: 14px;
+  align-items: center;
+  margin: 14px 0 10px;
+}
+
+.ponto {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+}
+
+.ponto--cheio { background: #fff; border-color: #fff; }
+
+.tranca__erro { width: 100%; text-align: center; margin-bottom: 6px; }
+
+.teclado {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  width: 100%;
+  margin: 10px 0 18px;
+}
+
+.tecla {
+  height: 62px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tecla:active { background: rgba(255, 255, 255, 0.2); }
+.tecla--apagar { font-size: 1.25rem; background: none; }
+
+.tranca .botao--principal { background: #fff; color: var(--tinta); }
+.tranca .botao--texto { color: #cfe0d6; text-decoration: underline; margin-top: 6px; }
+
 /* =========================== estrutura ================================ */
 
 .app {
