@@ -93,10 +93,10 @@ tests/            testes dos cálculos
 ## Estado atual e próximo passo
 
 Publicado e no ar: **https://pedroarthuroliveira06.github.io/caderneta/**
-(GitHub Pages, branch , raiz). Cada  atualiza o site.
+(GitHub Pages, branch `main`, raiz). Cada `git push` atualiza o site.
 
-- Conta do usuário:  (confirmado pela API do GitHub)
-- Supabase: projeto , esquema já aplicado
+- Conta do GitHub: `PedroArthurOliveira06` (confirmado pela API)
+- Supabase: projeto `sbelyvcsbilsgpzlecuw`, esquema já aplicado
 - Ele usa o app no celular, em modo local, com dados REAIS desde 18/09/2026
 
 **Falta:** o usuário criar a conta dele pelo app e rodar a linha de SQL que
