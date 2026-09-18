@@ -18,7 +18,7 @@
    lembrar, eu esqueci sete vezes seguidas.
    ========================================================================= */
 
-const VERSAO = 'caderneta-2026-09-18-1413';
+const VERSAO = 'caderneta-2026-09-18-1417';
 
 const ARQUIVOS = [
   './',

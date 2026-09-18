@@ -31,6 +31,12 @@ const $ = (id) => document.getElementById(id);
 /* ============================= arranque ================================ */
 
 async function iniciar() {
+  // Depois de uma atualização forçada, tira o parâmetro da barra de
+  // endereço: ele serviu para furar o cache e não precisa ficar aparecendo.
+  if (location.search.includes('atualizado=')) {
+    history.replaceState(null, '', location.pathname);
+  }
+
   // Antes de tudo: sem isso a tela pisca clara antes de escurecer.
   tema.iniciar();
 
@@ -1042,7 +1048,8 @@ function aplicarMascaraDeValor(campo) {
  * O aviso não interrompe nada: é uma faixa no rodapé que dá para ignorar.
  */
 function ligarAvisoDeVersao() {
-  $('atualizar-agora').addEventListener('click', () => location.reload());
+  $('atualizar-agora').addEventListener('click', forcarAtualizacao);
+  $('forcar-atualizacao').addEventListener('click', forcarAtualizacao);
 
   conferirVersao();
   // Ao voltar para o app depois de um tempo fora, pergunta de novo.
@@ -1051,12 +1058,45 @@ function ligarAvisoDeVersao() {
   });
 }
 
+/**
+ * Joga fora tudo o que está guardado no aparelho e busca de novo.
+ *
+ * Recarregar sozinho não basta: o navegador tem o cache dele, o service
+ * worker tem o cache dele, e um app instalado pode ficar dias sem recarregar
+ * de verdade. Isto apaga os dois caches, desliga o service worker e volta
+ * com um endereço que nenhum deles conhece — assim não sobra de onde servir
+ * coisa velha.
+ *
+ * Nada disso toca nos lançamentos: eles ficam noutra gaveta (localStorage),
+ * e na conta do servidor.
+ */
+async function forcarAtualizacao() {
+  recado('Buscando versão nova…');
+  try {
+    if (window.caches) {
+      const chaves = await caches.keys();
+      await Promise.all(chaves.map((c) => caches.delete(c)));
+    }
+    if (navigator.serviceWorker) {
+      const registros = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registros.map((r) => r.unregister()));
+    }
+  } catch (erro) {
+    console.warn('Não deu para limpar tudo:', erro);
+  }
+  location.replace(`${location.pathname}?atualizado=${Date.now()}`);
+}
+
 async function conferirVersao() {
   try {
     const resposta = await fetch('versao.json', { cache: 'no-store' });
     if (!resposta.ok) return;
     const { versao } = await resposta.json();
-    $('tem-versao-nova').hidden = !versao || versao === VERSAO_APP;
+    const diferente = Boolean(versao) && versao !== VERSAO_APP;
+    $('tem-versao-nova').hidden = !diferente;
+    $('versao-servidor').textContent = diferente
+      ? `No servidor já existe a versão de ${versao}.`
+      : 'Esta é a versão mais nova.';
   } catch {
     // Sem internet não há o que conferir, e isso não é problema.
   }
