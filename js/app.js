@@ -915,11 +915,12 @@ async function adicionarDeArquivo(evento) {
 
   const lista = (Array.isArray(dados_) ? dados_ : dados_.lancamentos) || [];
   const contas = Array.isArray(dados_.contas) ? dados_.contas : [];
+  const mover = Array.isArray(dados_.mover) ? dados_.mover : [];
 
   // Um arquivo só com contas é legítimo: serve para acertar saldo inicial e
   // criar uma caixinha sem mexer em lançamento nenhum.
-  if (!lista.length && !contas.length) {
-    recado('Não encontrei lançamentos nem bancos nesse arquivo.');
+  if (!lista.length && !contas.length && !mover.length) {
+    recado('Não encontrei nada para fazer nesse arquivo.');
     return;
   }
 
@@ -947,8 +948,13 @@ async function adicionarDeArquivo(evento) {
 
   if (!confirm(pergunta)) return;
 
+  const movidos = mover.length ? dados.moverLancamentos(mover).movidos : 0;
   const r = dados.adicionarLancamentos(lista, contas);
-  const partes = [`${r.lancamentos} lançamentos adicionados.`];
+
+  const partes = [];
+  if (r.lancamentos) partes.push(`${r.lancamentos} lançamentos adicionados.`);
+  if (movidos) partes.push(`${movidos} lançamentos mudaram de data.`);
+  if (!r.lancamentos && !movidos) partes.push('Bancos acertados.');
   if (r.contasCriadas.length) partes.push(`Criei: ${r.contasCriadas.join(', ')}.`);
   if (r.saldosAjustados.length) partes.push(`Saldo inicial ajustado: ${r.saldosAjustados.join(', ')}.`);
   recado(partes.join(' '));

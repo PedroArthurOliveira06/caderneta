@@ -51,6 +51,12 @@ const CATEGORIAS_INICIAIS = [
   { nome: 'Outras entradas', tipo: 'entrada' },
 ];
 
+/** "Itaú" e "itau" são o mesmo banco para quem digita. */
+function semAcento(texto) {
+  return String(texto || '').normalize('NFD')
+    .replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
 /**
  * Identificador de registro. UUID de verdade porque é o formato que o banco
  * espera — e porque ele nasce AQUI, no aparelho, e não no servidor. É isso
@@ -503,9 +509,6 @@ export function registrarBackup() {
  * e a resposta diz quais foram criadas, para não haver surpresa silenciosa.
  */
 export function adicionarLancamentos(lista, contasPedidas = []) {
-  const semAcento = (t) => String(t || '').normalize('NFD')
-    .replace(/[̀-ͯ]/g, '').toLowerCase().trim();
-
   const novasContas = [];
   const ajustadas = [];
   const novos = [];
@@ -598,6 +601,49 @@ export function adicionarLancamentos(lista, contasPedidas = []) {
     contasCriadas: novasContas.map((c) => c.nome),
     saldosAjustados: ajustadas.map((c) => c.nome),
   };
+}
+
+/**
+ * Muda a data de lançamentos que já existem.
+ *
+ * Existe por um caso concreto e recorrente: a fatura do cartão que chega em
+ * setembro é de compras feitas em agosto. Lançadas em setembro, elas mentem
+ * sobre os dois meses — incham um e esvaziam o outro. Corrigir quinze datas
+ * à mão no celular ninguém faz.
+ *
+ * A regra é deliberadamente estreita — data exata, banco e tipo — para não
+ * pegar nada além do que foi pedido.
+ */
+export function moverLancamentos(regras) {
+  const movidos = [];
+
+  mutar((e) => {
+    for (const regra of regras) {
+      const conta = e.contas.find((c) => semAcento(c.nome) === semAcento(regra.banco));
+      if (!conta) continue;
+
+      for (const l of e.lancamentos) {
+        if (l.data !== regra.de) continue;
+        if (l.contaId !== conta.id) continue;
+        if (regra.tipo && l.tipo !== regra.tipo) continue;
+        l.data = regra.para;
+        movidos.push(l);
+      }
+    }
+  }, () => (movidos.length ? enviarLancamentos(movidos) : []));
+
+  return { movidos: movidos.length };
+}
+
+/** Quantos lançamentos uma regra pegaria — para poder avisar antes. */
+export function contarParaMover(regras) {
+  return regras.reduce((total, regra) => {
+    const conta = estado.contas.find((c) => semAcento(c.nome) === semAcento(regra.banco));
+    if (!conta) return total;
+    return total + estado.lancamentos.filter((l) => l.data === regra.de
+      && l.contaId === conta.id
+      && (!regra.tipo || l.tipo === regra.tipo)).length;
+  }, 0);
 }
 
 /** Substitui tudo pelo conteúdo do arquivo. Devolve {ok, erro}. */

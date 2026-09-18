@@ -148,6 +148,28 @@ test('fatura paga a mais não vira dívida negativa', () => {
   assert.equal(calc.faturaEmAberto(e, '2026-09-30'), 0);
 });
 
+test('a fatura fica em aberto desde a compra até o dia do débito', () => {
+  // O ciclo real do cartão: compra-se num mês, paga-se no seguinte. Lançar a
+  // compra no mês do pagamento incha um mês e esvazia o outro — os dois
+  // passam a mentir.
+  const e = cenario();
+  e.contas.push({ id: 'cc', nome: 'Cartão BB', tipo: 'cartao', saldoInicial: 0, ordem: 3 });
+  e.lancamentos = [
+    { id: 'c1', data: '2026-08-12', tipo: 'saida', valor: 40000, contaId: 'cc' },
+    { id: 'c2', data: '2026-08-25', tipo: 'saida', valor: 25229, contaId: 'cc' },
+    { id: 'p', data: '2026-09-10', tipo: 'transferencia', valor: 65229, contaId: 'a', contaDestinoId: 'cc' },
+  ];
+
+  assert.equal(calc.faturaEmAberto(e, '2026-08-31'), 65229, 'em agosto ele deve');
+  assert.equal(calc.faturaEmAberto(e, '2026-09-09'), 65229, 'na véspera ainda deve');
+  assert.equal(calc.faturaEmAberto(e, '2026-09-10'), 0, 'no dia do débito, quitada');
+
+  // O gasto conta em AGOSTO, quando aconteceu. Setembro só vê a transferência,
+  // que não é gasto.
+  assert.equal(calc.totaisDoMes(e, 2026, 8).saiu, 65229);
+  assert.equal(calc.totaisDoMes(e, 2026, 9).saiu, 0);
+});
+
 /* --------------------- caixinha e natureza do gasto --------------------- */
 
 test('caixinha é dinheiro seu, mas fora do que dá para gastar hoje', () => {
