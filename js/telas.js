@@ -20,7 +20,6 @@ export function pintarSaldos(estado, contexto) {
   const { linhas, total } = calc.saldos(estado, fim, 'conta');
   const reservas = calc.saldos(estado, fim, 'reserva');
   const cartoes = calc.saldos(estado, fim, 'cartao');
-  const fatura = calc.faturaEmAberto(estado, fim);
   const totais = calc.totaisDoMes(estado, ano, mes, filtroContaId);
 
   // Só saldos positivos entram na proporção da faixa: um saldo negativo não
@@ -40,16 +39,6 @@ export function pintarSaldos(estado, contexto) {
       texto: fmt.moeda(total),
     }),
 
-    // O total com a caixinha vem como legenda do número grande, não como
-    // frase solta: é a mesma informação, e ali ela custa uma linha em vez
-    // de um bloco inteiro.
-    reservas.total
-      ? el('p', {
-          class: 'painel-saldos__legenda',
-          texto: `Com a caixinha, ${fmt.moeda(total + reservas.total)}`,
-        })
-      : null,
-
     somaPositiva > 0
       ? el('div', { class: 'faixa', 'aria-hidden': 'true' },
           linhas
@@ -60,74 +49,67 @@ export function pintarSaldos(estado, contexto) {
             })))
       : el('div', { class: 'faixa', 'aria-hidden': 'true' }),
 
-    el('div', { class: 'saldos-contas' },
-      linhas.map((l) => el('button', {
-        class: 'saldo-conta',
-        type: 'button',
-        onclick: () => aoTocarConta(l.conta.id),
-      }, [
-        el('span', { class: 'saldo-conta__spine', estilo: { background: hexDaConta(l.conta) } }),
-        el('span', { class: 'saldo-conta__nome', texto: l.conta.nome }),
-        el('span', {
-          class: `saldo-conta__valor${l.saldo < 0 ? ' saldo-conta__valor--negativo' : ''}`,
-          texto: fmt.moeda(l.saldo),
-        }),
-      ]))),
+    // Uma lista só. Antes a mesma pergunta — onde está o meu dinheiro —
+    // era respondida em dois lugares: uma lista de bancos e dois ladrilhos
+    // separados para a caixinha e a fatura. Quem lê tinha de juntar as duas
+    // metades de cabeça, e a tela inicial acabava antes do primeiro
+    // lançamento aparecer.
+    el('div', { class: 'saldos-contas' }, [
+      ...linhas.map((l) => linhaDeSaldo(l, null, aoTocarConta)),
 
-    ladrilhos(reservas, cartoes, fatura, contexto),
+      // Uma frase explica os dois grupos de uma vez, no lugar de um rótulo
+      // repetido em cada linha: o que vem abaixo dela existe, mas não entra
+      // no número grande.
+      reservas.linhas.length || cartoes.linhas.length
+        ? el('p', { class: 'saldos-contas__corte', texto: 'Fora do saldo acima' })
+        : null,
 
-    el('div', { class: 'mes-resumo' }, [
-      el('div', { class: 'mes-resumo__item' }, [
-        el('p', { class: 'mes-resumo__rotulo', texto: 'Entrou no mês' }),
-        el('p', { class: 'mes-resumo__valor mes-resumo__valor--entrada', texto: fmt.moeda(totais.entrou) }),
-      ]),
-      el('div', { class: 'mes-resumo__item' }, [
-        el('p', { class: 'mes-resumo__rotulo', texto: 'Saiu no mês' }),
-        el('p', { class: 'mes-resumo__valor mes-resumo__valor--saida', texto: fmt.moeda(totais.saiu) }),
-      ]),
+      ...reservas.linhas.map((l) => linhaDeSaldo(l, null, aoTocarConta)),
+      ...cartoes.linhas.map((l) => linhaDeSaldo(l, 'fatura', aoTocarConta)),
+    ]),
+
+    // Entrou e saiu viram uma linha, não duas caixas: o mês inteiro tem uma
+    // tela só para ele, e repeti-lo aqui em tamanho de destaque fazia dois
+    // números de apoio pesarem o mesmo que os saldos.
+    el('p', { class: 'mes-linha' }, [
+      el('span', { class: 'mes-linha__rotulo', texto: 'No mês' }),
+      el('span', { class: 'mes-linha__entrada', texto: `+ ${fmt.moeda(totais.entrou)}` }),
+      el('span', { class: 'mes-linha__saida', texto: `− ${fmt.moeda(totais.saiu)}` }),
     ]),
   );
 }
 
 /**
- * Guardado e fatura, lado a lado, em dois ladrilhos.
+ * Uma linha da lista de saldos.
  *
- * Antes eram dois blocos com título, lista e uma frase cada um — e o efeito
- * era que a tela inicial acabava antes do primeiro lançamento aparecer. São
- * dois números de apoio; merecem duas caixinhas, não meia tela.
+ * `marca` nomeia o que o número é, e só o cartão precisa: sem ela,
+ * "Cartão BB  R$ 275,62" leria como dinheiro que existe, e é o contrário —
+ * é dívida. Por isso vem na cor de saída e com o valor em módulo: quem deve
+ * 275 não pensa "tenho menos 275".
  *
- * Com mais de uma caixinha ou mais de um cartão, o ladrilho mostra a soma e
- * quantos são, e deixa de filtrar: não dá para filtrar por dois de uma vez.
+ * A caixinha não leva marca. O saldo dela é saldo de verdade, o nome já diz
+ * que é caixinha, e a frase acima do grupo já explicou por que ela está
+ * separada. Um rótulo a mais ali só fazia o nome quebrar em duas linhas.
  */
-function ladrilhos(reservas, cartoes, fatura, contexto) {
-  const { aoTocarConta } = contexto;
-  const peças = [];
+function linhaDeSaldo(l, marca, aoTocarConta) {
+  const deve = marca === 'fatura' && l.saldo < 0;
+  const valor = deve ? -l.saldo : l.saldo;
 
-  const ladrilho = (rotulo, valor, linhas, classe) => {
-    const unica = linhas.length === 1;
-    return el(unica ? 'button' : 'div', {
-      class: `ladrilho${classe ? ' ' + classe : ''}`,
-      type: unica ? 'button' : null,
-      onclick: unica ? () => aoTocarConta(linhas[0].conta.id) : null,
-    }, [
-      el('span', { class: 'ladrilho__rotulo', texto: rotulo }),
-      el('span', { class: 'ladrilho__valor', texto: fmt.moeda(valor) }),
-      el('span', {
-        class: 'ladrilho__conta',
-        texto: unica ? linhas[0].conta.nome : `${linhas.length} contas`,
-      }),
-    ]);
-  };
-
-  if (reservas.linhas.length) {
-    peças.push(ladrilho('Guardado', reservas.total, reservas.linhas));
-  }
-  if (cartoes.linhas.length) {
-    peças.push(ladrilho('Fatura do cartão', fatura, cartoes.linhas,
-      fatura > 0 ? 'ladrilho--deve' : ''));
-  }
-
-  return peças.length ? el('div', { class: 'ladrilhos' }, peças) : null;
+  return el('button', {
+    class: 'saldo-conta',
+    type: 'button',
+    onclick: () => aoTocarConta(l.conta.id),
+  }, [
+    el('span', { class: 'saldo-conta__spine', estilo: { background: hexDaConta(l.conta) } }),
+    el('span', { class: 'saldo-conta__nome', texto: l.conta.nome }),
+    marca
+      ? el('span', { class: 'saldo-conta__marca', texto: deve ? 'fatura' : marca })
+      : null,
+    el('span', {
+      class: `saldo-conta__valor${deve || valor < 0 ? ' saldo-conta__valor--negativo' : ''}`,
+      texto: fmt.moeda(valor),
+    }),
+  ]);
 }
 
 /**
@@ -487,7 +469,10 @@ export function pintarResumo(estado, contexto) {
     ]));
 
   /* ---- gasto por banco ---- */
-  const contas = calc.porConta(estado, ano, mes);
+  // Conta sem gasto nenhum no mês sai da lista. A caixinha é o caso que
+  // sempre acontece: dela não se gasta, se transfere — e ela ficava ali todo
+  // mês exibindo um R$ 0,00 que não é resposta para pergunta nenhuma.
+  const contas = calc.porConta(estado, ano, mes).filter((c) => c.valor > 0);
   const maiorConta = Math.max(...contas.map((c) => c.valor), 0);
 
   trocar(document.getElementById('resumo-contas'),

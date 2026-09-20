@@ -190,7 +190,6 @@
 .aba,
 .item,
 .saldo-conta,
-.ladrilho,
 .linha-ajuste,
 .rapido__botao,
 .lancar,
@@ -207,7 +206,6 @@
 .atalho:active,
 .segmento:active,
 .tecla:active,
-.ladrilho:active,
 .rapido__botao:active,
 .lancar:active,
 .cor:active { transform: scale(0.97); }
@@ -220,9 +218,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .botao, .pilula, .botao-data, .atalho, .segmento, .tecla,
-  .ladrilho, .rapido__botao, .lancar, .cor { transition: none; }
+  .rapido__botao, .lancar, .cor { transition: none; }
   .botao:active, .pilula:active, .botao-data:active, .atalho:active,
-  .segmento:active, .tecla:active, .ladrilho:active,
+  .segmento:active, .tecla:active,
   .rapido__botao:active, .lancar:active, .cor:active { transform: none; }
 }
 
@@ -570,7 +568,7 @@ button { font: inherit; color: inherit; }
 .painel-saldos {
   background: var(--superficie);
   border-bottom: 1px solid var(--linha);
-  padding: 20px 16px 16px;
+  padding: 14px 16px 16px;
 }
 
 .painel-saldos__rotulo {
@@ -595,7 +593,7 @@ button { font: inherit; color: inherit; }
   height: 8px;
   border-radius: 999px;
   overflow: hidden;
-  margin: 16px 0 18px;
+  margin: 12px 0 14px;
   background: var(--superficie-2);
 }
 
@@ -605,7 +603,10 @@ button { font: inherit; color: inherit; }
 
 .saldo-conta {
   display: grid;
-  grid-template-columns: 3px 1fr auto;
+  /* Quatro colunas: tarja, nome, a marca ("guardado", "fatura") e o valor.
+     A marca é opcional, e por isso a coluna dela colapsa para zero quando
+     não existe — em vez de a linha inteira quebrar em duas. */
+  grid-template-columns: 3px minmax(0, 1fr) auto auto;
   gap: 12px;
   align-items: center;
   padding: 9px 0;
@@ -620,7 +621,7 @@ button { font: inherit; color: inherit; }
 .saldo-conta + .saldo-conta { border-top: 1px solid var(--superficie-2); }
 .saldo-conta__spine { align-self: stretch; border-radius: 999px; min-height: 22px; }
 .saldo-conta__nome { font-weight: 500; }
-.saldo-conta__valor { font-weight: 600; font-size: 1.0625rem; }
+.saldo-conta__valor { grid-column: 4; font-weight: 600; }
 .saldo-conta__valor--negativo { color: var(--saida); }
 
 /* O cartão fica abaixo dos bancos e um degrau mais quieto: é dinheiro que
@@ -647,9 +648,7 @@ button { font: inherit; color: inherit; }
 .cartoes__sobra strong { color: var(--texto); font-weight: 600; }
 .cartoes__sobra .cartoes__sobra--negativa { color: var(--saida); }
 
-/* A caixinha usa o mesmo bloco discreto do cartão, mas ela é dinheiro que
-   existe — então não herda o vermelho da dívida. */
-.guardado .saldo-conta__valor { color: var(--texto); }
+
 
 /* ------------------- o peso do mês: fixo x ocasião -------------------- */
 
@@ -726,46 +725,43 @@ button { font: inherit; color: inherit; }
    e o efeito era que a tela inicial acabava antes do primeiro lançamento
    aparecer. São dois números de apoio; merecem duas caixinhas, não meia
    tela. */
-.ladrilhos {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 16px;
-}
-
-.ladrilho {
-  display: grid;
-  gap: 1px;
-  text-align: left;
-  background: var(--superficie-2);
-  border: 1px solid var(--linha);
-  border-radius: var(--raio);
-  padding: 10px 12px;
-  cursor: pointer;
-  font: inherit;
-  color: inherit;
-  min-width: 0;
-}
-
-.ladrilho__rotulo { font-size: 0.75rem; color: var(--texto-fraco); }
-.ladrilho__valor { font-size: 1.0625rem; font-weight: 600; }
-.ladrilho--deve .ladrilho__valor { color: var(--saida); }
-
-.ladrilho__conta {
-  font-size: 0.75rem;
-  color: var(--texto-fraco);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* O total com a caixinha é legenda do número grande, não frase solta. */
-.painel-saldos__legenda {
+/* A divisória entre "dá para gastar" e "existe mas não é para gastar".
+   Não é enfeite: é a única coisa que impede a caixinha e a fatura de serem
+   lidas como mais dois bancos. */
+/* Uma frase no lugar de um rótulo repetido em cada linha: o que vem abaixo
+   dela existe, mas não entra no número grande. */
+.saldos-contas__corte {
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--linha);
   font-size: 0.8125rem;
-  color: var(--texto-suave);
-  margin-top: 2px;
+  color: var(--texto-fraco);
 }
 
+.saldo-conta__marca {
+  font-size: 0.8125rem;
+  color: var(--texto-fraco);
+  margin-left: 8px;
+}
+
+/* Entrou e saiu numa linha só. Antes eram duas caixas do tamanho de um
+   cartão, e dois números de apoio pesavam o mesmo que os saldos. */
+.mes-linha {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.mes-linha__rotulo { color: var(--texto-fraco); font-size: 0.8125rem; margin-right: auto; }
+.mes-linha__entrada { color: var(--entrada); font-weight: 600; }
+.mes-linha__saida { color: var(--saida); font-weight: 600; }
+
+/* A grade do mês continua existindo, mas só na tela de Resumo, que é onde o
+   mês é o assunto. No Extrato ela virou a linha acima: lá são quatro números
+   de apoio ao lado dos saldos, e aqui são o conteúdo da tela. */
 .mes-resumo {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -778,10 +774,11 @@ button { font: inherit; color: inherit; }
 }
 
 .mes-resumo__item { background: var(--superficie); padding: 10px 12px; }
-.mes-resumo__rotulo { font-size: 0.75rem; color: var(--texto-fraco); }
-.mes-resumo__valor { font-weight: 600; font-size: 1.0625rem; }
+.mes-resumo__rotulo { font-size: 0.8125rem; color: var(--texto-fraco); }
+.mes-resumo__valor { font-weight: 600; font-size: 1rem; }
 .mes-resumo__valor--entrada { color: var(--entrada); }
 .mes-resumo__valor--saida { color: var(--saida); }
+
 
 /* ============================== busca ================================= */
 
@@ -890,17 +887,19 @@ button { font: inherit; color: inherit; }
 
 /* Card de aviso, não faixa vermelha: a fatura fechada é o esperado do mês,
    não um erro. O vermelho fica reservado para quando ela já venceu. */
+/* Alerta é uma linha, não uma seção. Antes isto media 113px e sozinho
+   empurrava o extrato para fora da primeira tela do celular — bastante
+   espaço para dizer que faltam vinte reais. */
 .fatura {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 16px;
-  padding: 12px 14px;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 8px 10px 8px 12px;
   background: var(--superficie);
   border: 1px solid var(--linha-forte);
-  border-left: 4px solid var(--conta-azul, var(--linha-forte));
-  border-radius: var(--raio);
+  border-left: 3px solid var(--conta-azul, var(--linha-forte));
+  border-radius: var(--raio-p);
 }
 
 .fatura--atrasada {
@@ -909,13 +908,21 @@ button { font: inherit; color: inherit; }
   background: var(--saida-bg);
 }
 
-.fatura__corpo { flex: 1 1 140px; min-width: 0; display: grid; gap: 1px; }
-.fatura__titulo { font-size: 0.75rem; color: var(--texto-fraco); }
-.fatura__valor { font-size: 1.25rem; font-weight: 700; }
-.fatura__quando { font-size: 0.8125rem; color: var(--texto-suave); }
-.fatura--atrasada .fatura__quando { color: var(--saida); font-weight: 600; }
+.fatura__corpo {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 8px;
+}
 
-.fatura .botao { flex: 0 0 auto; }
+.fatura__titulo { font-size: 0.8125rem; color: var(--texto-suave); }
+.fatura__valor { font-size: 1rem; font-weight: 700; }
+.fatura__quando { font-size: 0.8125rem; color: var(--texto-fraco); width: 100%; }
+.fatura--atrasada .fatura__quando { color: var(--saida); }
+
+.fatura .botao { flex: 0 0 auto; padding: 8px 12px; font-size: 0.8125rem; }
 
 /* ============================= filtro ================================= */
 
@@ -923,7 +930,10 @@ button { font: inherit; color: inherit; }
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding: 12px 16px;
+  padding: 10px 16px;
+  /* Espaço extra à direita: sem ele a última pílula pode ficar presa embaixo
+     do botão flutuante de lançar, e não dá para tocar nela. */
+  scroll-padding-right: 72px;
   scrollbar-width: none;
 }
 
@@ -944,7 +954,7 @@ button { font: inherit; color: inherit; }
   border: 1px solid var(--linha-forte);
   border-radius: 999px;
   padding: 0 15px;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: inherit;
   cursor: pointer;
@@ -967,7 +977,10 @@ button { font: inherit; color: inherit; }
   display: grid;
   grid-template-columns: minmax(0, 1fr) 44px;
   gap: 8px;
-  padding: 0 16px 4px;
+  /* A direita fica livre para o botão flutuante de lançar. Sem esta reserva
+     os dois ficam um por cima do outro, e quem digita "mercado 45" e toca no
+     que parece a seta abre o diálogo em vez de lançar. */
+  padding: 0 80px 4px 16px;
 }
 
 .rapido input {
@@ -1047,7 +1060,7 @@ button { font: inherit; color: inherit; }
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
-  padding: 14px 16px 6px;
+  padding: 10px 16px 5px;
   font-size: 0.8125rem;
   color: var(--texto-fraco);
 }

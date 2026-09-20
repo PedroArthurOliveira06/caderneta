@@ -290,7 +290,9 @@ function pintar() {
   $('tela-extrato').hidden = visao.tela !== 'extrato';
   $('tela-resumo').hidden = visao.tela !== 'resumo';
   $('tela-ajustes').hidden = visao.tela !== 'ajustes';
-  $('botao-lancar').hidden = visao.tela === 'ajustes';
+  // Só no Extrato. O Resumo é tela de leitura, e ali o botão flutuante
+  // ficava por cima dos próprios números que a pessoa foi ler.
+  $('botao-lancar').hidden = visao.tela !== 'extrato' || buscando;
   $('dica-rapida').hidden = buscando || jaAprendeu() || Boolean($('texto-rapido').value.trim());
   if (buscando) $('leitura-rapida').hidden = true;
   mostrarEstadoDoEnvio();
