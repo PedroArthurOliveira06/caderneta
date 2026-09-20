@@ -181,6 +181,59 @@ export function pintarAvisoDeFatura(estado, contexto) {
   }));
 }
 
+/**
+ * O aviso dos gastos que se repetem e ainda não entraram no mês.
+ *
+ * Um botão só para todos: quem tem Apple dia 15 e Spotify dia 16 não quer
+ * dois toques por mês, quer zero. O toque existe porque lançar dinheiro
+ * sozinho, sem ninguém mandar, é como um app passa a mentir quando uma
+ * assinatura muda de preço ou é cancelada.
+ */
+export function pintarAvisoDeRecorrentes(estado, contexto) {
+  const alvo = document.getElementById('aviso-recorrentes');
+  const { ano, mes, hoje, aoLancarRecorrentes } = contexto;
+  const pendentes = calc.recorrentesPendentes(estado, ano, mes, hoje);
+
+  if (!pendentes.length) {
+    trocar(alvo);
+    return;
+  }
+
+  const total = pendentes.reduce((soma, p) => soma
+    + (p.recorrente.tipo === 'entrada' ? 0 : p.recorrente.valor), 0);
+
+  trocar(alvo, el('div', { class: 'repetem' }, [
+    el('p', {
+      class: 'repetem__titulo',
+      texto: pendentes.length === 1
+        ? 'Um gasto que se repete ainda não entrou'
+        : `${pendentes.length} gastos que se repetem ainda não entraram`,
+    }),
+
+    el('ul', { class: 'repetem__lista' }, pendentes.map(({ recorrente: r, data }) => {
+      const conta = estado.contas.find((c) => c.id === r.contaId);
+      return el('li', { class: 'repetem__item' }, [
+        el('span', { class: 'repetem__ponto', estilo: { background: hexDaConta(conta) } }),
+        el('span', { class: 'repetem__nome', texto: r.descricao }),
+        el('span', { class: 'repetem__dia', texto: `dia ${Number(data.slice(-2))}` }),
+        el('span', {
+          class: `repetem__valor${r.tipo === 'entrada' ? ' repetem__valor--entrada' : ''}`,
+          texto: fmt.moeda(r.valor),
+        }),
+      ]);
+    })),
+
+    el('button', {
+      class: 'botao botao--principal botao--largo',
+      type: 'button',
+      texto: pendentes.length === 1
+        ? 'Lançar'
+        : `Lançar os ${pendentes.length} (${fmt.moeda(total)})`,
+      onclick: () => aoLancarRecorrentes(pendentes),
+    }),
+  ]));
+}
+
 /* ============================= filtro ================================== */
 
 export function pintarFiltro(estado, contexto) {
@@ -554,6 +607,8 @@ export function pintarAjustes(estado, contexto) {
         el('span', { class: 'linha-ajuste__acao', texto: 'Editar' }),
       ])));
 
+  pintarRecorrentesNosAjustes(estado, contexto);
+
   const ordenadas = [...estado.categorias].sort((a, b) =>
     a.tipo === b.tipo ? a.nome.localeCompare(b.nome, 'pt-BR') : (a.tipo === 'saida' ? -1 : 1));
 
@@ -570,4 +625,39 @@ export function pintarAjustes(estado, contexto) {
       ]),
       el('span', { class: 'linha-ajuste__acao', texto: 'Renomear' }),
     ])));
+}
+
+
+/** A lista de gastos que se repetem, dentro dos Ajustes. */
+function pintarRecorrentesNosAjustes(estado, contexto) {
+  const { aoEditarRecorrente } = contexto;
+  const lista = [...(estado.recorrentes || [])].sort((a, b) => a.dia - b.dia);
+  const total = calc.totalDosRecorrentes(estado);
+
+  document.getElementById('resumo-recorrentes').textContent = lista.length
+    ? `Sai ${fmt.moeda(total)} por mês em gastos que se repetem.`
+    : 'Nada cadastrado ainda.';
+
+  trocar(document.getElementById('ajustes-recorrentes'),
+    lista.map((r) => {
+      const conta = estado.contas.find((c) => c.id === r.contaId);
+      const partes = [`Dia ${r.dia}`, conta ? conta.nome : 'Banco removido'];
+      if (r.ativo === false) partes.push('desligado');
+
+      return el('button', {
+        class: `linha-ajuste${r.ativo === false ? ' linha-ajuste--apagada' : ''}`,
+        type: 'button',
+        onclick: () => aoEditarRecorrente(r.id),
+      }, [
+        el('span', { class: 'linha-ajuste__spine', estilo: { background: hexDaConta(conta) } }),
+        el('span', { class: 'linha-ajuste__corpo' }, [
+          el('span', { class: 'linha-ajuste__nome', texto: r.descricao }),
+          el('span', { class: 'linha-ajuste__meta', texto: partes.join(' · ') }),
+        ]),
+        el('span', {
+          class: `linha-ajuste__acao${r.tipo === 'entrada' ? ' linha-ajuste__acao--entrada' : ''}`,
+          texto: (r.tipo === 'entrada' ? '+' : '−') + ' ' + fmt.moeda(r.valor),
+        }),
+      ]);
+    }));
 }

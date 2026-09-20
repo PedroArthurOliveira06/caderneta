@@ -94,6 +94,7 @@ function estadoVazio() {
     contas: [],
     categorias: CATEGORIAS_INICIAIS.map((c) => ({ id: id(), ...c })),
     lancamentos: [],
+    recorrentes: [],
   };
 }
 
@@ -171,6 +172,7 @@ function migrar(dados) {
     ? dados.categorias
     : base.categorias;
   pronto.lancamentos = Array.isArray(dados.lancamentos) ? dados.lancamentos : [];
+  pronto.recorrentes = Array.isArray(dados.recorrentes) ? dados.recorrentes : [];
   return pronto;
 }
 
@@ -284,13 +286,14 @@ export function sairModoServidor() {
 export async function sincronizar() {
   if (modo !== 'servidor') return estado;
 
-  const [contas, categorias, lancamentos] = await Promise.all([
+  const [contas, categorias, lancamentos, recorrentes] = await Promise.all([
     servidor.listar('contas', 'select=*&order=ordem'),
     servidor.listar('categorias', 'select=*&order=nome'),
     servidor.listar('lancamentos', 'select=*&order=data.desc'),
+    servidor.listar('recorrentes', 'select=*&order=dia'),
   ]);
 
-  const doServidor = mapear.estadoParaApp({ contas, categorias, lancamentos });
+  const doServidor = mapear.estadoParaApp({ contas, categorias, lancamentos, recorrentes });
 
   estado = {
     ...estadoVazio(),
@@ -315,6 +318,9 @@ const enviarCategorias = (categorias) =>
 
 const enviarLancamentos = (lista) =>
   [{ op: 'upsert', tabela: 'lancamentos', linhas: lista.map((l) => mapear.lancamentoParaBanco(l, usuarioId)) }];
+
+const enviarRecorrentes = (lista) =>
+  [{ op: 'upsert', tabela: 'recorrentes', linhas: lista.map((r) => mapear.recorrenteParaBanco(r, usuarioId)) }];
 
 const apagar = (tabela, filtro) => [{ op: 'delete', tabela, filtro }];
 
@@ -510,6 +516,97 @@ export function parcelasDoGrupo(grupo) {
 
 export function lancamento(lancamentoId) {
   return estado.lancamentos.find((l) => l.id === lancamentoId) || null;
+}
+
+/* --------------------- gastos que se repetem --------------------------- */
+
+/**
+ * Um gasto (ou entrada) que volta todo mês no mesmo dia: assinatura, curso
+ * mensal, mesada.
+ *
+ * O que ele NÃO é: compra parcelada. Parcela tem fim e valor já dividido, e
+ * para isso existe o campo "parcelas" do lançamento. Misturar os dois faria
+ * o Spotify acabar na 12ª vez, ou o curso cobrar para sempre.
+ *
+ * `desde` guarda o mês do cadastro e não muda numa edição: é o que impede o
+ * app de oferecer meses passados que a pessoa já lançou de outro jeito.
+ */
+export function salvarRecorrente(dados) {
+  let salvo;
+  mutar((e) => {
+    if (dados.id) {
+      const alvo = e.recorrentes.find((r) => r.id === dados.id);
+      if (alvo) Object.assign(alvo, dados, { dia: diaDoMes(dados.dia), desde: alvo.desde });
+      salvo = alvo;
+    } else {
+      salvo = {
+        id: id(),
+        descricao: String(dados.descricao || '').trim(),
+        valor: Math.abs(dados.valor || 0),
+        dia: diaDoMes(dados.dia),
+        tipo: dados.tipo === 'entrada' ? 'entrada' : 'saida',
+        contaId: dados.contaId || null,
+        categoriaId: dados.categoriaId || null,
+        natureza: dados.natureza || null,
+        desde: dados.desde || chaveDoMesDeHoje(),
+        ativo: true,
+      };
+      e.recorrentes.push(salvo);
+    }
+  }, () => (salvo ? enviarRecorrentes([salvo]) : []));
+  return salvo;
+}
+
+/** Entre 1 e 31; qual mês tem esse dia, quem resolve é o cálculo. */
+function diaDoMes(dia) {
+  const n = Math.round(Number(dia));
+  return Number.isFinite(n) ? Math.min(Math.max(n, 1), 31) : 1;
+}
+
+function chaveDoMesDeHoje() {
+  const d = new Date();
+  return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0')].join('-');
+}
+
+export function recorrente(recorrenteId) {
+  return estado.recorrentes.find((r) => r.id === recorrenteId) || null;
+}
+
+/**
+ * Apagar o cadastro NÃO apaga os lançamentos que já saíram dele: aquele
+ * dinheiro saiu de verdade, e sumir com ele mudaria saldos do passado.
+ */
+export function removerRecorrente(recorrenteId) {
+  mutar((e) => { e.recorrentes = e.recorrentes.filter((r) => r.id !== recorrenteId); },
+    apagar('recorrentes', 'id=eq.' + recorrenteId));
+}
+
+/**
+ * Transforma os pendentes do mês em lançamentos de verdade.
+ *
+ * Recebe o que `calculos.recorrentesPendentes` devolveu — cada item já traz a
+ * data certa daquele mês — e marca cada lançamento com `recorrenteId`, que é
+ * como o aviso sabe, no mês seguinte, o que já foi feito.
+ */
+export function lancarRecorrentes(pendentes) {
+  const agora = new Date().toISOString();
+  const novos = pendentes.map(({ recorrente: r, data }) => ({
+    id: id(),
+    criadoEm: agora,
+    data,
+    tipo: r.tipo === 'entrada' ? 'entrada' : 'saida',
+    valor: Math.abs(r.valor || 0),
+    contaId: r.contaId,
+    contaDestinoId: null,
+    categoriaId: r.categoriaId || null,
+    descricao: r.descricao || '',
+    natureza: r.natureza || null,
+    recorrenteId: r.id,
+  }));
+
+  if (!novos.length) return 0;
+  mutar((e) => { e.lancamentos.push(...novos); }, enviarLancamentos(novos));
+  return novos.length;
 }
 
 /* ------------------------------- backup -------------------------------- */

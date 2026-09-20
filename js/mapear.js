@@ -73,6 +73,9 @@ export function lancamentoParaApp(linha) {
   if (linha.criado_em) pronto.criadoEm = linha.criado_em;
   // Só o cartão usa este campo; em banco ele vem vazio e não vira chave.
   if (linha.natureza) pronto.natureza = linha.natureza;
+  // A marca de quem nasceu de um gasto que se repete. É ela que faz o aviso
+  // do mês saber o que já foi lançado.
+  if (linha.recorrente_id) pronto.recorrenteId = linha.recorrente_id;
   // Campos de parcelamento só existem quando a compra foi parcelada; deixar
   // `null` espalhado atrapalharia as comparações do tipo `parcelasTotal > 1`.
   if (linha.grupo) {
@@ -99,6 +102,7 @@ export function lancamentoParaBanco(l, usuario) {
     grupo: l.grupo || null,
     parcela: l.grupo ? l.parcela : null,
     parcelas_total: l.grupo ? l.parcelasTotal : null,
+    recorrente_id: l.recorrenteId || null,
   };
   // Vai junto quando o app já tem a hora: assim o desempate entre dois
   // lançamentos do mesmo dia é o mesmo aqui e no servidor. Sem ela, o banco
@@ -108,13 +112,49 @@ export function lancamentoParaBanco(l, usuario) {
   return linha;
 }
 
+/* --------------------- gastos que se repetem ---------------------------- */
+
+export function recorrenteParaApp(linha) {
+  return {
+    id: linha.id,
+    descricao: linha.descricao || '',
+    valor: Number(linha.valor) || 0,
+    dia: Number(linha.dia) || 1,
+    tipo: linha.tipo === 'entrada' ? 'entrada' : 'saida',
+    contaId: linha.conta_id,
+    categoriaId: linha.categoria_id,
+    natureza: linha.natureza || null,
+    // 'AAAA-MM': o mês a partir do qual ele passa a valer. Sem isso, cadastrar
+    // hoje faria o app oferecer todos os meses anteriores.
+    desde: linha.desde,
+    ativo: linha.ativo !== false,
+  };
+}
+
+export function recorrenteParaBanco(r, usuario) {
+  return {
+    id: r.id,
+    usuario,
+    descricao: r.descricao || '',
+    valor: Math.abs(r.valor || 0),
+    dia: r.dia || 1,
+    tipo: r.tipo === 'entrada' ? 'entrada' : 'saida',
+    conta_id: r.contaId || null,
+    categoria_id: r.categoriaId || null,
+    natureza: r.natureza === 'corrente' ? 'corrente' : (r.natureza === 'esporadico' ? 'esporadico' : null),
+    desde: r.desde,
+    ativo: r.ativo !== false,
+  };
+}
+
 /* ------------------------------ atalhos --------------------------------- */
 
-export function estadoParaApp({ contas = [], categorias = [], lancamentos = [] }) {
+export function estadoParaApp({ contas = [], categorias = [], lancamentos = [], recorrentes = [] }) {
   return {
     contas: contas.map(contaParaApp).sort((a, b) => a.ordem - b.ordem),
     categorias: categorias.map(categoriaParaApp),
     lancamentos: lancamentos.map(lancamentoParaApp),
+    recorrentes: recorrentes.map(recorrenteParaApp),
   };
 }
 

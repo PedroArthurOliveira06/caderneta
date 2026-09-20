@@ -242,6 +242,7 @@
     <section id="tela-extrato" class="tela" aria-labelledby="rotulo-mes">
       <div id="painel-saldos" class="painel-saldos"></div>
       <div id="aviso-fatura"></div>
+      <div id="aviso-recorrentes"></div>
       <div id="filtro-contas" class="filtro"></div>
 
       <form id="lancamento-rapido" class="rapido">
@@ -332,6 +333,20 @@
         <button type="button" id="nova-conta" class="botao botao--secundario botao--largo">
           Adicionar banco ou cartão
         </button>
+      </div>
+
+      <div class="bloco">
+        <h2 class="bloco__titulo">Gastos que se repetem</h2>
+        <p class="ajuda" id="resumo-recorrentes"></p>
+        <div id="ajustes-recorrentes" class="lista-ajuste"></div>
+        <button type="button" id="novo-recorrente" class="botao botao--secundario botao--largo">
+          Adicionar gasto que se repete
+        </button>
+        <p class="ajuda">
+          Serve para o que volta todo mês sempre igual: assinatura, mesada,
+          salário. <strong>Compra parcelada não entra aqui</strong> — ela tem
+          fim, e para ela existe o campo "parcelas" na hora de lançar.
+        </p>
       </div>
 
       <div class="bloco">
@@ -504,6 +519,73 @@
 </dialog>
 
 <!-- ======================= conta ======================== -->
+<dialog id="dialogo-recorrente" class="dialogo">
+  <form id="form-recorrente" method="dialog" class="formulario">
+    <header class="dialogo__topo">
+      <button type="button" class="botao botao--texto" data-fechar>Cancelar</button>
+      <strong id="dialogo-recorrente-titulo">Gasto que se repete</strong>
+      <button type="submit" class="botao botao--texto botao--destaque">Salvar</button>
+    </header>
+
+    <input type="hidden" id="recorrente-id">
+
+    <div class="segmentado segmentado--duplo" role="group" aria-label="Gasto ou entrada">
+      <button type="button" class="segmento segmento--ativo" data-tipo-recorrente="saida">Gasto</button>
+      <button type="button" class="segmento" data-tipo-recorrente="entrada">Entrada</button>
+    </div>
+
+    <div class="campo">
+      <label for="recorrente-descricao">Nome</label>
+      <input type="text" id="recorrente-descricao" maxlength="40" required
+             autocomplete="off" placeholder="Spotify">
+    </div>
+
+    <div class="campo">
+      <label for="recorrente-valor">Valor de cada mês</label>
+      <input type="text" id="recorrente-valor" inputmode="decimal" placeholder="0,00" autocomplete="off">
+    </div>
+
+    <div class="campo">
+      <label for="recorrente-dia">Dia do mês</label>
+      <input type="number" id="recorrente-dia" min="1" max="31" step="1" value="1" inputmode="numeric">
+      <p class="ajuda">
+        O app só oferece o lançamento depois que esse dia chega. Dia 31 cai no
+        último dia dos meses que não têm 31.
+      </p>
+    </div>
+
+    <div class="campo">
+      <label for="recorrente-conta" id="rotulo-recorrente-conta">Banco ou cartão</label>
+      <select id="recorrente-conta"></select>
+    </div>
+
+    <div class="campo" id="campo-recorrente-natureza" hidden>
+      <span class="campo__rotulo">No cartão, este gasto é</span>
+      <div class="segmentado segmentado--duplo" role="group" aria-label="Corrente ou esporádico">
+        <button type="button" class="segmento segmento--ativo" data-natureza-recorrente="corrente">Corrente</button>
+        <button type="button" class="segmento" data-natureza-recorrente="esporadico">Esporádico</button>
+      </div>
+    </div>
+
+    <div class="campo">
+      <label for="recorrente-categoria">Categoria</label>
+      <select id="recorrente-categoria"></select>
+    </div>
+
+    <button type="submit" class="botao botao--principal botao--largo botao--salvar">
+      Salvar
+    </button>
+
+    <button type="button" id="excluir-recorrente" class="botao botao--perigo botao--largo" hidden>
+      Parar de repetir
+    </button>
+    <p class="ajuda" id="ajuda-excluir-recorrente" hidden>
+      Para de oferecer nos próximos meses. O que já foi lançado fica onde
+      está — aquele dinheiro saiu de verdade.
+    </p>
+  </form>
+</dialog>
+
 <dialog id="dialogo-conta" class="dialogo">
   <form id="form-conta" method="dialog" class="formulario">
     <header class="dialogo__topo">

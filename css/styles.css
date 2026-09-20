@@ -839,6 +839,53 @@ button { font: inherit; color: inherit; }
 .busca-total__saida { color: var(--saida); }
 .busca-total__entrada { color: var(--entrada); }
 
+/* ==================== gastos que se repetem =========================== */
+
+.repetem {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: var(--superficie);
+  border: 1px solid var(--linha-forte);
+  border-radius: var(--raio);
+}
+
+.repetem__titulo {
+  font-size: 0.8125rem;
+  color: var(--texto-suave);
+  margin-bottom: 8px;
+}
+
+.repetem__lista { list-style: none; margin: 0 0 12px; padding: 0; }
+
+.repetem__item {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+}
+
+.repetem__ponto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  align-self: center;
+}
+
+.repetem__nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repetem__dia { font-size: 0.75rem; color: var(--texto-fraco); }
+.repetem__valor { font-weight: 600; font-variant-numeric: tabular-nums; }
+.repetem__valor--entrada { color: var(--entrada); }
+
+/* Desligado continua na lista, mas apagado: ele não some do histórico. */
+.linha-ajuste--apagada .linha-ajuste__nome,
+.linha-ajuste--apagada .linha-ajuste__acao { opacity: 0.5; }
+
 /* ========================= aviso da fatura ============================ */
 
 /* Card de aviso, não faixa vermelha: a fatura fechada é o esperado do mês,
@@ -1135,6 +1182,9 @@ button { font: inherit; color: inherit; }
 .linha-ajuste__nome { font-weight: 500; }
 .linha-ajuste__meta { font-size: 0.8125rem; color: var(--texto-fraco); }
 .linha-ajuste__acao { color: var(--texto-fraco); font-size: 0.8125rem; }
+/* Depois da regra acima de propósito: mesma especificidade, e a última
+   ganha. Antes dela, o verde da entrada era apagado pelo cinza. */
+.linha-ajuste__acao--entrada { color: var(--entrada); }
 
 .linha-nova { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; }
 

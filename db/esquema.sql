@@ -96,6 +96,9 @@ create table if not exists public.lancamentos (
   parcelas_total    integer,
   -- Só gasto no cartão usa: 'corrente' (volta todo mês) ou 'esporadico'.
   natureza          text check (natureza is null or natureza in ('corrente', 'esporadico')),
+  -- De qual gasto repetido este lançamento nasceu. É a marca que faz o aviso
+  -- do mês saber o que já foi lançado e não oferecer duas vezes.
+  recorrente_id     uuid,
   criado_em         timestamptz not null default now(),
 
   -- Transferência precisa dos dois lados, e eles têm de ser diferentes. A
@@ -150,10 +153,42 @@ $$;
 -- 4. As regras de acesso (é aqui que a segurança realmente acontece)
 -- ---------------------------------------------------------------------------
 
+-- Gastos que voltam todo mês: assinatura, curso, mesada. Não confundir com
+-- compra parcelada, que tem fim e mora nas colunas grupo/parcela acima.
+create table if not exists public.recorrentes (
+  id           uuid primary key default gen_random_uuid(),
+  usuario      uuid not null references auth.users on delete cascade,
+  descricao    text not null default '',
+  valor        bigint not null default 0,
+  -- Dia 31 num mês de 30 cai no último dia dele; quem resolve isso é o
+  -- aplicativo, porque depende de qual mês está sendo visto.
+  dia          integer not null default 1 check (dia between 1 and 31),
+  tipo         text not null default 'saida' check (tipo in ('saida', 'entrada')),
+  conta_id     uuid references public.contas on delete cascade,
+  categoria_id uuid references public.categorias on delete set null,
+  natureza     text check (natureza is null or natureza in ('corrente', 'esporadico')),
+  -- 'AAAA-MM' a partir do qual ele vale, para o app não oferecer os meses
+  -- anteriores ao cadastro.
+  desde        text not null,
+  ativo        boolean not null default true,
+  criado_em    timestamptz not null default now()
+);
+
+alter table public.lancamentos
+  drop constraint if exists lancamentos_recorrente_fk;
+
+alter table public.lancamentos
+  add constraint lancamentos_recorrente_fk
+  foreign key (recorrente_id) references public.recorrentes on delete set null;
+
+create index if not exists lancamentos_recorrente_idx
+  on public.lancamentos (usuario, recorrente_id);
+
 alter table public.perfis      enable row level security;
 alter table public.contas      enable row level security;
 alter table public.categorias  enable row level security;
 alter table public.lancamentos enable row level security;
+alter table public.recorrentes enable row level security;
 
 -- --- perfis ---------------------------------------------------------------
 
@@ -188,6 +223,12 @@ create policy "dono dos proprios dados" on public.categorias
 
 drop policy if exists "dono dos proprios dados" on public.lancamentos;
 create policy "dono dos proprios dados" on public.lancamentos
+  for all
+  using      (usuario = auth.uid() and public.esta_aprovado())
+  with check (usuario = auth.uid() and public.esta_aprovado());
+
+drop policy if exists "dono dos proprios dados" on public.recorrentes;
+create policy "dono dos proprios dados" on public.recorrentes
   for all
   using      (usuario = auth.uid() and public.esta_aprovado())
   with check (usuario = auth.uid() and public.esta_aprovado());

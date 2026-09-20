@@ -164,6 +164,63 @@ export function rotuloDoLancamento(estado, l) {
   return categoria ? categoria.nome : 'Sem categoria';
 }
 
+/* ====================== gastos que se repetem ========================= */
+
+/**
+ * Em que dia daquele mês o gasto repetido cai.
+ *
+ * Dia 31 num mês de 30 vira o último dia dele, que é o que a cobrança de
+ * verdade faz — e não pula para o mês seguinte, como o `new Date` faria.
+ */
+export function dataDoRecorrente(recorrente, ano, mes) {
+  const ultimo = new Date(ano, mes, 0).getDate();
+  const dia = Math.min(Math.max(Number(recorrente.dia) || 1, 1), ultimo);
+  return [
+    ano,
+    String(mes).padStart(2, '0'),
+    String(dia).padStart(2, '0'),
+  ].join('-');
+}
+
+/**
+ * Os gastos que se repetem e ainda NÃO entraram no mês pedido.
+ *
+ * Três recusas, e cada uma existe por um motivo:
+ *
+ * - O que já foi lançado some. Quem marca isso é o `recorrenteId` gravado no
+ *   lançamento; comparar por nome e valor erraria assim que o Spotify subisse
+ *   de preço e ele corrigisse o valor na mão.
+ * - O que ainda não chegou o dia espera. Lançar a Apple do dia 15 no dia 3
+ *   faria o saldo mentir por doze dias, todo mês.
+ * - O que é mais antigo que o cadastro nunca aparece. Sem isso, cadastrar o
+ *   Spotify hoje e folhear para março ofereceria seis meses de Spotify que
+ *   ele nunca pediu.
+ */
+export function recorrentesPendentes(estado, ano, mes, hoje) {
+  const mm = String(mes).padStart(2, '0');
+  const prefixo = `${ano}-${mm}`;
+
+  const jaLancados = new Set(estado.lancamentos
+    .filter((l) => l.recorrenteId && String(l.data).startsWith(prefixo))
+    .map((l) => l.recorrenteId));
+
+  return (estado.recorrentes || [])
+    .filter((r) => r.ativo !== false)
+    .filter((r) => !jaLancados.has(r.id))
+    .filter((r) => !r.desde || prefixo >= r.desde)
+    .filter((r) => estado.contas.some((c) => c.id === r.contaId))
+    .map((r) => ({ recorrente: r, data: dataDoRecorrente(r, ano, mes) }))
+    .filter((p) => p.data <= hoje)
+    .sort((a, b) => a.data.localeCompare(b.data));
+}
+
+/** Quanto sai por mês, somado, entre os que estão ligados. */
+export function totalDosRecorrentes(estado) {
+  return (estado.recorrentes || [])
+    .filter((r) => r.ativo !== false && r.tipo !== 'entrada')
+    .reduce((soma, r) => soma + (r.valor || 0), 0);
+}
+
 /** Lançamentos do mês, do mais recente para o mais antigo. */
 export function lancamentosDoMes(estado, ano, mes, filtroContaId) {
   const prefixo = `${ano}-${String(mes).padStart(2, '0')}`;

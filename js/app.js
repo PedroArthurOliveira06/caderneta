@@ -58,6 +58,7 @@ async function iniciar() {
   ligarLancamentoRapido();
   ligarDialogoLancamento();
   ligarDialogoConta();
+  ligarDialogoRecorrente();
   ligarAjustes();
   registrarServiceWorker();
 
@@ -283,6 +284,7 @@ function pintar() {
   // uma busca, e os dois roubam a tela inteira do celular.
   $('painel-saldos').hidden = buscando;
   $('aviso-fatura').hidden = buscando;
+  $('aviso-recorrentes').hidden = buscando;
   $('lancamento-rapido').hidden = buscando;
 
   $('tela-extrato').hidden = visao.tela !== 'extrato';
@@ -304,6 +306,8 @@ function pintar() {
     hoje,
     aoPagarFatura: (fatura) => pagarFatura(fatura),
     aoEditarCategoria: (id) => editarCategoria(id),
+    aoEditarRecorrente: (id) => abrirRecorrente(id),
+    aoLancarRecorrentes: (pendentes) => lancarRecorrentes(pendentes),
     termo: visao.busca,
   };
 
@@ -315,6 +319,7 @@ function pintar() {
   } else if (visao.tela === 'extrato') {
     telas.pintarSaldos(estado, contexto);
     telas.pintarAvisoDeFatura(estado, contexto);
+    telas.pintarAvisoDeRecorrentes(estado, contexto);
     telas.pintarFiltro(estado, contexto);
     telas.pintarExtrato(estado, contexto);
   } else if (visao.tela === 'resumo') {
@@ -650,14 +655,18 @@ function preencherContas(seletor, selecionado) {
     .map((c) => el('option', { value: c.id, selected: c.id === selecionado, texto: c.nome })));
 }
 
-function preencherCategorias(tipo, selecionado) {
-  const seletor = $('lancamento-categoria');
+/** As categorias daquele tipo, em qualquer seletor que peça. */
+function preencherSeletorDeCategorias(seletor, tipo, selecionado) {
   const anterior = selecionado || seletor.value;
   const lista = dados.categoriasDe(tipo);
   trocar(seletor, [
     el('option', { value: '', texto: 'Sem categoria' }),
     ...lista.map((c) => el('option', { value: c.id, selected: c.id === anterior, texto: c.nome })),
   ]);
+}
+
+function preencherCategorias(tipo, selecionado) {
+  preencherSeletorDeCategorias($('lancamento-categoria'), tipo, selecionado);
 }
 
 /**
@@ -897,10 +906,127 @@ function pintarCores() {
   })));
 }
 
+/* ==================== gastos que se repetem ============================ */
+
+let tipoRecorrenteEmEdicao = 'saida';
+let naturezaRecorrenteEmEdicao = 'corrente';
+
+function ligarDialogoRecorrente() {
+  const dialogo = $('dialogo-recorrente');
+
+  dialogo.querySelector('[data-fechar]').addEventListener('click', () => dialogo.close());
+  aplicarMascaraDeValor($('recorrente-valor'));
+
+  dialogo.querySelectorAll('[data-tipo-recorrente]').forEach((botao) => {
+    botao.addEventListener('click', () => {
+      tipoRecorrenteEmEdicao = botao.dataset.tipoRecorrente;
+      aplicarTipoRecorrente();
+    });
+  });
+
+  dialogo.querySelectorAll('[data-natureza-recorrente]').forEach((botao) => {
+    botao.addEventListener('click', () => {
+      naturezaRecorrenteEmEdicao = botao.dataset.naturezaRecorrente;
+      pintarNaturezaRecorrente();
+    });
+  });
+
+  $('recorrente-conta').addEventListener('change', aplicarTipoRecorrente);
+
+  $('excluir-recorrente').addEventListener('click', () => {
+    const alvo = dados.recorrente($('recorrente-id').value);
+    if (!alvo) return;
+    if (!confirm(`Parar de repetir "${alvo.descricao}"? O que já foi lançado continua no extrato.`)) return;
+    dados.removerRecorrente(alvo.id);
+    dialogo.close();
+    recado('Não vai mais se repetir.');
+  });
+
+  $('form-recorrente').addEventListener('submit', (evento) => {
+    const descricao = $('recorrente-descricao').value.trim();
+    const valor = Math.abs(fmt.paraCentavos($('recorrente-valor').value));
+    if (!descricao || !valor) {
+      evento.preventDefault();
+      if (!valor) recado('Falta o valor.');
+      return;
+    }
+
+    const conta = dados.conta($('recorrente-conta').value);
+    dados.salvarRecorrente({
+      id: $('recorrente-id').value || undefined,
+      descricao,
+      valor,
+      dia: Number($('recorrente-dia').value),
+      tipo: tipoRecorrenteEmEdicao,
+      contaId: $('recorrente-conta').value,
+      categoriaId: $('recorrente-categoria').value || null,
+      // Só faz sentido em gasto de cartão; nos outros vai vazio, não com
+      // sobra do que ficou marcado no formulário.
+      natureza: tipoRecorrenteEmEdicao === 'saida' && dados.ehCartao(conta)
+        ? naturezaRecorrenteEmEdicao
+        : null,
+    });
+    recado('Guardado. Vou avisar quando chegar o dia.');
+  });
+}
+
+function aplicarTipoRecorrente() {
+  const dialogo = $('dialogo-recorrente');
+  const entrada = tipoRecorrenteEmEdicao === 'entrada';
+
+  dialogo.querySelectorAll('[data-tipo-recorrente]').forEach((b) =>
+    b.classList.toggle('segmento--ativo', b.dataset.tipoRecorrente === tipoRecorrenteEmEdicao));
+
+  $('rotulo-recorrente-conta').textContent = entrada ? 'Cai em qual banco' : 'Banco ou cartão';
+
+  const conta = dados.conta($('recorrente-conta').value);
+  const noCartao = !entrada && dados.ehCartao(conta);
+  $('campo-recorrente-natureza').hidden = !noCartao;
+  if (noCartao) pintarNaturezaRecorrente();
+
+  preencherSeletorDeCategorias($('recorrente-categoria'),
+    entrada ? 'entrada' : 'saida', $('recorrente-categoria').value);
+}
+
+function pintarNaturezaRecorrente() {
+  $('dialogo-recorrente').querySelectorAll('[data-natureza-recorrente]').forEach((b) =>
+    b.classList.toggle('segmento--ativo', b.dataset.naturezaRecorrente === naturezaRecorrenteEmEdicao));
+}
+
+function abrirRecorrente(recorrenteId) {
+  const r = recorrenteId ? dados.recorrente(recorrenteId) : null;
+
+  tipoRecorrenteEmEdicao = r ? r.tipo : 'saida';
+  // Quase tudo que se repete no cartão é corrente — é a definição da palavra.
+  naturezaRecorrenteEmEdicao = r && r.natureza === 'esporadico' ? 'esporadico' : 'corrente';
+
+  $('dialogo-recorrente-titulo').textContent = r ? r.descricao : 'Gasto que se repete';
+  $('recorrente-id').value = r ? r.id : '';
+  $('recorrente-descricao').value = r ? r.descricao : '';
+  $('recorrente-valor').value = r ? fmt.valor(r.valor) : '';
+  $('recorrente-dia').value = String(r ? r.dia : 1);
+  $('excluir-recorrente').hidden = !r;
+  $('ajuda-excluir-recorrente').hidden = !r;
+
+  preencherContas($('recorrente-conta'), r ? r.contaId : undefined);
+  aplicarTipoRecorrente();
+  if (r && r.categoriaId) $('recorrente-categoria').value = r.categoriaId;
+
+  $('dialogo-recorrente').showModal();
+  if (!r) $('recorrente-descricao').focus();
+}
+
+function lancarRecorrentes(pendentes) {
+  const quantos = dados.lancarRecorrentes(pendentes);
+  if (!quantos) return;
+  recado(quantos === 1 ? 'Lançado.' : `${quantos} lançados.`);
+}
+
 /* ============================= ajustes ================================= */
 
 function ligarAjustes() {
   $('nova-conta').addEventListener('click', () => abrirConta(null));
+  $('novo-recorrente').addEventListener('click', () => abrirRecorrente(null));
 
   trocar($('escolha-tema'), tema.TEMAS.map((t) => el('button', {
     class: 'segmento',

@@ -248,3 +248,72 @@ test('arquivo que não é backup é recusado com explicação', () => {
   assert.match(dados.importarJSON('{"qualquer":1}').erro, /não parece um backup/);
   assert.equal(dados.obter().contas.length, quantos, 'nada foi tocado');
 });
+
+/* -------------------- gastos que se repetem ---------------------------- */
+
+test('gasto que se repete nasce com o mês do cadastro e o dia preso em 1–31', () => {
+  comecarDoZero();
+  const bb = acharConta('Banco do Brasil');
+
+  const salvo = dados.salvarRecorrente({
+    descricao: '  Spotify  ', valor: -1290, dia: 99, contaId: bb.id,
+  });
+
+  assert.equal(salvo.descricao, 'Spotify');   // aparado
+  assert.equal(salvo.valor, 1290);            // sempre positivo
+  assert.equal(salvo.dia, 31);                // preso no teto
+  assert.equal(salvo.ativo, true);
+  assert.match(salvo.desde, /^\d{4}-\d{2}$/);
+  assert.equal(dados.obter().recorrentes.length, 1);
+});
+
+// Editar não pode reescrever o mês de início: se reescrevesse, corrigir o
+// valor do Spotify em dezembro faria o app oferecer dezembro inteiro de novo.
+test('editar não mexe no mês a partir do qual ele vale', () => {
+  comecarDoZero();
+  const bb = acharConta('Banco do Brasil');
+  const salvo = dados.salvarRecorrente({ descricao: 'Spotify', valor: 1290, dia: 16, contaId: bb.id });
+  salvo.desde = '2026-01';   // como se tivesse sido cadastrado em janeiro
+
+  dados.salvarRecorrente({ id: salvo.id, descricao: 'Spotify', valor: 1390, dia: 16, contaId: bb.id, desde: '2030-12' });
+
+  const depois = dados.recorrente(salvo.id);
+  assert.equal(depois.valor, 1390);
+  assert.equal(depois.desde, '2026-01');
+});
+
+test('lançar os pendentes cria lançamentos marcados, na data de cada um', () => {
+  comecarDoZero();
+  const cartao = dados.salvarConta({ nome: 'Cartão BB', tipo: 'cartao', saldoInicial: 0 });
+  const bb = acharConta('Banco do Brasil');
+  const apple = dados.salvarRecorrente({ descricao: 'Apple', valor: 1990, dia: 15, contaId: bb.id, natureza: 'corrente' });
+  const spotify = dados.salvarRecorrente({ descricao: 'Spotify', valor: 1290, dia: 16, contaId: bb.id });
+
+  const quantos = dados.lancarRecorrentes([
+    { recorrente: apple, data: '2026-09-15' },
+    { recorrente: spotify, data: '2026-09-16' },
+  ]);
+
+  assert.equal(quantos, 2);
+  const lista = dados.obter().lancamentos;
+  assert.equal(lista.length, 2);
+  assert.deepEqual(lista.map((l) => l.data), ['2026-09-15', '2026-09-16']);
+  assert.deepEqual(lista.map((l) => l.recorrenteId), [apple.id, spotify.id]);
+  assert.deepEqual(lista.map((l) => l.tipo), ['saida', 'saida']);
+  assert.equal(lista[0].natureza, 'corrente');
+});
+
+// Apagar o cadastro não pode apagar o passado: aquele dinheiro saiu.
+test('parar de repetir não mexe no que já foi lançado', () => {
+  comecarDoZero();
+  const bb = acharConta('Banco do Brasil');
+  const r = dados.salvarRecorrente({ descricao: 'Apple', valor: 1990, dia: 15, contaId: bb.id });
+  dados.lancarRecorrentes([{ recorrente: r, data: '2026-09-15' }]);
+
+  const antes = dados.obter().lancamentos.length;
+  dados.removerRecorrente(r.id);
+
+  assert.equal(dados.obter().recorrentes.length, 0);
+  assert.equal(dados.obter().lancamentos.length, antes);
+  assert.equal(dados.obter().lancamentos[0].recorrenteId, r.id);
+});

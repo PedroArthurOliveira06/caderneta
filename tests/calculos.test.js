@@ -495,3 +495,103 @@ test('o rótulo mostrado na tela é o mesmo que a busca procura', () => {
   const semDescricao = { id: '8', data: '2026-05-02', tipo: 'saida', valor: 900, contaId: 'bb', categoriaId: 'saude', descricao: '' };
   assert.equal(calc.rotuloDoLancamento(e, semDescricao), 'Saúde');
 });
+
+/* ====================== gastos que se repetem =========================== */
+
+function comRecorrentes() {
+  return {
+    contas: [
+      { id: 'cbb', nome: 'Cartão BB', tipo: 'cartao', saldoInicial: 0, ordem: 0 },
+    ],
+    categorias: [{ id: 'ass', nome: 'Assinaturas', tipo: 'saida' }],
+    recorrentes: [
+      { id: 'apple', descricao: 'Apple', valor: 1990, dia: 15, contaId: 'cbb', categoriaId: 'ass', tipo: 'saida', natureza: 'corrente', desde: '2026-09', ativo: true },
+      { id: 'spotify', descricao: 'Spotify', valor: 1290, dia: 16, contaId: 'cbb', categoriaId: 'ass', tipo: 'saida', natureza: 'corrente', desde: '2026-09', ativo: true },
+    ],
+    lancamentos: [],
+  };
+}
+
+test('o gasto que se repete só aparece depois que o dia chega', () => {
+  const e = comRecorrentes();
+  // Dia 14: nenhum dos dois chegou ainda.
+  assert.equal(calc.recorrentesPendentes(e, 2026, 9, '2026-09-14').length, 0);
+  // Dia 15: só a Apple.
+  assert.deepEqual(
+    calc.recorrentesPendentes(e, 2026, 9, '2026-09-15').map((p) => p.recorrente.id),
+    ['apple']
+  );
+  // Dia 19: os dois, na ordem em que caem.
+  assert.deepEqual(
+    calc.recorrentesPendentes(e, 2026, 9, '2026-09-19').map((p) => p.recorrente.id),
+    ['apple', 'spotify']
+  );
+});
+
+// O que marca "já lançado" é o recorrenteId, não o nome nem o valor: o dia em
+// que o Spotify subir de preço, comparar por valor passaria a oferecer de novo
+// um gasto que já está lá.
+test('o que já foi lançado no mês some do aviso, mesmo com o valor corrigido', () => {
+  const e = comRecorrentes();
+  e.lancamentos.push({
+    id: 'x', data: '2026-09-16', tipo: 'saida', valor: 1390,
+    contaId: 'cbb', categoriaId: 'ass', descricao: 'Spotify', recorrenteId: 'spotify',
+  });
+  assert.deepEqual(
+    calc.recorrentesPendentes(e, 2026, 9, '2026-09-19').map((p) => p.recorrente.id),
+    ['apple']
+  );
+});
+
+// Lançar em setembro não pode apagar o aviso de outubro: são meses diferentes.
+test('lançar num mês não marca o mês seguinte como resolvido', () => {
+  const e = comRecorrentes();
+  e.lancamentos.push({
+    id: 'x', data: '2026-09-15', tipo: 'saida', valor: 1990,
+    contaId: 'cbb', descricao: 'Apple', recorrenteId: 'apple',
+  });
+  assert.equal(calc.recorrentesPendentes(e, 2026, 9, '2026-10-20').length, 1); // só o Spotify
+  assert.equal(calc.recorrentesPendentes(e, 2026, 10, '2026-10-20').length, 2); // os dois de novo
+});
+
+// Cadastrar hoje não pode fazer o app oferecer os meses anteriores: aquele
+// dinheiro, se saiu, já está lançado de outro jeito.
+test('mês anterior ao cadastro não oferece nada', () => {
+  const e = comRecorrentes();
+  assert.equal(calc.recorrentesPendentes(e, 2026, 8, '2026-09-19').length, 0);
+  assert.equal(calc.recorrentesPendentes(e, 2026, 3, '2026-09-19').length, 0);
+});
+
+test('desligar um gasto que se repete o tira do aviso sem apagar o histórico', () => {
+  const e = comRecorrentes();
+  e.recorrentes[0].ativo = false;
+  assert.deepEqual(
+    calc.recorrentesPendentes(e, 2026, 9, '2026-09-19').map((p) => p.recorrente.id),
+    ['spotify']
+  );
+});
+
+// Um cartão excluído deixaria o lançamento órfão, apontando para um id que
+// não existe mais — e o saldo de ninguém mudaria.
+test('gasto apontando para conta que não existe mais não é oferecido', () => {
+  const e = comRecorrentes();
+  e.contas = [];
+  assert.equal(calc.recorrentesPendentes(e, 2026, 9, '2026-09-19').length, 0);
+});
+
+test('dia 31 cai no último dia dos meses que não têm 31', () => {
+  const r = { dia: 31 };
+  assert.equal(calc.dataDoRecorrente(r, 2026, 1), '2026-01-31');
+  assert.equal(calc.dataDoRecorrente(r, 2026, 4), '2026-04-30');
+  assert.equal(calc.dataDoRecorrente(r, 2026, 2), '2026-02-28');
+  assert.equal(calc.dataDoRecorrente(r, 2028, 2), '2028-02-29'); // bissexto
+});
+
+test('o total por mês soma só os que estão ligados, e só os gastos', () => {
+  const e = comRecorrentes();
+  assert.equal(calc.totalDosRecorrentes(e), 3280); // 19,90 + 12,90
+  e.recorrentes[1].ativo = false;
+  assert.equal(calc.totalDosRecorrentes(e), 1990);
+  e.recorrentes.push({ id: 's', descricao: 'Salário', valor: 500000, dia: 5, contaId: 'cbb', tipo: 'entrada', ativo: true });
+  assert.equal(calc.totalDosRecorrentes(e), 1990); // entrada não é gasto
+});

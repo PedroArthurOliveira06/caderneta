@@ -157,3 +157,33 @@ test('o estado inteiro chega ordenado por conta', () => {
   });
   assert.deepEqual(estado.contas.map((c) => c.nome), ['Banco do Brasil', 'Nubank']);
 });
+
+test('gasto que se repete vai e volta sem perder nada', () => {
+  const original = {
+    id: 'r1', descricao: 'Spotify', valor: 1290, dia: 16, tipo: 'saida',
+    contaId: 'c2', categoriaId: 'cat1', natureza: 'corrente',
+    desde: '2026-09', ativo: true,
+  };
+  const volta = mapear.recorrenteParaApp(mapear.recorrenteParaBanco(original, USUARIO));
+  assert.deepEqual(volta, original);
+});
+
+// A marca que diz de qual gasto repetido o lançamento nasceu tem de
+// atravessar o servidor; sem ela, o aviso ofereceria de novo no mês seguinte
+// o que já foi lançado.
+test('a marca do gasto repetido atravessa a ida e a volta', () => {
+  const gasto = {
+    id: 'l9', data: '2026-09-16', tipo: 'saida', valor: 1290,
+    contaId: 'c2', contaDestinoId: null, categoriaId: 'cat1',
+    descricao: 'Spotify', criadoEm: '2026-09-16T12:00:00.000Z',
+    natureza: 'corrente', recorrenteId: 'r1',
+  };
+  const noBanco = mapear.lancamentoParaBanco(gasto, USUARIO);
+  assert.equal(noBanco.recorrente_id, 'r1');
+  assert.equal(mapear.lancamentoParaApp(noBanco).recorrenteId, 'r1');
+
+  // Lançamento normal não ganha a chave à toa.
+  const semMarca = mapear.lancamentoParaApp(mapear.lancamentoParaBanco(
+    { ...gasto, recorrenteId: undefined }, USUARIO));
+  assert.equal('recorrenteId' in semMarca, false);
+});
