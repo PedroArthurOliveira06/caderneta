@@ -178,6 +178,61 @@ export function nomeDoDia(data, hoje) {
  * atalhos de um toque. Junta pela combinação que a pessoa de fato repete:
  * o mesmo lugar, no mesmo banco.
  */
+/**
+ * A categoria mais provável para um lançamento com este nome, aprendida do
+ * que já foi classificado antes.
+ *
+ * Sem isto, a pilha de "sem categoria" volta a crescer no dia seguinte ao de
+ * limpá-la: o app sabia que "Mercado" é Alimentação doze vezes seguidas e
+ * continuava perguntando na décima terceira.
+ *
+ * Duas passadas. Primeiro o nome igual, que é a resposta segura. Só se não
+ * houver nenhum é que vale um nome que contém o outro — "Mercado do mês"
+ * aprende com "Mercado" —, e aí com pelo menos quatro letras, senão "uber" e
+ * "uberlândia" virariam a mesma coisa.
+ *
+ * O voto é por quantidade, e empate vai para o mais recente: mudar de ideia
+ * sobre uma categoria deve valer mais que o hábito antigo.
+ */
+export function categoriaProvavel(estado, descricao, tipo) {
+  const procurado = simplificar(descricao);
+  if (!procurado) return null;
+
+  const candidatos = (combina) => {
+    const votos = new Map();
+    for (const l of estado.lancamentos) {
+      if (l.tipo !== tipo || !l.categoriaId) continue;
+      const nome = simplificar(l.descricao);
+      if (!nome || !combina(nome)) continue;
+
+      const voto = votos.get(l.categoriaId) || { vezes: 0, ultima: '' };
+      voto.vezes += 1;
+      if (String(l.data) > voto.ultima) voto.ultima = String(l.data);
+      votos.set(l.categoriaId, voto);
+    }
+    return votos;
+  };
+
+  let votos = candidatos((nome) => nome === procurado);
+  if (!votos.size && procurado.length >= 4) {
+    votos = candidatos((nome) =>
+      nome.length >= 4 && (nome.includes(procurado) || procurado.includes(nome)));
+  }
+
+  let melhor = null;
+  for (const [id, voto] of votos) {
+    const ganha = !melhor
+      || voto.vezes > melhor.vezes
+      || (voto.vezes === melhor.vezes && voto.ultima > melhor.ultima);
+    if (ganha) melhor = { id, ...voto };
+  }
+
+  // A categoria tem de existir ainda: uma apagada deixaria o palpite órfão.
+  return melhor && (estado.categorias || []).some((c) => c.id === melhor.id)
+    ? melhor.id
+    : null;
+}
+
 export function atalhosFrequentes(estado, quantidade = 4) {
   const contagem = new Map();
 

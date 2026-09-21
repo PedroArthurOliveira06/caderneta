@@ -18,7 +18,7 @@ import * as calc from './calculos.js';
 import * as conta from './conta.js';
 import * as tranca from './tranca.js';
 import * as tema from './tema.js';
-import { interpretar, explicar, atalhosFrequentes } from './interpretar.js';
+import { interpretar, explicar, atalhosFrequentes, categoriaProvavel } from './interpretar.js';
 import { el, trocar, hexDaConta, recado, baixarArquivo, nomeComData } from './ui.js';
 import { VERSAO_APP } from './configuracao.js';
 
@@ -395,6 +395,19 @@ function jaAprendeu() {
   return dados.obter().lancamentos.length >= 20;
 }
 
+/**
+ * Completa a leitura com a categoria que o histórico já ensinou.
+ *
+ * Só quando a leitura não trouxe nenhuma: escrever "alimentação 45" continua
+ * mandando mais que o palpite. E o palpite aparece na linha de leitura antes
+ * de salvar, para ninguém ser categorizado sem ver.
+ */
+function comCategoriaAprendida(lido) {
+  if (lido.categoriaId || !lido.descricao) return lido;
+  const palpite = categoriaProvavel(dados.obter(), lido.descricao, lido.tipo);
+  return palpite ? { ...lido, categoriaId: palpite } : lido;
+}
+
 function ligarLancamentoRapido() {
   const campo = $('texto-rapido');
   const leitura = $('leitura-rapida');
@@ -405,7 +418,7 @@ function ligarLancamentoRapido() {
       leitura.hidden = true;
       return;
     }
-    const lido = interpretar(campo.value, contextoDeLeitura());
+    const lido = comCategoriaAprendida(interpretar(campo.value, contextoDeLeitura()));
     leitura.classList.toggle('rapido__leitura--erro', !lido.entendido);
     leitura.textContent = lido.entendido
       ? `${fmt.moeda(lido.valor)} · ${explicar({ ...lido, contaId: lido.contaId || contaPadrao() }, contextoDeLeitura())}`
@@ -415,7 +428,7 @@ function ligarLancamentoRapido() {
 
   $('lancamento-rapido').addEventListener('submit', (evento) => {
     evento.preventDefault();
-    const lido = interpretar(campo.value, contextoDeLeitura());
+    const lido = comCategoriaAprendida(interpretar(campo.value, contextoDeLeitura()));
 
     if (!lido.entendido) {
       recado('Escreva um valor. Por exemplo: mercado 45');
@@ -464,6 +477,11 @@ function ligarDialogoLancamento() {
     });
   });
   $('lancamento-conta').addEventListener('change', mostrarNaturezaSePrecisar);
+
+  // Ao sair do campo do nome, e não a cada letra: no meio de "Mercado" a
+  // palavra ainda é "Merc", e uma categoria piscando enquanto se digita
+  // distrai mais do que ajuda.
+  $('lancamento-descricao').addEventListener('blur', sugerirCategoria);
 
   aplicarMascaraDeValor($('lancamento-valor'));
 
@@ -637,6 +655,23 @@ function pintarAtalhosDeData() {
  * corrente essa pergunta não existe: gasto é gasto. Perguntar sempre seria
  * inventar uma decisão que ninguém precisa tomar.
  */
+/**
+ * Preenche a categoria com o que o histórico ensinou — e só quando o campo
+ * está vazio. Escolha feita por ele nunca é sobrescrita, nem ao abrir um
+ * lançamento antigo para corrigir outra coisa.
+ */
+function sugerirCategoria() {
+  const seletor = $('lancamento-categoria');
+  if (seletor.value || tipoEmEdicao === 'transferencia') return;
+
+  const palpite = categoriaProvavel(
+    dados.obter(), $('lancamento-descricao').value.trim(), tipoEmEdicao);
+
+  if (palpite && [...seletor.options].some((o) => o.value === palpite)) {
+    seletor.value = palpite;
+  }
+}
+
 function mostrarNaturezaSePrecisar() {
   const conta = dados.conta($('lancamento-conta').value);
   const noCartao = tipoEmEdicao === 'saida' && dados.ehCartao(conta);
@@ -731,6 +766,11 @@ function abrirLancamento(lancamentoId, pronto) {
     $('lancamento-descricao').value = existente.descricao || '';
     preencherCategorias(existente.tipo === 'entrada' ? 'entrada' : 'saida', existente.categoriaId);
   } else {
+    // Lançamento novo começa sem categoria. O <select> guardava sozinho a do
+    // lançamento anterior — herança do navegador, não escolha de ninguém — e
+    // isso fazia a sugestão pelo nome nunca ter vez, porque ela só preenche
+    // campo vazio.
+    $('lancamento-categoria').value = '';
     $('lancamento-valor').value = pronto ? fmt.valor(pronto.valor) : '';
     $('lancamento-data').value = pronto ? pronto.data : hoje;
     $('lancamento-descricao').value = pronto ? pronto.descricao : '';

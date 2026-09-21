@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { interpretar, explicar, atalhosFrequentes, simplificar } from '../js/interpretar.js';
+import { interpretar, explicar, atalhosFrequentes, simplificar, categoriaProvavel } from '../js/interpretar.js';
 
 const CONTEXTO = {
   hoje: '2026-09-18',
@@ -163,4 +163,85 @@ test('o mesmo nome em bancos diferentes são atalhos diferentes', () => {
   const atalhos = atalhosFrequentes(estado);
   assert.equal(atalhos.length, 2);
   assert.deepEqual(atalhos.map((a) => a.contaId).sort(), ['bb', 'nu']);
+});
+
+/* ==================== aprender a categoria ============================== */
+
+function comHistorico() {
+  return {
+    categorias: [
+      { id: 'alim', nome: 'Alimentação', tipo: 'saida' },
+      { id: 'transp', nome: 'Transporte', tipo: 'saida' },
+      { id: 'aj', nome: 'Ajuda da família', tipo: 'entrada' },
+    ],
+    lancamentos: [
+      { id: '1', data: '2026-03-03', tipo: 'saida', valor: 100, descricao: 'Mercado', categoriaId: 'alim' },
+      { id: '2', data: '2026-04-03', tipo: 'saida', valor: 100, descricao: 'mercado', categoriaId: 'alim' },
+      { id: '3', data: '2026-05-03', tipo: 'saida', valor: 100, descricao: 'MERCADO', categoriaId: 'alim' },
+      { id: '4', data: '2026-06-21', tipo: 'saida', valor: 100, descricao: 'Uber', categoriaId: 'transp' },
+      { id: '5', data: '2026-06-02', tipo: 'entrada', valor: 100, descricao: 'Ajuda', categoriaId: 'aj' },
+      { id: '6', data: '2026-07-01', tipo: 'saida', valor: 100, descricao: 'Sem categoria ainda', categoriaId: null },
+    ],
+  };
+}
+
+test('a categoria é aprendida do nome, sem ligar para maiúscula nem acento', () => {
+  const e = comHistorico();
+  assert.equal(categoriaProvavel(e, 'mercado', 'saida'), 'alim');
+  assert.equal(categoriaProvavel(e, 'MERCADO', 'saida'), 'alim');
+  assert.equal(categoriaProvavel(e, 'Uber', 'saida'), 'transp');
+});
+
+// Entrada e gasto não se ensinam: são listas de categorias diferentes, e um
+// palpite cruzado poria "Alimentação" num salário.
+test('o tipo não atravessa: gasto não aprende com entrada', () => {
+  const e = comHistorico();
+  assert.equal(categoriaProvavel(e, 'Ajuda', 'entrada'), 'aj');
+  assert.equal(categoriaProvavel(e, 'Ajuda', 'saida'), null);
+});
+
+test('nome que ninguém classificou ainda não recebe palpite', () => {
+  const e = comHistorico();
+  assert.equal(categoriaProvavel(e, 'Veterinário', 'saida'), null);
+  assert.equal(categoriaProvavel(e, '', 'saida'), null);
+  assert.equal(categoriaProvavel(e, '   ', 'saida'), null);
+});
+
+// "Mercado do mês" tem de aprender com "Mercado". Mas só quando não há nome
+// igual, senão o palpite frouxo passaria na frente do certo.
+test('nome parecido só vale quando não existe nome igual', () => {
+  const e = comHistorico();
+  assert.equal(categoriaProvavel(e, 'Mercado do mês', 'saida'), 'alim');
+
+  // Agora existe um "Mercado do mês" classificado noutra categoria: o nome
+  // igual ganha do parecido.
+  e.lancamentos.push({ id: '7', data: '2026-08-03', tipo: 'saida', valor: 100, descricao: 'Mercado do mês', categoriaId: 'transp' });
+  assert.equal(categoriaProvavel(e, 'Mercado do mês', 'saida'), 'transp');
+});
+
+// Sem o mínimo de letras, qualquer pedacinho casaria com qualquer coisa.
+test('nome curto demais não sai pescando parecidos', () => {
+  const e = comHistorico();
+  e.lancamentos.push({ id: '8', data: '2026-08-01', tipo: 'saida', valor: 100, descricao: 'Uva', categoriaId: 'alim' });
+  assert.equal(categoriaProvavel(e, 'Uv', 'saida'), null);
+});
+
+// Quem muda de ideia sobre uma categoria quer que a mudança valha.
+test('empate no número de vezes vai para o mais recente', () => {
+  const e = comHistorico();
+  e.lancamentos = [
+    { id: 'a', data: '2026-01-01', tipo: 'saida', valor: 100, descricao: 'Feira', categoriaId: 'alim' },
+    { id: 'b', data: '2026-09-01', tipo: 'saida', valor: 100, descricao: 'Feira', categoriaId: 'transp' },
+  ];
+  assert.equal(categoriaProvavel(e, 'Feira', 'saida'), 'transp');
+
+  // Mas o hábito ganha do caso isolado.
+  e.lancamentos.push({ id: 'c', data: '2026-02-01', tipo: 'saida', valor: 100, descricao: 'Feira', categoriaId: 'alim' });
+  assert.equal(categoriaProvavel(e, 'Feira', 'saida'), 'alim');
+});
+
+test('categoria apagada não vira palpite órfão', () => {
+  const e = comHistorico();
+  e.categorias = e.categorias.filter((c) => c.id !== 'alim');
+  assert.equal(categoriaProvavel(e, 'Mercado', 'saida'), null);
 });
