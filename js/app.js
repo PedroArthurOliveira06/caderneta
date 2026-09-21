@@ -19,7 +19,7 @@ import * as conta from './conta.js';
 import * as tranca from './tranca.js';
 import * as tema from './tema.js';
 import { interpretar, explicar, atalhosFrequentes, categoriaProvavel } from './interpretar.js';
-import { el, trocar, hexDaConta, recado, baixarArquivo, nomeComData } from './ui.js';
+import { el, trocar, hexDaConta, hexDaCategoria, hexDaCor, recado, baixarArquivo, nomeComData } from './ui.js';
 import { VERSAO_APP } from './configuracao.js';
 
 const hoje = fmt.hojeISO();
@@ -65,6 +65,7 @@ async function iniciar() {
   ligarDialogoConta();
   ligarDialogoRecorrente();
   ligarClassificador();
+  ligarDialogoCategoria();
   ligarAjustes();
   registrarServiceWorker();
 
@@ -1036,7 +1037,6 @@ function mostrarProximoGrupo() {
   trocar($('classificar-categorias'), dados.categoriasDe(grupo.tipo).map((c) => el('button', {
     class: 'pilula',
     type: 'button',
-    texto: c.nome,
     onclick: () => {
       const quantos = dados.classificarLancamentos(grupo.itens.map((l) => l.id), c.id);
       recado(quantos === 1
@@ -1044,7 +1044,10 @@ function mostrarProximoGrupo() {
         : `${quantos} lançamentos em ${c.nome}.`);
       mostrarProximoGrupo();
     },
-  })));
+  }, [
+    el('span', { class: 'pilula__ponto', estilo: { background: hexDaCategoria(c, estado.categorias) } }),
+    c.nome,
+  ])));
 }
 
 /* ==================== gastos que se repetem ============================ */
@@ -1244,31 +1247,79 @@ function ligarAjustes() {
  * nome é o caminho para excluir — e a exclusão só passa se a categoria não
  * estiver em uso, senão lançamentos antigos ficariam órfãos.
  */
+let corDaCategoriaEmEdicao = 'azul';
+
+function ligarDialogoCategoria() {
+  const dialogo = $('dialogo-categoria');
+
+  dialogo.querySelector('[data-fechar-categoria]')
+    .addEventListener('click', () => dialogo.close());
+
+  $('excluir-categoria').addEventListener('click', () => {
+    const alvo = dados.categoria($('categoria-id').value);
+    if (!alvo) return;
+    if (!dados.podeRemoverCategoria(alvo.id)) {
+      recado('Esta categoria já foi usada em lançamentos. Renomeie em vez de excluir.');
+      return;
+    }
+    if (!confirm(`Excluir a categoria "${alvo.nome}"?`)) return;
+    dados.removerCategoria(alvo.id);
+    dialogo.close();
+    recado('Categoria excluída.');
+  });
+
+  $('form-categoria').addEventListener('submit', (evento) => {
+    const nome = $('categoria-nome').value.trim();
+    if (!nome) {
+      evento.preventDefault();
+      return;
+    }
+    const alvo = dados.categoria($('categoria-id').value);
+    dados.salvarCategoria({
+      id: alvo ? alvo.id : undefined,
+      nome,
+      tipo: alvo ? alvo.tipo : 'saida',
+      cor: corDaCategoriaEmEdicao,
+    });
+    recado('Categoria salva.');
+  });
+}
+
 function editarCategoria(categoriaId) {
   const categoria = dados.categoria(categoriaId);
   if (!categoria) return;
 
-  const resposta = prompt(
-    `Novo nome para "${categoria.nome}".\nDeixe em branco para excluir a categoria.`,
-    categoria.nome
-  );
-  if (resposta === null) return;
+  // Sem cor escolhida, começa na que a tela já vem mostrando — assim abrir e
+  // salvar não muda a aparência por acidente.
+  corDaCategoriaEmEdicao = categoria.cor || corDeExibicao(categoria);
 
-  const nome = resposta.trim();
+  $('dialogo-categoria-titulo').textContent = categoria.nome;
+  $('categoria-id').value = categoria.id;
+  $('categoria-nome').value = categoria.nome;
 
-  if (!nome) {
-    if (!dados.podeRemoverCategoria(categoriaId)) {
-      recado('Esta categoria já foi usada em lançamentos. Renomeie em vez de excluir.');
-      return;
-    }
-    if (!confirm(`Excluir a categoria "${categoria.nome}"?`)) return;
-    dados.removerCategoria(categoriaId);
-    recado('Categoria excluída.');
-    return;
-  }
+  const podeExcluir = dados.podeRemoverCategoria(categoria.id);
+  $('excluir-categoria').hidden = !podeExcluir;
+  $('ajuda-excluir-categoria').hidden = podeExcluir;
 
-  dados.salvarCategoria({ id: categoriaId, nome, tipo: categoria.tipo });
-  recado('Categoria renomeada.');
+  pintarCoresDaCategoria();
+  $('dialogo-categoria').showModal();
+}
+
+/** Qual nome de cor está por trás do que a tela mostra hoje para ela. */
+function corDeExibicao(categoria) {
+  const achado = String(hexDaCategoria(categoria, dados.obter().categorias)).match(/--conta-([a-z-]+)/);
+  return achado ? achado[1] : 'azul';
+}
+
+function pintarCoresDaCategoria() {
+  trocar($('cores-categoria'), dados.CORES_CONTA.map((cor) => el('button', {
+    type: 'button',
+    class: `cor${cor.id === corDaCategoriaEmEdicao ? ' cor--escolhida' : ''}`,
+    estilo: { background: hexDaCor(cor.id) },
+    'aria-label': cor.nome,
+    'aria-pressed': String(cor.id === corDaCategoriaEmEdicao),
+    onclick: () => { corDaCategoriaEmEdicao = cor.id; pintarCoresDaCategoria(); },
+  })));
 }
 
 /**

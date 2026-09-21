@@ -6,7 +6,7 @@
 
 import * as fmt from './formato.js';
 import * as calc from './calculos.js';
-import { el, trocar, hexDaConta, vazio } from './ui.js';
+import { el, trocar, hexDaConta, hexDaCategoria, vazio } from './ui.js';
 
 /* ========================= painel de saldos ============================ */
 
@@ -552,7 +552,10 @@ export function pintarResumo(estado, contexto) {
             el('div', { class: 'barra-categoria__trilho' }, [
               el('div', {
                 class: 'barra-categoria__preenchimento',
-                estilo: { width: `${maior ? (linha.valor / maior) * 100 : 0}%` },
+                estilo: {
+                  width: `${maior ? (linha.valor / maior) * 100 : 0}%`,
+                  background: hexDaCategoria(linha.categoria, estado.categorias),
+                },
               }),
             ]),
           ])))
@@ -694,12 +697,12 @@ export function pintarAjustes(estado, contexto) {
       type: 'button',
       onclick: () => aoEditarCategoria(cat.id),
     }, [
-      el('span', { class: 'linha-ajuste__spine', estilo: { background: 'var(--linha-forte)' } }),
+      el('span', { class: 'linha-ajuste__spine', estilo: { background: hexDaCategoria(cat, estado.categorias) } }),
       el('span', { class: 'linha-ajuste__corpo' }, [
         el('span', { class: 'linha-ajuste__nome', texto: cat.nome }),
         el('span', { class: 'linha-ajuste__meta', texto: cat.tipo === 'entrada' ? 'Entrada' : 'Gasto' }),
       ]),
-      el('span', { class: 'linha-ajuste__acao', texto: 'Renomear' }),
+      el('span', { class: 'linha-ajuste__acao', texto: 'Editar' }),
     ])));
 }
 

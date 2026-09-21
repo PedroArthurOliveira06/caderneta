@@ -41,9 +41,14 @@ export function trocar(alvo, ...conteudo) {
   alvo.replaceChildren(...conteudo.flat().filter(Boolean));
 }
 
+/* Uma paleta só no app inteiro, para contas e categorias. Duas listas
+   diferentes acabariam com um verde de um lado e não do outro — e verde
+   aqui já quer dizer "entrou". */
+const CORES = ['amarelo', 'azul', 'laranja', 'roxo', 'roxo-claro', 'turquesa', 'magenta', 'ardosia'];
+
 /**
- * A cor de uma conta é uma variável do CSS, não um código fixo — é assim que
- * ela troca sozinha entre o tema claro e o escuro.
+ * A cor é uma variável do CSS, não um código fixo — é assim que ela troca
+ * sozinha entre o tema claro e o escuro.
  */
 export function hexDaCor(corId) {
   return `var(--conta-${corValida(corId)})`;
@@ -51,6 +56,29 @@ export function hexDaCor(corId) {
 
 export function hexDaConta(conta) {
   return conta ? hexDaCor(conta.cor) : 'var(--linha-forte)';
+}
+
+/**
+ * A cor de uma categoria, com um jeito de nunca ficar sem.
+ *
+ * As categorias nasceram sem cor e as antigas continuam sem até alguém
+ * escolher uma. Em vez de pintá-las todas de cinza — o que faria a tela de
+ * resumo parecer quebrada até a última ser configurada —, sai uma cor tirada
+ * do próprio identificador. Sempre a mesma para a mesma categoria, e
+ * diferente entre vizinhas.
+ */
+export function hexDaCategoria(categoria, categorias) {
+  if (!categoria) return 'var(--linha-forte)';
+  if (categoria.cor) return hexDaCor(categoria.cor);
+
+  // A posição na lista de categorias, e não um sorteio pelo identificador:
+  // sorteio colide, e duas barras vizinhas da mesma cor são pior que barra
+  // nenhuma colorida. Pela posição, as oito primeiras saem todas diferentes.
+  const posicao = Array.isArray(categorias)
+    ? categorias.findIndex((c) => c.id === categoria.id)
+    : -1;
+
+  return hexDaCor(CORES[(posicao >= 0 ? posicao : 0) % CORES.length]);
 }
 
 /** Mensagem curta de confirmação. Some sozinha; nunca segura o usuário. */

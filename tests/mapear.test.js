@@ -187,3 +187,15 @@ test('a marca do gasto repetido atravessa a ida e a volta', () => {
     { ...gasto, recorrenteId: undefined }, USUARIO));
   assert.equal('recorrenteId' in semMarca, false);
 });
+
+test('a cor da categoria vai e volta, e a ausência dela não vira invenção', () => {
+  const comCor = { id: 'cat9', nome: 'Alimentação', tipo: 'saida', cor: 'turquesa' };
+  assert.deepEqual(
+    mapear.categoriaParaApp(mapear.categoriaParaBanco(comCor, USUARIO)), comCor);
+
+  // Categoria antiga, sem cor guardada: continua sem. Quem decide o que
+  // mostrar no lugar é a tela, não o servidor.
+  const semCor = { id: 'cat8', nome: 'Lazer', tipo: 'saida', cor: null };
+  assert.equal(mapear.categoriaParaBanco(semCor, USUARIO).cor, null);
+  assert.equal(mapear.categoriaParaApp({ id: 'cat8', nome: 'Lazer', tipo: 'saida' }).cor, null);
+});

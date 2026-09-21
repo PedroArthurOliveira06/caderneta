@@ -462,7 +462,13 @@ export function salvarCategoria(dados) {
       if (alvo) Object.assign(alvo, dados);
       salva = alvo;
     } else {
-      salva = { id: id(), nome: dados.nome, tipo: dados.tipo || 'saida', natureza: dados.natureza || 'frequente' };
+      salva = {
+        id: id(),
+        nome: dados.nome,
+        tipo: dados.tipo || 'saida',
+        cor: corValida(dados.cor || CORES_CONTA[e.categorias.length % CORES_CONTA.length].id),
+        natureza: dados.natureza || 'frequente',
+      };
       e.categorias.push(salva);
     }
   }, () => enviarCategorias([salva]));

@@ -43,7 +43,7 @@ export function contaParaBanco(conta, usuario) {
 /* ---------------------------- categorias -------------------------------- */
 
 export function categoriaParaApp(linha) {
-  return { id: linha.id, nome: linha.nome, tipo: linha.tipo };
+  return { id: linha.id, nome: linha.nome, tipo: linha.tipo, cor: linha.cor || null };
 }
 
 export function categoriaParaBanco(categoria, usuario) {
@@ -52,6 +52,7 @@ export function categoriaParaBanco(categoria, usuario) {
     usuario,
     nome: categoria.nome,
     tipo: categoria.tipo === 'entrada' ? 'entrada' : 'saida',
+    cor: categoria.cor || null,
   };
 }
 

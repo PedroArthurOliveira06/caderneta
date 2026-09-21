@@ -520,6 +520,44 @@
 </dialog>
 
 <!-- ======================= conta ======================== -->
+<dialog id="dialogo-categoria" class="dialogo">
+  <form id="form-categoria" method="dialog" class="formulario">
+    <header class="dialogo__topo">
+      <button type="button" class="botao botao--texto" data-fechar-categoria>Cancelar</button>
+      <strong id="dialogo-categoria-titulo">Categoria</strong>
+      <button type="submit" class="botao botao--texto botao--destaque">Salvar</button>
+    </header>
+
+    <input type="hidden" id="categoria-id">
+
+    <div class="campo">
+      <label for="categoria-nome">Nome</label>
+      <input type="text" id="categoria-nome" maxlength="30" required autocomplete="off">
+    </div>
+
+    <div class="campo">
+      <span class="campo__rotulo">Cor</span>
+      <div id="cores-categoria" class="cores" role="radiogroup" aria-label="Cor da categoria"></div>
+      <p class="ajuda">
+        Aparece no Resumo, para você achar a categoria pela cor em vez de ler
+        a lista inteira.
+      </p>
+    </div>
+
+    <button type="submit" class="botao botao--principal botao--largo botao--salvar">
+      Salvar
+    </button>
+
+    <button type="button" id="excluir-categoria" class="botao botao--perigo botao--largo" hidden>
+      Excluir categoria
+    </button>
+    <p class="ajuda" id="ajuda-excluir-categoria" hidden>
+      Só dá para excluir categoria que nunca foi usada. Se já houver
+      lançamentos nela, renomeie.
+    </p>
+  </form>
+</dialog>
+
 <dialog id="dialogo-classificar" class="dialogo">
   <div class="formulario">
     <header class="dialogo__topo">

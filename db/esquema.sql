@@ -78,6 +78,10 @@ create table if not exists public.categorias (
   usuario  uuid not null references auth.users on delete cascade,
   nome     text not null,
   tipo     text not null default 'saida' check (tipo in ('saida', 'entrada')),
+  -- A cor escolhida para ela, do mesmo conjunto das contas. Nula enquanto
+  -- ninguém escolhe: aí o app tira uma do identificador, para a tela nunca
+  -- ficar toda cinza esperando configuração.
+  cor      text,
   natureza text not null default 'frequente' check (natureza in ('frequente', 'esporadico')) -- não usado; ficou de uma versão anterior
 );
 
