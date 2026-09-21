@@ -332,6 +332,7 @@ function pintar() {
     telas.pintarExtrato(estado, contexto);
   } else if (visao.tela === 'resumo') {
     telas.pintarAvisoDeClassificar(estado, contexto);
+    telas.pintarAcimaDoNormal(estado, contexto);
     telas.pintarResumo(estado, contexto);
   } else {
     telas.pintarAjustes(estado, contexto);

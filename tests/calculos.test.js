@@ -678,3 +678,129 @@ test('sem nada para classificar, a fila é vazia', () => {
   assert.deepEqual(calc.paraClassificar(e), []);
   assert.equal(calc.quantosSemCategoria(e), 0);
 });
+
+/* ==================== o que fugiu da média ============================== */
+
+/* Constrói um histórico onde cada mês tem os gastos pedidos, por categoria. */
+function comHistoricoDeCategorias(porMes) {
+  let n = 0;
+  const lancamentos = [];
+  for (const [chaveMes, gastos] of Object.entries(porMes)) {
+    for (const [categoriaId, valor] of Object.entries(gastos)) {
+      if (!valor) continue;
+      lancamentos.push({
+        id: 'l' + (++n), data: `${chaveMes}-10`, tipo: 'saida',
+        valor, contaId: 'bb', categoriaId, descricao: categoriaId,
+      });
+    }
+  }
+  return {
+    contas: [{ id: 'bb', nome: 'Banco do Brasil', tipo: 'conta', saldoInicial: 0, ordem: 0 }],
+    categorias: [
+      { id: 'alim', nome: 'Alimentação', tipo: 'saida' },
+      { id: 'saude', nome: 'Saúde', tipo: 'saida' },
+      { id: 'ass', nome: 'Assinaturas', tipo: 'saida' },
+    ],
+    lancamentos,
+  };
+}
+
+test('categoria bem acima da média dos meses anteriores é apontada', () => {
+  const e = comHistoricoDeCategorias({
+    '2026-06': { alim: 30000 },
+    '2026-07': { alim: 32000 },
+    '2026-08': { alim: 31000 },
+    '2026-09': { alim: 42000 },
+  });
+
+  const achados = calc.categoriasAcimaDoNormal(e, 2026, 9);
+  assert.equal(achados.length, 1);
+  assert.equal(achados[0].categoriaId, 'alim');
+  assert.equal(achados[0].media, 31000);       // (300 + 320 + 310) / 3
+  assert.equal(achados[0].excesso, 11000);     // 420 − 310
+  assert.equal(achados[0].mesesComparados, 3);
+});
+
+test('gasto dentro do normal não vira aviso', () => {
+  const e = comHistoricoDeCategorias({
+    '2026-06': { alim: 30000 },
+    '2026-07': { alim: 32000 },
+    '2026-08': { alim: 31000 },
+    '2026-09': { alim: 32500 },   // 5% acima: é só a vida
+  });
+  assert.deepEqual(calc.categoriasAcimaDoNormal(e, 2026, 9), []);
+});
+
+// O caso que mais estragaria o aviso: gasto que acontece de vez em quando.
+// Tirando a média sobre três meses, o veterinário de R$ 180 uma vez viraria
+// "média de R$ 60" e o app gritaria toda vez que o cachorro adoecesse.
+test('gasto ocasional não é comparado com meses em que ele não existiu', () => {
+  const e = comHistoricoDeCategorias({
+    '2026-06': { saude: 18000 },
+    '2026-07': {},
+    '2026-08': {},
+    '2026-09': { saude: 18000 },
+  });
+  assert.deepEqual(calc.categoriasAcimaDoNormal(e, 2026, 9), [],
+    'mesmo valor de sempre, e só um mês de comparação');
+});
+
+test('com um mês só de histórico não existe média, existe ocasião', () => {
+  const e = comHistoricoDeCategorias({
+    '2026-08': { alim: 10000 },
+    '2026-09': { alim: 90000 },
+  });
+  assert.deepEqual(calc.categoriasAcimaDoNormal(e, 2026, 9), []);
+});
+
+// Porcentagem sozinha grita por pouco dinheiro: 30% de R$ 12,90 é R$ 3,87.
+test('categoria pequena não dispara aviso por causa de trocados', () => {
+  const e = comHistoricoDeCategorias({
+    '2026-06': { ass: 1290 },
+    '2026-07': { ass: 1290 },
+    '2026-08': { ass: 1290 },
+    '2026-09': { ass: 1990 },   // +54%, mas são R$ 7
+  });
+  assert.deepEqual(calc.categoriasAcimaDoNormal(e, 2026, 9), []);
+});
+
+// E o valor sozinho cala quando tudo sobe um pouco: R$ 40 em cima de R$ 3.000
+// é ruído, não notícia.
+test('valor grande sobre base grande não dispara sem a porcentagem', () => {
+  const e = comHistoricoDeCategorias({
+    '2026-06': { alim: 300000 },
+    '2026-07': { alim: 300000 },
+    '2026-08': { alim: 300000 },
+    '2026-09': { alim: 304000 },
+  });
+  assert.deepEqual(calc.categoriasAcimaDoNormal(e, 2026, 9), []);
+});
+
+test('quem estourou mais aparece primeiro', () => {
+  const e = comHistoricoDeCategorias({
+    '2026-06': { alim: 30000, saude: 10000 },
+    '2026-07': { alim: 30000, saude: 10000 },
+    '2026-08': { alim: 30000, saude: 10000 },
+    '2026-09': { alim: 40000, saude: 30000 },
+  });
+  const achados = calc.categoriasAcimaDoNormal(e, 2026, 9);
+  assert.deepEqual(achados.map((a) => a.categoriaId), ['saude', 'alim']);
+  assert.deepEqual(achados.map((a) => a.excesso), [20000, 10000]);
+});
+
+// "Sem categoria" não é uma categoria: é trabalho que falta fazer, e para
+// isso existe o classificador.
+test('sem categoria nunca vira aviso de estouro', () => {
+  const e = comHistoricoDeCategorias({
+    '2026-06': { alim: 10000 },
+    '2026-07': { alim: 10000 },
+  });
+  for (const mes of ['06', '07', '09']) {
+    e.lancamentos.push({
+      id: 'x' + mes, data: `2026-${mes}-11`, tipo: 'saida',
+      valor: mes === '09' ? 99000 : 10000, contaId: 'bb', categoriaId: null, descricao: '',
+    });
+  }
+  const achados = calc.categoriasAcimaDoNormal(e, 2026, 9);
+  assert.equal(achados.some((a) => a.categoriaId === 'sem-categoria'), false);
+});

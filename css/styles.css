@@ -839,6 +839,27 @@ button { font: inherit; color: inherit; }
 .busca-total__saida { color: var(--saida); }
 .busca-total__entrada { color: var(--entrada); }
 
+/* ====================== acima do normal =============================== */
+
+.acima { padding: 10px 0; border-bottom: 1px solid var(--linha); }
+.acima:last-child { border-bottom: 0; padding-bottom: 0; }
+
+.acima__topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.acima__nome { font-weight: 500; }
+.acima__valor { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.acima__frase {
+  font-size: 0.8125rem;
+  color: var(--texto-suave);
+  margin-top: 2px;
+}
+
 /* ======================== classificar em lote ========================= */
 
 .classificar-aviso__titulo { font-weight: 600; margin-bottom: 4px; }

@@ -9,7 +9,7 @@
    de gastos mentir para o dono.
    ========================================================================= */
 
-import { simplificar, valor as textoDoValor, dataCurta } from './formato.js';
+import { simplificar, valor as textoDoValor, dataCurta, deslocarMes } from './formato.js';
 
 /** Quanto o lançamento mexe no saldo DESTA conta. Positivo entra, negativo sai. */
 export function efeitoNaConta(lancamento, contaId) {
@@ -162,6 +162,57 @@ export function rotuloDoLancamento(estado, l) {
 
   const categoria = estado.categorias.find((c) => c.id === l.categoriaId);
   return categoria ? categoria.nome : 'Sem categoria';
+}
+
+/* ==================== o que fugiu da média ============================= */
+
+/* Quanto acima da média já é notícia. Os dois juntos, não um ou outro:
+   sozinha, a porcentagem grita por causa de R$ 8 numa categoria pequena, e
+   sozinho, o valor cala num mês em que tudo subiu um pouco. */
+const MESES_DE_COMPARACAO = 3;
+const ACIMA_EM_PORCENTO = 0.2;
+const ACIMA_EM_CENTAVOS = 3000;
+
+/**
+ * As categorias em que se gastou claramente mais que o habitual.
+ *
+ * O "habitual" é ele mesmo, não um orçamento que eu inventei: a média dos
+ * meses anteriores. Um app que chuta quanto alguém DEVERIA gastar com comida
+ * está adivinhando a vida de quem lê.
+ *
+ * A média ignora os meses em que a categoria não apareceu. Isso é o que
+ * separa "gasto que subiu" de "gasto que acontece de vez em quando": o
+ * veterinário de R$ 180 uma vez a cada três meses tem média R$ 180, e não
+ * R$ 60 — que faria o app gritar toda vez que o cachorro adoecesse.
+ *
+ * Por isso também exige pelo menos dois meses com gasto: com um só não
+ * existe média, existe uma ocasião.
+ */
+export function categoriasAcimaDoNormal(estado, ano, mes) {
+  const anteriores = [];
+  for (let i = 1; i <= MESES_DE_COMPARACAO; i++) {
+    const { ano: a, mes: m } = deslocarMes(ano, mes, -i);
+    anteriores.push(new Map(porCategoria(estado, a, m).map((c) => [c.categoriaId, c.valor])));
+  }
+
+  return porCategoria(estado, ano, mes)
+    .filter((linha) => linha.categoriaId !== 'sem-categoria')
+    .map((linha) => {
+      const gastos = anteriores
+        .map((mapa) => mapa.get(linha.categoriaId) || 0)
+        .filter((v) => v > 0);
+
+      if (gastos.length < 2) return null;
+
+      const media = Math.round(gastos.reduce((a, b) => a + b, 0) / gastos.length);
+      const excesso = linha.valor - media;
+
+      if (excesso < ACIMA_EM_CENTAVOS || excesso < media * ACIMA_EM_PORCENTO) return null;
+
+      return { ...linha, media, excesso, mesesComparados: gastos.length };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.excesso - a.excesso);
 }
 
 /* ===================== o que falta classificar ========================= */

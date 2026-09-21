@@ -409,6 +409,46 @@ function linhaDoExtrato(estado, l, aoTocar) {
  * histórico inteiro, não só o mês — o buraco veio da importação da planilha
  * antiga, e ele está espalhado por todos os meses.
  */
+/**
+ * As categorias que fugiram da média dos meses anteriores.
+ *
+ * O texto diz os três números que sustentam a conta — quanto foi, quanto
+ * costuma ser, e de quantos meses saiu essa média — porque um aviso que só
+ * grita "está alto!" pede confiança cega. Com os números à vista, ele pode
+ * ser conferido e discordado.
+ *
+ * E nenhum juízo: "acima do seu normal", não "você gastou demais". O app não
+ * sabe se o mês tinha um aniversário dentro.
+ */
+export function pintarAcimaDoNormal(estado, contexto) {
+  const alvo = document.getElementById('resumo-acima');
+  const { ano, mes, hoje } = contexto;
+  const achados = calc.categoriasAcimaDoNormal(estado, ano, mes);
+
+  if (!achados.length) {
+    trocar(alvo);
+    return;
+  }
+
+  const emCurso = fmt.chaveMes(hoje) === `${ano}-${String(mes).padStart(2, '0')}`;
+
+  trocar(alvo, el('div', { class: 'bloco' }, [
+    el('h2', { class: 'bloco__titulo', texto: 'Acima do seu normal' }),
+
+    ...achados.map((a) => el('div', { class: 'acima' }, [
+      el('div', { class: 'acima__topo' }, [
+        el('span', { class: 'acima__nome', texto: a.categoria.nome }),
+        el('span', { class: 'acima__valor', texto: fmt.moeda(a.valor) }),
+      ]),
+      el('p', {
+        class: 'acima__frase',
+        texto: `${emCurso ? 'Já são' : 'Foram'} ${fmt.moeda(a.excesso)} a mais que a média de `
+          + `${fmt.moeda(a.media)}, dos ${a.mesesComparados} meses anteriores em que houve esse gasto.`,
+      }),
+    ])),
+  ]));
+}
+
 export function pintarAvisoDeClassificar(estado, contexto) {
   const alvo = document.getElementById('aviso-classificar');
   const quantos = calc.quantosSemCategoria(estado);
