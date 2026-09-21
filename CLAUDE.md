@@ -149,11 +149,27 @@ do mês, e em 21/09/2026 ele disse que não quer.
 
 **Pendências com ele:**
 
-- `db/RODAR-NO-SUPABASE-gastos-que-se-repetem.sql` — rodado em 21/09/2026.
-  Falta confirmar se a Apple e o Spotify sobreviveram: foram cadastrados
-  ANTES da tabela existir, e envio recusado pelo servidor é descartado.
+- `db/RODAR-NO-SUPABASE-gastos-que-se-repetem.sql` — rodado em 21/09/2026,
+  e a Apple e o Spotify sobreviveram (conferido no backup dele). Resolvido.
 - `db/RODAR-NO-SUPABASE-cor-da-categoria.sql` — ainda não confirmado. Sem
   ele a cor da categoria fica só no aparelho onde foi escolhida.
+- `db/RODAR-NO-SUPABASE-categoria-dos-dois-lados.sql` — ainda não
+  confirmado. Sem ele a categoria `ambos` não atravessa para o outro
+  aparelho.
+- Falta ele cadastrar dois gastos que se repetem que só apareceram no
+  extrato: **Seguro BB R$ 10,86 dia 27** e **Tarifa MSG R$ 5,00 dia 25**,
+  ambos na conta do Banco do Brasil (não no cartão).
+
+**Extrato do BB importado em 21/09/2026.** Sete meses de CSV viraram 159
+lançamentos; o saldo fecha em R$ 60,61, igual ao do banco. Duas coisas que
+custaram caro para descobrir:
+
+- O BB tem um **varrimento automático ("BB Rende Fácil")** que joga a sobra
+  do dia para a poupança e traz de volta quando falta. São 63 linhas do
+  extrato que **não são movimentação nenhuma** — contá-las dobra tudo.
+- Casar lançamento do app com linha do extrato **por valor absoluto está
+  errado**: em 07/03 ele recebeu 200 e mandou 200 no mesmo dia, o par saiu
+  trocado e o saldo deu −1.339,39. Casar pelo **efeito com sinal**.
 
 ## Lições de 20–21/09/2026 (o dia em que o app "resetou" no celular dele)
 
