@@ -133,9 +133,23 @@ function aplicarModoDaEntrada() {
   $('pergunta-conta').textContent = criandoConta ? 'Já tem conta?' : 'Ainda não tem conta?';
   $('alternar-entrada').textContent = criandoConta ? 'Entrar' : 'Criar uma conta';
   $('entrada-senha').autocomplete = criandoConta ? 'new-password' : 'current-password';
+  // Quem já usou a conta neste aparelho e caiu na tela de entrada precisa
+  // ouvir, antes de qualquer outra coisa, que não perdeu nada. Um app que
+  // abre pedindo e-mail e senha, depois de meses de uso, parece um app que
+  // esqueceu quem você é.
+  const jaUsou = !criandoConta && dados.temDadosDeConta();
+
   $('entrada-explicacao').textContent = criandoConta
     ? 'Crie sua conta. Ela precisa ser liberada antes do primeiro acesso — é assim que ninguém entra sem permissão.'
-    : 'Entre com a sua conta para os seus lançamentos acompanharem você em qualquer aparelho.';
+    : jaUsou
+      ? 'Seus lançamentos estão guardados na sua conta, nada foi perdido. Entre de novo para vê-los aqui.'
+      : 'Entre com a sua conta para os seus lançamentos acompanharem você em qualquer aparelho.';
+
+  // E o atalho de usar sem conta deixa de ser um convite inocente: daqui ele
+  // leva para uma caderneta vazia, ao lado da que tem tudo.
+  $('usar-sem-conta').textContent = jaUsou
+    ? 'Começar uma caderneta vazia neste aparelho'
+    : 'Usar só neste aparelho, sem conta';
   // Esta função NÃO esconde o erro: ela também roda ao terminar uma
   // tentativa que falhou, e esconderia a mensagem no mesmo instante em que
   // ela é escrita. Quem limpa é quem troca de modo.

@@ -126,6 +126,12 @@ async function garantirTokenValido() {
   } catch (erro) {
     // Sem rede a sessão continua valendo; é só esperar a conexão voltar.
     if (erro.semRede) return true;
+    // Servidor com problema também não é motivo para jogar a sessão fora. Um
+    // 500 passa em minutos; deslogar por causa dele faz o app abrir vazio, e
+    // quem tem meses de lançamentos lê isso como "perdi tudo".
+    if (!erro.status || erro.status >= 500) return true;
+    // Só aqui a sessão realmente acabou: o servidor olhou o token de
+    // renovação e disse não.
     guardarSessao(null);
     return false;
   }

@@ -20,6 +20,10 @@ globalThis.localStorage = {
   setItem: (k, v) => guardado.set(k, String(v)),
   removeItem: (k) => guardado.delete(k),
   clear: () => guardado.clear(),
+  // `key` faz parte da API de verdade e o app usa para varrer as chaves
+  // guardadas. Sem ela aqui, o dublê seria mais pobre que o original e
+  // deixaria passar código que só quebra no navegador.
+  key: (i) => [...guardado.keys()][i] ?? null,
   get length() { return guardado.size; },
 };
 globalThis.alert = () => {};
@@ -316,4 +320,35 @@ test('parar de repetir não mexe no que já foi lançado', () => {
   assert.equal(dados.obter().recorrentes.length, 0);
   assert.equal(dados.obter().lancamentos.length, antes);
   assert.equal(dados.obter().lancamentos[0].recorrenteId, r.id);
+});
+
+/* ------------- o aparelho lembra que já teve uma conta ----------------- */
+
+// Quando a sessão cai, o app volta a olhar a chave comum, que está vazia. Sem
+// saber que existe uma chave de conta guardada, a tela de entrada diria a
+// alguém com meses de lançamentos que ele está começando do zero.
+test('o aparelho sabe distinguir "nunca usei conta" de "minha sessão caiu"', () => {
+  guardado.clear();
+  dados.apagarTudo();
+  assert.equal(dados.temDadosDeConta(), false);
+
+  // Dado local, sem conta, não conta: a chave é a comum.
+  dados.definirContasIniciais([{ nome: 'Banco do Brasil', saldoInicial: 100, cor: 'amarelo' }]);
+  assert.equal(dados.temDadosDeConta(), false);
+
+  // Agora sim: entrar com conta grava sob a chave do usuário.
+  dados.entrarModoServidor({ id: '11111111-1111-1111-1111-111111111111' });
+  dados.definirContasIniciais([{ nome: 'Nubank', saldoInicial: 100, cor: 'roxo' }]);
+  dados.sairModoServidor();
+  assert.equal(dados.temDadosDeConta(), true);
+});
+
+// A fila de envio também mora numa chave com o nome do usuário. Se ela
+// contasse, um aparelho com a fila vazia guardada mentiria dizendo que tem
+// lançamentos esperando.
+test('a fila de envio não é confundida com dados guardados', () => {
+  guardado.clear();
+  dados.apagarTudo();
+  guardado.set('caderneta.v1.fila.11111111-1111-1111-1111-111111111111', '[]');
+  assert.equal(dados.temDadosDeConta(), false);
 });

@@ -273,6 +273,29 @@ export function entrarModoServidor(usuario) {
   return estado;
 }
 
+/**
+ * Este aparelho já baixou os dados de alguma conta alguma vez?
+ *
+ * Os dados de quem tem conta ficam sob uma chave com o nome do usuário, e não
+ * na chave comum. Quando a sessão cai, o app volta a olhar a chave comum, que
+ * está vazia — e uma tela vazia, para quem tem meses de lançamentos, parece
+ * que tudo foi apagado. É para essa tela poder dizer a verdade ("está tudo na
+ * sua conta, é só entrar") que esta função existe.
+ */
+export function temDadosDeConta() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const chave = localStorage.key(i);
+      if (chave && chave.startsWith(`${CHAVE}.`) && !chave.startsWith(`${CHAVE}.fila.`)) {
+        return true;
+      }
+    }
+  } catch {
+    // Navegador sem localStorage: aí não há o que recuperar mesmo.
+  }
+  return false;
+}
+
 export function sairModoServidor() {
   modo = 'local';
   usuarioId = null;
@@ -286,12 +309,19 @@ export function sairModoServidor() {
 export async function sincronizar() {
   if (modo !== 'servidor') return estado;
 
-  const [contas, categorias, lancamentos, recorrentes] = await Promise.all([
+  const [contas, categorias, lancamentos] = await Promise.all([
     servidor.listar('contas', 'select=*&order=ordem'),
     servidor.listar('categorias', 'select=*&order=nome'),
     servidor.listar('lancamentos', 'select=*&order=data.desc'),
-    servidor.listar('recorrentes', 'select=*&order=dia'),
   ]);
+
+  // Os gastos que se repetem são um acessório, e vieram depois. Num banco
+  // onde a tabela deles ainda não foi criada, pedi-la junto das outras três
+  // derrubava a sincronização inteira — o app ficava sem contas, sem
+  // categorias e sem lançamentos por causa de uma tabela de assinaturas.
+  // Coisa nova não pode ter poder de veto sobre o que já funcionava.
+  const recorrentes = await servidor.listar('recorrentes', 'select=*&order=dia')
+    .catch(() => []);
 
   const doServidor = mapear.estadoParaApp({ contas, categorias, lancamentos, recorrentes });
 
