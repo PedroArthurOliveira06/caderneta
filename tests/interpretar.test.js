@@ -245,3 +245,58 @@ test('categoria apagada não vira palpite órfão', () => {
   e.categorias = e.categorias.filter((c) => c.id !== 'alim');
   assert.equal(categoriaProvavel(e, 'Mercado', 'saida'), null);
 });
+
+/* ============== a descrição sai como foi digitada ======================= */
+
+const contextoSimples = {
+  contas: [
+    { id: 'bb', nome: 'Banco do Brasil', tipo: 'conta' },
+    { id: 'nu', nome: 'Nubank', tipo: 'conta' },
+  ],
+  categorias: [
+    { id: 'alim', nome: 'Alimentação', tipo: 'saida' },
+    { id: 'aj', nome: 'Ajuda da família', tipo: 'entrada' },
+  ],
+  hoje: '2026-09-21',
+};
+
+// A descrição fica no extrato para sempre. Escrevê-la sem acento é o app
+// corrigindo errado o que a pessoa digitou certo.
+test('a descrição guarda os acentos de quem digitou', () => {
+  assert.equal(interpretar('mercado do mês 210', contextoSimples).descricao, 'Mercado do mês');
+  assert.equal(interpretar('veterinário 180', contextoSimples).descricao, 'Veterinário');
+  assert.equal(interpretar('consulta médica 250', contextoSimples).descricao, 'Consulta médica');
+});
+
+test('maiúscula no meio da palavra é respeitada, não corrigida', () => {
+  assert.equal(interpretar('iFood 45', contextoSimples).descricao, 'iFood');
+  assert.equal(interpretar('McDonalds 32', contextoSimples).descricao, 'McDonalds');
+});
+
+// Quem escreve tudo minúsculo continua ganhando a maiúscula inicial: foi
+// pedido dele, e uma lista toda em caixa baixa parece desleixada.
+test('quem digita tudo minúsculo ganha a maiúscula inicial', () => {
+  assert.equal(interpretar('mercado 45', contextoSimples).descricao, 'Mercado');
+  assert.equal(interpretar('padaria da esquina 12', contextoSimples).descricao, 'Padaria da esquina');
+});
+
+test('o que foi entendido sai da descrição, e o resto fica como veio', () => {
+  const lido = interpretar('ontem Açaí 18,50 nubank', contextoSimples);
+  assert.equal(lido.descricao, 'Açaí');
+  assert.equal(lido.contaId, 'nu');
+  assert.equal(lido.valor, 1850);
+  assert.equal(lido.data, '2026-09-20');
+});
+
+test('sem nada sobrando, a descrição é vazia', () => {
+  assert.equal(interpretar('45', contextoSimples).descricao, '');
+  assert.equal(interpretar('alimentação 45', contextoSimples).descricao, '');
+});
+
+// Valor grudado na palavra: o corte cai no meio e não há par no original.
+// Aí vale a versão rebaixada — que é o que o app fazia com tudo até agora.
+test('palavra partida ao meio não some da descrição', () => {
+  const lido = interpretar('mercado45', contextoSimples);
+  assert.equal(lido.valor, 4500);
+  assert.equal(lido.descricao, 'Mercado');
+});

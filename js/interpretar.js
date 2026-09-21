@@ -52,6 +52,46 @@ function acharPorNome(lista, texto) {
 }
 
 /**
+ * Devolve à descrição os acentos e as maiúsculas de quem digitou.
+ *
+ * A análise acontece sobre o texto rebaixado — é o que permite achar "itau"
+ * dentro de "Itaú". Mas o que sobra dali vira a descrição do lançamento, e
+ * ela fica no extrato para sempre: "Mercado do mes" e "Ifood" são o app
+ * escrevendo errado no lugar da pessoa.
+ *
+ * As palavras que sobraram são procuradas, na ordem, no texto original. Uma
+ * que não ache par — quando o corte caiu no meio de uma palavra, como o "45"
+ * de "mercado45" — fica na versão rebaixada, que é exatamente o que o app já
+ * fazia com todas. Nunca sai pior do que era.
+ */
+function comoFoiDigitado(original, simplificado) {
+  const alvo = simplificado.split(' ').filter(Boolean);
+  if (!alvo.length) return '';
+
+  const palavras = String(original).trim().split(/\s+/);
+  let i = 0;
+
+  const escolhidas = alvo.map((procurada) => {
+    const partida = i;
+    while (i < palavras.length) {
+      const atual = palavras[i];
+      i += 1;
+      if (simplificar(atual) === procurada) return atual;
+    }
+    i = partida; // não achou: a busca das próximas continua de onde estava
+    return procurada;
+  });
+
+  const frase = escolhidas.join(' ');
+
+  // Maiúscula inicial só quando ninguém escreveu maiúscula nenhuma. Quem
+  // digitou "iFood" quis "iFood", e "IFood" seria outra correção indevida.
+  return frase === frase.toLowerCase()
+    ? frase.charAt(0).toUpperCase() + frase.slice(1)
+    : frase;
+}
+
+/**
  * @param {string} texto     o que a pessoa digitou
  * @param {object} contexto  { contas, categorias, hoje }
  * @returns {{
@@ -117,11 +157,13 @@ export function interpretar(texto, contexto = {}) {
     ? 'entrada'
     : 'saida';
 
-  // O texto foi rebaixado para minúsculas só para poder comparar com nomes de
-  // banco e categoria. A descrição, porém, vai aparecer no extrato — e uma
-  // lista toda em caixa baixa parece desleixada. Volta com maiúscula.
+  // O texto foi rebaixado só para poder comparar com nomes de banco e de
+  // categoria. A descrição, porém, vai aparecer no extrato todo dia, e o
+  // rebaixamento tirava os acentos junto: "mercado do mês" virava "Mercado
+  // do mes". Aqui as palavras que sobraram são casadas de volta com o que a
+  // pessoa realmente escreveu.
   const sobrou = resto.replace(/\s+/g, ' ').trim();
-  const descricao = sobrou ? sobrou.charAt(0).toUpperCase() + sobrou.slice(1) : '';
+  const descricao = comoFoiDigitado(texto, sobrou);
 
   return {
     valor,
