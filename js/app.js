@@ -1313,6 +1313,7 @@ function ligarAjustes() {
  * estiver em uso, senão lançamentos antigos ficariam órfãos.
  */
 let corDaCategoriaEmEdicao = 'azul';
+let tipoDaCategoriaEmEdicao = 'saida';
 
 function ligarDialogoCategoria() {
   const dialogo = $('dialogo-categoria');
@@ -1333,6 +1334,30 @@ function ligarDialogoCategoria() {
     recado('Categoria excluída.');
   });
 
+  dialogo.querySelectorAll('[data-tipo-categoria]').forEach((botao) => {
+    botao.addEventListener('click', () => {
+      tipoDaCategoriaEmEdicao = botao.dataset.tipoCategoria;
+      pintarTipoDaCategoria();
+    });
+  });
+
+  $('confirmar-juntar').addEventListener('click', () => {
+    const daqui = dados.categoria($('categoria-id').value);
+    const paraLa = dados.categoria($('categoria-juntar').value);
+    if (!daqui || !paraLa) return;
+
+    if (!confirm(
+      `Mover os lançamentos de "${daqui.nome}" para "${paraLa.nome}" e apagar `
+      + `"${daqui.nome}"? Nenhum lançamento se perde.`
+    )) return;
+
+    const movidos = dados.juntarCategorias(daqui.id, paraLa.id);
+    dialogo.close();
+    recado(movidos === 1
+      ? `1 lançamento foi para ${paraLa.nome}.`
+      : `${movidos} lançamentos foram para ${paraLa.nome}.`);
+  });
+
   $('form-categoria').addEventListener('submit', (evento) => {
     const nome = $('categoria-nome').value.trim();
     if (!nome) {
@@ -1343,7 +1368,7 @@ function ligarDialogoCategoria() {
     dados.salvarCategoria({
       id: alvo ? alvo.id : undefined,
       nome,
-      tipo: alvo ? alvo.tipo : 'saida',
+      tipo: tipoDaCategoriaEmEdicao,
       cor: corDaCategoriaEmEdicao,
     });
     recado('Categoria salva.');
@@ -1357,6 +1382,7 @@ function editarCategoria(categoriaId) {
   // Sem cor escolhida, começa na que a tela já vem mostrando — assim abrir e
   // salvar não muda a aparência por acidente.
   corDaCategoriaEmEdicao = categoria.cor || corDeExibicao(categoria);
+  tipoDaCategoriaEmEdicao = dados.tipoDeCategoria(categoria);
 
   $('dialogo-categoria-titulo').textContent = categoria.nome;
   $('categoria-id').value = categoria.id;
@@ -1367,6 +1393,8 @@ function editarCategoria(categoriaId) {
   $('ajuda-excluir-categoria').hidden = podeExcluir;
 
   pintarCoresDaCategoria();
+  pintarTipoDaCategoria();
+  prepararJuntar(categoria);
   abrirDialogo('dialogo-categoria');
 }
 
@@ -1374,6 +1402,25 @@ function editarCategoria(categoriaId) {
 function corDeExibicao(categoria) {
   const achado = String(hexDaCategoria(categoria, dados.obter().categorias)).match(/--conta-([a-z-]+)/);
   return achado ? achado[1] : 'azul';
+}
+
+function pintarTipoDaCategoria() {
+  $('dialogo-categoria').querySelectorAll('[data-tipo-categoria]').forEach((b) =>
+    b.classList.toggle('segmento--ativo', b.dataset.tipoCategoria === tipoDaCategoriaEmEdicao));
+}
+
+/**
+ * Oferece juntar com outra categoria — e só quando isso resolve alguma coisa:
+ * numa que ainda não tem lançamento, excluir já basta e é mais simples.
+ */
+function prepararJuntar(categoria) {
+  const podeExcluir = dados.podeRemoverCategoria(categoria.id);
+  const outras = dados.obter().categorias
+    .filter((c) => c.id !== categoria.id)
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+  $('campo-juntar').hidden = podeExcluir || !outras.length;
+  trocar($('categoria-juntar'), outras.map((c) => el('option', { value: c.id, texto: c.nome })));
 }
 
 function pintarCoresDaCategoria() {

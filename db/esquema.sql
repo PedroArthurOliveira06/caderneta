@@ -77,7 +77,9 @@ create table if not exists public.categorias (
   id       uuid primary key default gen_random_uuid(),
   usuario  uuid not null references auth.users on delete cascade,
   nome     text not null,
-  tipo     text not null default 'saida' check (tipo in ('saida', 'entrada')),
+  -- 'ambos' serve para gasto E para entrada, sem precisar de duas
+  -- categorias com o mesmo nome.
+  tipo     text not null default 'saida' check (tipo in ('saida', 'entrada', 'ambos')),
   -- A cor escolhida para ela, do mesmo conjunto das contas. Nula enquanto
   -- ninguém escolhe: aí o app tira uma do identificador, para a tela nunca
   -- ficar toda cinza esperando configuração.

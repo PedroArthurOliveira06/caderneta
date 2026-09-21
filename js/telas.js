@@ -688,8 +688,13 @@ export function pintarAjustes(estado, contexto) {
 
   pintarRecorrentesNosAjustes(estado, contexto);
 
+  // Gastos primeiro, depois as que servem aos dois, depois as entradas — do
+  // mais comum para o menos, que é a ordem em que se procura.
+  const ORDEM = { saida: 0, ambos: 1, entrada: 2 };
   const ordenadas = [...estado.categorias].sort((a, b) =>
-    a.tipo === b.tipo ? a.nome.localeCompare(b.nome, 'pt-BR') : (a.tipo === 'saida' ? -1 : 1));
+    (ORDEM[a.tipo] ?? 0) - (ORDEM[b.tipo] ?? 0) || a.nome.localeCompare(b.nome, 'pt-BR'));
+
+  const COMO_CHAMAR = { saida: 'Gasto', entrada: 'Entrada', ambos: 'Gasto e entrada' };
 
   trocar(document.getElementById('ajustes-categorias'),
     ordenadas.map((cat) => el('button', {
@@ -700,7 +705,7 @@ export function pintarAjustes(estado, contexto) {
       el('span', { class: 'linha-ajuste__spine', estilo: { background: hexDaCategoria(cat, estado.categorias) } }),
       el('span', { class: 'linha-ajuste__corpo' }, [
         el('span', { class: 'linha-ajuste__nome', texto: cat.nome }),
-        el('span', { class: 'linha-ajuste__meta', texto: cat.tipo === 'entrada' ? 'Entrada' : 'Gasto' }),
+        el('span', { class: 'linha-ajuste__meta', texto: COMO_CHAMAR[cat.tipo] || 'Gasto' }),
       ]),
       el('span', { class: 'linha-ajuste__acao', texto: 'Editar' }),
     ])));

@@ -120,8 +120,22 @@ export function categoria(categoriaId) {
   return estado.categorias.find((c) => c.id === categoriaId) || null;
 }
 
+/**
+ * As categorias que servem para este tipo de lançamento.
+ *
+ * "Ambos" existe porque a mesma coisa é gasto num mês e entrada no outro —
+ * reembolso, empréstimo entre amigos, venda de algo usado. Sem isso, a saída
+ * era duplicar a categoria com o mesmo nome, e aí o Resumo partia o assunto
+ * em dois pedaços que ninguém queria separados.
+ */
 export function categoriasDe(tipo) {
-  return estado.categorias.filter((c) => c.tipo === tipo);
+  return estado.categorias.filter((c) => c.tipo === tipo || c.tipo === 'ambos');
+}
+
+/** 'saida', 'entrada' ou 'ambos'. Registro antigo sem o campo é gasto. */
+export function tipoDeCategoria(categoria) {
+  const t = categoria && categoria.tipo;
+  return t === 'entrada' || t === 'ambos' ? t : 'saida';
 }
 
 /* ---------------------------- persistência ----------------------------- */
@@ -476,6 +490,45 @@ export function salvarCategoria(dados) {
       e.categorias.push(salva);
     }
   }, () => enviarCategorias([salva]));
+  return salva;   // como salvarConta e salvarRecorrente: quem chama precisa dela
+}
+
+/**
+ * Junta duas categorias numa só: os lançamentos de uma passam para a outra,
+ * e a que esvaziou é apagada.
+ *
+ * Existe por causa da duplicação que o app obrigava antes de uma categoria
+ * poder servir a gasto E a entrada: quem tinha "Reembolso" dos dois lados
+ * ficou com duas, e agora precisa de um jeito de voltar a ter uma.
+ *
+ * Tudo numa gravação só — se fosse mover e depois apagar em duas etapas, uma
+ * falha no meio deixaria lançamentos apontando para uma categoria que não
+ * existe mais.
+ */
+export function juntarCategorias(deId, paraId) {
+  if (!deId || !paraId || deId === paraId) return 0;
+
+  let movidos = 0;
+  const mexidos = [];
+
+  mutar((e) => {
+    for (const l of e.lancamentos) {
+      if (l.categoriaId !== deId) continue;
+      l.categoriaId = paraId;
+      mexidos.push(l);
+      movidos += 1;
+    }
+    for (const r of e.recorrentes) {
+      if (r.categoriaId === deId) r.categoriaId = paraId;
+    }
+    e.categorias = e.categorias.filter((c) => c.id !== deId);
+  }, () => [
+    ...(mexidos.length ? enviarLancamentos(mexidos) : []),
+    ...enviarRecorrentes(estado.recorrentes.filter((r) => r.categoriaId === paraId)),
+    ...apagar('categorias', `id=eq.${deId}`),
+  ]);
+
+  return movidos;
 }
 
 export function podeRemoverCategoria(categoriaId) {

@@ -457,3 +457,65 @@ test('lançamento antigo sem id ganha um ao carregar', () => {
   assert.equal(recuperado.valor, 5000, 'o resto do lançamento fica intacto');
   assert.equal(dados.lancamento(recuperado.id).descricao, 'Sem nome');
 });
+
+/* ------------ categoria que serve a gasto e a entrada ------------------ */
+
+test('categoria "ambos" aparece nas duas listas, sem precisar duplicar', () => {
+  comecarDoZero();
+  const salva = dados.salvarCategoria({ nome: 'Reembolso do trabalho', tipo: 'ambos' });
+
+  const emGastos = dados.categoriasDe('saida').some((c) => c.nome === 'Reembolso do trabalho');
+  const emEntradas = dados.categoriasDe('entrada').some((c) => c.nome === 'Reembolso do trabalho');
+
+  assert.ok(emGastos, 'tem de servir para gasto');
+  assert.ok(emEntradas, 'e para entrada, sem existir duas vezes');
+  assert.equal(dados.obter().categorias.filter((c) => c.nome === 'Reembolso do trabalho').length, 1);
+});
+
+test('categoria de um lado só continua aparecendo só de um lado', () => {
+  comecarDoZero();
+  dados.salvarCategoria({ nome: 'Padaria', tipo: 'saida' });
+  assert.ok(dados.categoriasDe('saida').some((c) => c.nome === 'Padaria'));
+  assert.equal(dados.categoriasDe('entrada').some((c) => c.nome === 'Padaria'), false);
+});
+
+// Quem duplicou a categoria antes de "ambos" existir precisa de um caminho de
+// volta: juntar as duas sem perder nenhum lançamento.
+test('juntar categorias leva os lançamentos e apaga só a que esvaziou', () => {
+  comecarDoZero();
+  const bb = acharConta('Banco do Brasil');
+  const gasto = dados.salvarCategoria({ nome: 'Reembolso', tipo: 'saida' });
+  const entrada = dados.salvarCategoria({ nome: 'Reembolso ', tipo: 'entrada' });
+
+  dados.salvarLancamento({ tipo: 'saida', valor: 1000, data: '2026-09-01', contaId: bb.id, categoriaId: gasto.id });
+  dados.salvarLancamento({ tipo: 'saida', valor: 2000, data: '2026-09-02', contaId: bb.id, categoriaId: gasto.id });
+  dados.salvarLancamento({ tipo: 'entrada', valor: 3000, data: '2026-09-03', contaId: bb.id, categoriaId: entrada.id });
+
+  const movidos = dados.juntarCategorias(gasto.id, entrada.id);
+
+  assert.equal(movidos, 2);
+  assert.equal(dados.categoria(gasto.id), null, 'a que esvaziou sai');
+  assert.ok(dados.categoria(entrada.id), 'a que recebeu fica');
+  assert.equal(dados.obter().lancamentos.length, 3, 'nenhum lançamento se perdeu');
+  assert.ok(dados.obter().lancamentos.every((l) => l.categoriaId === entrada.id));
+});
+
+test('juntar leva junto os gastos que se repetem daquela categoria', () => {
+  comecarDoZero();
+  const bb = acharConta('Banco do Brasil');
+  const velha = dados.salvarCategoria({ nome: 'Assinatura', tipo: 'saida' });
+  const nova = dados.salvarCategoria({ nome: 'Assinaturas', tipo: 'saida' });
+  dados.salvarRecorrente({ descricao: 'Spotify', valor: 1290, dia: 16, contaId: bb.id, categoriaId: velha.id });
+
+  dados.juntarCategorias(velha.id, nova.id);
+
+  assert.equal(dados.obter().recorrentes[0].categoriaId, nova.id);
+});
+
+test('juntar uma categoria com ela mesma não faz nada', () => {
+  comecarDoZero();
+  const c = dados.salvarCategoria({ nome: 'Lazer', tipo: 'saida' });
+  const antes = dados.obter().categorias.length;
+  assert.equal(dados.juntarCategorias(c.id, c.id), 0);
+  assert.equal(dados.obter().categorias.length, antes, 'e não apaga ninguém');
+});

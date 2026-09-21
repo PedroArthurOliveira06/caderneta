@@ -550,6 +550,20 @@
     </div>
 
     <div class="campo">
+      <span class="campo__rotulo">Serve para</span>
+      <div class="segmentado" role="group" aria-label="A categoria serve para">
+        <button type="button" class="segmento" data-tipo-categoria="saida">Gasto</button>
+        <button type="button" class="segmento" data-tipo-categoria="entrada">Entrada</button>
+        <button type="button" class="segmento" data-tipo-categoria="ambos">Os dois</button>
+      </div>
+      <p class="ajuda">
+        "Os dois" serve para o que às vezes sai e às vezes entra — reembolso,
+        empréstimo entre amigos, venda de algo usado. Assim você não precisa
+        de duas categorias com o mesmo nome.
+      </p>
+    </div>
+
+    <div class="campo">
       <span class="campo__rotulo">Cor</span>
       <div id="cores-categoria" class="cores" role="radiogroup" aria-label="Cor da categoria"></div>
       <p class="ajuda">
@@ -562,12 +576,25 @@
       Salvar
     </button>
 
+    <div class="campo" id="campo-juntar" hidden>
+      <label for="categoria-juntar">Juntar com outra</label>
+      <select id="categoria-juntar"></select>
+      <p class="ajuda">
+        Move os lançamentos desta para a escolhida e apaga esta. Serve para
+        desfazer categorias repetidas — as que existiam só porque antes uma
+        categoria não podia ser gasto e entrada ao mesmo tempo.
+      </p>
+      <button type="button" id="confirmar-juntar" class="botao botao--secundario botao--largo">
+        Juntar
+      </button>
+    </div>
+
     <button type="button" id="excluir-categoria" class="botao botao--perigo botao--largo" hidden>
       Excluir categoria
     </button>
     <p class="ajuda" id="ajuda-excluir-categoria" hidden>
-      Só dá para excluir categoria que nunca foi usada. Se já houver
-      lançamentos nela, renomeie.
+      Esta categoria já tem lançamentos, então não dá para simplesmente
+      excluir. Renomeie, ou junte com outra acima.
     </p>
   </form>
 </dialog>

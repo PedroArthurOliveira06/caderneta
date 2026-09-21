@@ -42,8 +42,16 @@ export function contaParaBanco(conta, usuario) {
 
 /* ---------------------------- categorias -------------------------------- */
 
+/* 'ambos' serve para gasto E para entrada — reembolso é o caso comum. */
+const TIPOS_DE_CATEGORIA = new Set(['saida', 'entrada', 'ambos']);
+
 export function categoriaParaApp(linha) {
-  return { id: linha.id, nome: linha.nome, tipo: linha.tipo, cor: linha.cor || null };
+  return {
+    id: linha.id,
+    nome: linha.nome,
+    tipo: TIPOS_DE_CATEGORIA.has(linha.tipo) ? linha.tipo : 'saida',
+    cor: linha.cor || null,
+  };
 }
 
 export function categoriaParaBanco(categoria, usuario) {
@@ -51,7 +59,7 @@ export function categoriaParaBanco(categoria, usuario) {
     id: categoria.id,
     usuario,
     nome: categoria.nome,
-    tipo: categoria.tipo === 'entrada' ? 'entrada' : 'saida',
+    tipo: TIPOS_DE_CATEGORIA.has(categoria.tipo) ? categoria.tipo : 'saida',
     cor: categoria.cor || null,
   };
 }
