@@ -2,3 +2,11 @@ node_modules/
 .DS_Store
 Thumbs.db
 *.log
+
+# Dados pessoais dele. O repositório é PÚBLICO, e um "git add -A" distraído
+# publicaria extrato bancário e backup de lançamentos para sempre — o git
+# guarda o que já foi commitado mesmo depois de apagar.
+ABRIR-NO-APP-*.json
+caderneta-backup-*.json
+Extrato*.csv
+*.xlsx
