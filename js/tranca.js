@@ -189,7 +189,10 @@ async function confirmar() {
     primeiroPin = '';
     digitado = '';
     trancado = false;
-    recado('Tranca ligada.');
+    // Diz "neste aparelho" porque é justamente o que se esquece: quem liga a
+    // tranca no computador acha que ligou na conta, e o celular — que é o
+    // aparelho que sai de casa — continua abrindo sem pedir nada.
+    recado('Tranca ligada neste aparelho. Nos outros, precisa ligar de novo.');
     aoDestravar();
     return;
   }
