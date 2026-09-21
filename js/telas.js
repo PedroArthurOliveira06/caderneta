@@ -13,7 +13,12 @@ import { el, trocar, hexDaConta, hexDaCategoria, vazio } from './ui.js';
 export function pintarSaldos(estado, contexto) {
   const alvo = document.getElementById('painel-saldos');
   const { ano, mes, filtroContaId, aoTocarConta } = contexto;
-  const { fim } = fmt.limitesDoMes(ano, mes);
+  const { inicio, fim } = fmt.limitesDoMes(ano, mes);
+
+  // O dia anterior ao primeiro do mês: é o saldo com que cada banco começou,
+  // e ver de onde veio explica o número de hoje melhor que o número sozinho.
+  const vespera = fmt.somarDias(inicio, -1);
+  const antes = new Map(calc.saldos(estado, vespera).linhas.map((l) => [l.conta.id, l.saldo]));
 
   // Bancos e cartões são lidos separados de propósito: um diz quanto existe,
   // o outro quanto se deve. Misturar num número só esconde as duas respostas.
@@ -55,7 +60,7 @@ export function pintarSaldos(estado, contexto) {
     // metades de cabeça, e a tela inicial acabava antes do primeiro
     // lançamento aparecer.
     el('div', { class: 'saldos-contas' }, [
-      ...linhas.map((l) => linhaDeSaldo(l, null, aoTocarConta)),
+      ...linhas.map((l) => linhaDeSaldo(l, null, aoTocarConta, antes.get(l.conta.id))),
 
       // Uma frase explica os dois grupos de uma vez, no lugar de um rótulo
       // repetido em cada linha: o que vem abaixo dela existe, mas não entra
@@ -64,6 +69,9 @@ export function pintarSaldos(estado, contexto) {
         ? el('p', { class: 'saldos-contas__corte', texto: 'Fora do saldo acima' })
         : null,
 
+      // "De onde veio" só nos bancos, que foi o que ele pediu. Na caixinha o
+      // saldo quase não muda, e no cartão o número já É o do mês — em nenhum
+      // dos dois a comparação com o mês passado responde alguma coisa.
       ...reservas.linhas.map((l) => linhaDeSaldo(l, null, aoTocarConta)),
       ...cartoes.linhas.map((l) => linhaDeSaldo(l, 'fatura', aoTocarConta)),
     ]),
@@ -91,9 +99,10 @@ export function pintarSaldos(estado, contexto) {
  * que é caixinha, e a frase acima do grupo já explicou por que ela está
  * separada. Um rótulo a mais ali só fazia o nome quebrar em duas linhas.
  */
-function linhaDeSaldo(l, marca, aoTocarConta) {
+function linhaDeSaldo(l, marca, aoTocarConta, saldoAntes) {
   const deve = marca === 'fatura' && l.saldo < 0;
   const valor = deve ? -l.saldo : l.saldo;
+  const mexeu = typeof saldoAntes === 'number' && saldoAntes !== l.saldo;
 
   return el('button', {
     class: 'saldo-conta',
@@ -101,7 +110,17 @@ function linhaDeSaldo(l, marca, aoTocarConta) {
     onclick: () => aoTocarConta(l.conta.id),
   }, [
     el('span', { class: 'saldo-conta__spine', estilo: { background: hexDaConta(l.conta) } }),
-    el('span', { class: 'saldo-conta__nome', texto: l.conta.nome }),
+    el('span', { class: 'saldo-conta__corpo' }, [
+      el('span', { class: 'saldo-conta__nome', texto: l.conta.nome }),
+      // Só quando mudou. Repetir o mesmo número duas vezes na mesma linha
+      // não conta nada, e num mês sem movimento seria só ruído.
+      mexeu
+        ? el('span', {
+            class: 'saldo-conta__antes',
+            texto: `começou o mês com ${fmt.moeda(marca === 'fatura' ? -saldoAntes : saldoAntes)}`,
+          })
+        : null,
+    ]),
     marca
       ? el('span', { class: 'saldo-conta__marca', texto: deve ? 'fatura' : marca })
       : null,
