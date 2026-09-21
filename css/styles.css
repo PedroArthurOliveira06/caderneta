@@ -563,6 +563,12 @@ button { font: inherit; color: inherit; }
 }
 
 .barra-mes__seta:active { background: rgba(255, 255, 255, 0.12); }
+
+/* Seta desligada ao chegar no começo do histórico. Fica visível e apagada,
+   não some: um botão que desaparece faz a barra pular e deixa quem olha sem
+   saber se o app quebrou ou se acabou. */
+.barra-mes__seta:disabled { opacity: 0.3; cursor: default; }
+.barra-mes__seta:disabled:active { background: none; transform: none; }
 .barra-mes__seta svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ========================= painel de saldos =========================== */

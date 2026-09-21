@@ -804,3 +804,25 @@ test('sem categoria nunca vira aviso de estouro', () => {
   const achados = calc.categoriasAcimaDoNormal(e, 2026, 9);
   assert.equal(achados.some((a) => a.categoriaId === 'sem-categoria'), false);
 });
+
+/* ====================== a fronteira do histórico ======================== */
+
+test('a fronteira é o mês do lançamento mais antigo', () => {
+  const e = cenario();
+  assert.deepEqual(calc.primeiroMes(e), { ano: 2026, mes: 9 });
+
+  e.lancamentos.push({ id: 'x', data: '2026-03-14', tipo: 'saida', valor: 100, contaId: 'a' });
+  assert.deepEqual(calc.primeiroMes(e), { ano: 2026, mes: 3 });
+});
+
+// Sai do dado, não de uma data escrita no código: no dia em que entrar
+// histórico mais velho, a fronteira anda sozinha.
+test('a fronteira anda sozinha quando entra histórico mais antigo', () => {
+  const e = cenario();
+  e.lancamentos.push({ id: 'y', data: '2025-11-02', tipo: 'saida', valor: 100, contaId: 'a' });
+  assert.deepEqual(calc.primeiroMes(e), { ano: 2025, mes: 11 });
+});
+
+test('sem lançamento nenhum não existe fronteira', () => {
+  assert.equal(calc.primeiroMes({ contas: [], categorias: [], lancamentos: [] }), null);
+});

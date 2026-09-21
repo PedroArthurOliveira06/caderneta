@@ -321,6 +321,25 @@ export function totalDosRecorrentes(estado) {
     .reduce((soma, r) => soma + (r.valor || 0), 0);
 }
 
+/**
+ * O mês do lançamento mais antigo — a fronteira do histórico.
+ *
+ * Sai do próprio dado, e não de uma data escrita no código: o dia em que
+ * entrar histórico mais velho, a fronteira anda sozinha. Uma data fixa aqui
+ * seria uma mentira esperando a hora de aparecer.
+ *
+ * Devolve null quando não há lançamento nenhum — aí não existe fronteira.
+ */
+export function primeiroMes(estado) {
+  let menor = null;
+  for (const l of estado.lancamentos) {
+    const data = String(l.data || '');
+    if (data && (!menor || data < menor)) menor = data;
+  }
+  if (!menor) return null;
+  return { ano: Number(menor.slice(0, 4)), mes: Number(menor.slice(5, 7)) };
+}
+
 /** Lançamentos do mês, do mais recente para o mais antigo. */
 export function lancamentosDoMes(estado, ano, mes, filtroContaId) {
   const prefixo = `${ano}-${String(mes).padStart(2, '0')}`;

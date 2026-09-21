@@ -348,7 +348,19 @@ function fecharBusca() {
 }
 
 function mudarMes(passo) {
-  Object.assign(visao, fmt.deslocarMes(visao.ano, visao.mes, passo));
+  const alvo = fmt.deslocarMes(visao.ano, visao.mes, passo);
+
+  // Não passa do primeiro mês com lançamento. É uma parede, não um aviso: o
+  // aviso seria mais um texto para ler, e não há nada a decidir aqui.
+  const fronteira = calc.primeiroMes(dados.obter());
+  if (fronteira && passo < 0
+    && (alvo.ano < fronteira.ano
+      || (alvo.ano === fronteira.ano && alvo.mes < fronteira.mes))) {
+    recado('Aqui começa o seu histórico.');
+    return;
+  }
+
+  Object.assign(visao, alvo);
   pintar();
 }
 
@@ -375,6 +387,15 @@ function pintar() {
   // Buscando, o mês sai da barra: os achados vêm de meses diferentes, e um
   // título dizendo "Setembro" em cima de um gasto de março seria mentira.
   $('mes-anterior').hidden = buscando || !telaDeMes;
+
+  // A seta para trás para onde o histórico começa. Sem isso o app deixa
+  // folhear para sempre meses vazios, e quem folheia não descobre que chegou
+  // ao fim — descobre que o app não tem fim.
+  const fronteira = calc.primeiroMes(estado);
+  const noComeco = Boolean(fronteira)
+    && visao.ano === fronteira.ano && visao.mes === fronteira.mes;
+  $('mes-anterior').disabled = noComeco;
+  $('mes-anterior').title = noComeco ? 'Aqui começa o seu histórico' : 'Mês anterior';
   $('mes-proximo').hidden = buscando || !telaDeMes;
   $('abrir-perfil').hidden = buscando || noPerfil;
   $('voltar-do-perfil').hidden = !noPerfil;
