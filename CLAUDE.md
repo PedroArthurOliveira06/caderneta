@@ -171,6 +171,24 @@ custaram caro para descobrir:
   errado**: em 07/03 ele recebeu 200 e mandou 200 no mesmo dia, o par saiu
   trocado e o saldo deu −1.339,39. Casar pelo **efeito com sinal**.
 
+**Faturas do cartão importadas em 21/09/2026.** Seis PDFs (abril a setembro)
+viraram 77 lançamentos; o cartão fecha em −32,80, que é a fatura aberta de
+setembro. Mais três armadilhas:
+
+- **Fatura paga por Pix não se parece com fatura.** No extrato da conta ela
+  vira "Pix - Enviado / BANCO DO BRASIL SA", não "Pagto cartão crédito", e
+  eu a importei como gasto solto — o cartão ficou 943,08 sem crédito.
+  Procurar pelos dois nomes.
+- **Dívida anterior ao corte vira `saldoInicial` negativo do cartão**, não
+  lançamento. A fatura que venceu em 10/03 era de compras de fevereiro, e
+  fevereiro está fora do app: −641,95 no ponto de partida diz a verdade sem
+  ressuscitar o mês.
+- **Parcela é cobrada no mês do período da fatura, não na data da compra.**
+  A fatura mostra a data original ("03/02 PARC 05/12"); lançar nela empilha
+  doze parcelas em fevereiro. Mês da fatura menos um.
+- `pdftotext -raw` dá uma linha por lançamento; `-layout` separa a coluna
+  de valores das descrições e embaralha tudo.
+
 ## Lições de 20–21/09/2026 (o dia em que o app "resetou" no celular dele)
 
 Três erros meus em fila. O padrão vale para o que vier:
