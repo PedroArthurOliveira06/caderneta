@@ -53,7 +53,7 @@ testáveis sem navegador.
 
 ```bash
 npm run dev      # http://localhost:4173 (servidor próprio, sem dependências)
-npm test         # 76 testes, Node puro, sem instalar nada
+npm test         # 110 testes, Node puro, sem instalar nada
 npm run versao   # OBRIGATÓRIO antes de cada publicação (ver armadilhas)
 npm run icones   # regera icons/
 ```
@@ -130,9 +130,10 @@ No ar: **https://pedroarthuroliveira06.github.io/caderneta/**
 **Pronto:** cartão de crédito, parcelamento, caixinha, lançar escrevendo,
 login com aprovação manual, recuperação de senha, PIN, modo escuro,
 importação de arquivo (adicionar, acertar contas, mover datas), aviso e
-botão de atualização.
+botão de atualização, lembrete da fatura com o pagamento já preenchido,
+busca em todo o histórico, gastos que se repetem todo mês.
 
-A cada envio o GitHub roda sozinho os 76 testes e confere se a versão foi
+A cada envio o GitHub roda sozinho os 110 testes e confere se a versão foi
 carimbada — inclusive se o commit mexeu no app sem carimbar, que é o erro
 que os três arquivos de versão concordando entre si NÃO pegam.
 
@@ -141,9 +142,37 @@ montado antes de importar o módulo. Continuam sem teste: `app.js`,
 `telas.js`, `conta.js`, `tranca.js`, `servidor.js` e `ui.js` — todos
 pesados em tela e rede.
 
-**Ele quer, em ordem de valor conversada:**
+**A lista que ele pediu acabou.** Sobrava a previsão de quanto sobra no fim
+do mês, e em 21/09/2026 ele disse que não quer.
 
-1. Lembrete da fatura do cartão (débito no dia 10)
-2. Busca no extrato
-3. Gastos que se repetem sozinhos todo mês
-4. Previsão de quanto sobra no fim do mês (ele mesmo duvida que seja estável)
+**Pendência com ele:** confirmar se rodou
+`db/RODAR-NO-SUPABASE-gastos-que-se-repetem.sql`. Sem essa tabela, a Apple e
+o Spotify existem só no aparelho onde foram cadastrados.
+
+## Lições de 20–21/09/2026 (o dia em que o app "resetou" no celular dele)
+
+Três erros meus em fila. O padrão vale para o que vier:
+
+- **Coisa nova não pode ter poder de veto sobre o que já funcionava.** Pus a
+  busca dos recorrentes no mesmo `Promise.all` das contas, categorias e
+  lançamentos; num banco sem aquela tabela, a promessa inteira falhava e o
+  app ficava sem NADA. Tabela acessória agora é buscada à parte, com
+  `.catch(() => [])`.
+- **Deslogar é destrutivo, mesmo sem apagar nada.** Os dados de quem tem
+  conta moram em `caderneta.v1.<usuarioId>`; sem sessão o app lê a chave
+  comum, vazia, e convida a começar do zero ao lado de meses de lançamentos.
+  Existe `dados.temDadosDeConta()` para a tela de entrada dizer a verdade, e
+  `garantirTokenValido` só descarta a sessão numa recusa explícita do
+  servidor — nunca num 500 nem numa falha sem status.
+- **`el()` faz SVG agora**, com `createElementNS`, e `class` vai por
+  `setAttribute`. Antes criava uma caixa vazia sem desenho, sem erro nenhum.
+
+E duas do pente-fino de design:
+
+- A barra do mês tem **um botão de cada lado**. Um terceiro de um lado só
+  empurra o nome do mês 24px para fora do centro, e não há folga para
+  equilibrar: "Dezembro de 2026" mede 156px e sobrariam 112 num celular de
+  320px. Por isso a busca mora na fila de pílulas do filtro.
+- **O Extrato tem de mostrar extrato na primeira tela.** Já esteve com 716px
+  de introdução antes do primeiro lançamento. Ao acrescentar qualquer coisa
+  no topo, medir onde `.item` começa.
