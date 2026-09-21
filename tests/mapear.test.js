@@ -199,3 +199,22 @@ test('a cor da categoria vai e volta, e a ausência dela não vira invenção', 
   assert.equal(mapear.categoriaParaBanco(semCor, USUARIO).cor, null);
   assert.equal(mapear.categoriaParaApp({ id: 'cat8', nome: 'Lazer', tipo: 'saida' }).cor, null);
 });
+
+test('restaurar backup não solta o gasto que se repete do banco dele', () => {
+  const novoId = (() => { let n = 0; return () => `00000000-0000-4000-8000-${String(++n).padStart(12, '0')}`; })();
+  const r = mapear.renomearIds({
+    contas: [{ id: 'bb1', nome: 'Cartão BB' }],
+    categorias: [{ id: 'cat1', nome: 'Assinaturas' }],
+    lancamentos: [{ id: 'l1', contaId: 'bb1', categoriaId: 'cat1', recorrenteId: 'r1' }],
+    recorrentes: [{ id: 'r1', descricao: 'Spotify', dia: 16, contaId: 'bb1', categoriaId: 'cat1' }],
+  }, novoId);
+
+  // Sem isto o Spotify voltava apontando para um banco que não existe mais.
+  assert.equal(r.recorrentes[0].contaId, r.contas[0].id);
+  assert.equal(r.recorrentes[0].categoriaId, r.categorias[0].id);
+  assert.notEqual(r.recorrentes[0].id, 'r1');
+
+  // E o lançamento que ele gerou continua sabendo de quem veio, senão o app
+  // cobraria o Spotify de novo num mês já pago.
+  assert.equal(r.lancamentos[0].recorrenteId, r.recorrentes[0].id);
+});

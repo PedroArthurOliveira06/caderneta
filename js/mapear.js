@@ -199,6 +199,15 @@ export function renomearIds(pronto, novoId) {
       contaDestinoId: novo(l.contaDestinoId),
       categoriaId: novo(l.categoriaId),
       ...(l.grupo ? { grupo: novo(l.grupo) } : {}),
+      // O mesmo `mapa` serve a todos, entao o lancamento e o recorrente que
+      // o gerou continuam apontando um para o outro depois do rebatismo.
+      ...(l.recorrenteId ? { recorrenteId: novo(l.recorrenteId) } : {}),
+    })),
+    recorrentes: (pronto.recorrentes || []).map((r) => ({
+      ...r,
+      id: novo(r.id),
+      contaId: novo(r.contaId),
+      categoriaId: novo(r.categoriaId),
     })),
   };
 }

@@ -914,15 +914,18 @@ export function importarJSON(texto) {
     e.contas = pronto.contas;
     e.categorias = pronto.categorias;
     e.lancamentos = pronto.lancamentos;
+    e.recorrentes = pronto.recorrentes;
   }, [
     // Restaurar é substituir: o que havia no servidor sai antes de o
     // arquivo entrar, senão sobrariam lançamentos antigos misturados.
     ...apagar('lancamentos', `usuario=eq.${usuarioId}`),
     ...apagar('contas', `usuario=eq.${usuarioId}`),
     ...apagar('categorias', `usuario=eq.${usuarioId}`),
+    ...apagar('recorrentes', `usuario=eq.${usuarioId}`),
     ...enviarCategorias(pronto.categorias),
     ...enviarContas(pronto.contas),
     ...enviarLancamentos(pronto.lancamentos),
+    ...enviarRecorrentes(pronto.recorrentes),
   ]);
   return { ok: true, total: estado.lancamentos.length };
 }
@@ -933,5 +936,6 @@ export function apagarTudo() {
     ...apagar('lancamentos', `usuario=eq.${usuarioId}`),
     ...apagar('contas', `usuario=eq.${usuarioId}`),
     ...apagar('categorias', `usuario=eq.${usuarioId}`),
+    ...apagar('recorrentes', `usuario=eq.${usuarioId}`),
   ]);
 }
