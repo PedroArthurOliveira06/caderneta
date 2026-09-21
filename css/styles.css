@@ -184,7 +184,6 @@
 .botao,
 .pilula,
 .botao-data,
-.atalho,
 .segmento,
 .tecla,
 .aba,
@@ -203,7 +202,6 @@
 .botao:active,
 .pilula:active,
 .botao-data:active,
-.atalho:active,
 .segmento:active,
 .tecla:active,
 .rapido__botao:active,
@@ -217,9 +215,9 @@
 .linha-ajuste:active { background: var(--superficie-2); }
 
 @media (prefers-reduced-motion: reduce) {
-  .botao, .pilula, .botao-data, .atalho, .segmento, .tecla,
+  .botao, .pilula, .botao-data, .segmento, .tecla,
   .rapido__botao, .lancar, .cor { transition: none; }
-  .botao:active, .pilula:active, .botao-data:active, .atalho:active,
+  .botao:active, .pilula:active, .botao-data:active,
   .segmento:active, .tecla:active,
   .rapido__botao:active, .lancar:active, .cor:active { transform: none; }
 }
@@ -1012,11 +1010,10 @@ button { font: inherit; color: inherit; }
 
 .filtro::-webkit-scrollbar { display: none; }
 
-/* Pílula de filtro, atalho de gasto e botão de data eram três desenhos
-   parecidos com alturas, raios e pesos diferentes — pareciam de apps
-   distintos. Agora são o mesmo objeto com nomes diferentes. */
+/* Pílula de filtro e botão de data eram dois desenhos parecidos com alturas,
+   raios e pesos diferentes — pareciam de apps distintos. Agora são o mesmo
+   objeto com nomes diferentes. */
 .pilula,
-.atalho,
 .botao-data {
   flex: 0 0 auto;
   display: inline-flex;
@@ -1058,8 +1055,7 @@ button { font: inherit; color: inherit; }
   stroke-linecap: round;
 }
 
-.pilula__ponto,
-.atalho__ponto { width: 7px; height: 7px; border-radius: 999px; }
+.pilula__ponto { width: 7px; height: 7px; border-radius: 999px; }
 
 /* ========================== lançar escrevendo ========================= */
 
@@ -1125,12 +1121,6 @@ button { font: inherit; color: inherit; }
   color: var(--texto-fraco);
   padding: 14px 20px 4px;
 }
-
-/* ------------------------------ atalhos ------------------------------- */
-
-.atalhos { display: flex; flex-wrap: wrap; gap: 8px; }
-
-.atalho__valor { color: var(--texto-fraco); }
 
 /* ============================= extrato ================================ */
 

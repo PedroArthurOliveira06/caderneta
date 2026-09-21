@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { interpretar, explicar, atalhosFrequentes, simplificar, categoriaProvavel } from '../js/interpretar.js';
+import { interpretar, explicar, simplificar, categoriaProvavel } from '../js/interpretar.js';
 
 const CONTEXTO = {
   hoje: '2026-09-18',
@@ -114,55 +114,6 @@ test('a explicação diz em português o que foi entendido, com a data sempre', 
   assert.equal(explicar(ler('12/09 mercado 45 nubank'), CONTEXTO), 'Gasto · Mercado · Nubank · 12/09');
   assert.equal(explicar(ler('salario 3200'), CONTEXTO), 'Entrada · Salário · hoje');
   assert.equal(explicar(ler('ontem farmacia 89'), CONTEXTO), 'Gasto · "Farmacia" · ontem');
-});
-
-/* ----------------------------- atalhos ---------------------------------- */
-
-test('atalho só aparece para o que se repete', () => {
-  const estado = {
-    categorias: CONTEXTO.categorias,
-    lancamentos: [
-      { tipo: 'saida', descricao: 'Padaria', contaId: 'bb', categoriaId: 'ali', valor: 1200, data: '2026-09-01' },
-      { tipo: 'saida', descricao: 'Padaria', contaId: 'bb', categoriaId: 'ali', valor: 1500, data: '2026-09-10' },
-      { tipo: 'saida', descricao: 'Cinema', contaId: 'nu', categoriaId: 'ali', valor: 4000, data: '2026-09-05' },
-      { tipo: 'entrada', descricao: 'Salário', contaId: 'bb', categoriaId: 'sal', valor: 320000, data: '2026-09-05' },
-    ],
-  };
-  const atalhos = atalhosFrequentes(estado);
-  assert.equal(atalhos.length, 1);
-  assert.equal(atalhos[0].rotulo, 'Padaria');
-  assert.equal(atalhos[0].vezes, 2);
-  // O valor sugerido é o da última vez, não o da primeira.
-  assert.equal(atalhos[0].ultimoValor, 1500);
-});
-
-test('parcelas da mesma compra não viram atalho', () => {
-  const estado = {
-    categorias: CONTEXTO.categorias,
-    lancamentos: [
-      // Uma geladeira em 3x parece "três vezes a mesma compra", mas é um ato
-      // só — e o atalho copiaria o valor de uma parcela para um gasto avulso.
-      { tipo: 'saida', descricao: 'Geladeira', contaId: 'cc', categoriaId: 'ali', valor: 33334, data: '2026-09-01', grupo: 'g', parcela: 1, parcelasTotal: 3 },
-      { tipo: 'saida', descricao: 'Geladeira', contaId: 'cc', categoriaId: 'ali', valor: 33333, data: '2026-10-01', grupo: 'g', parcela: 2, parcelasTotal: 3 },
-      { tipo: 'saida', descricao: 'Geladeira', contaId: 'cc', categoriaId: 'ali', valor: 33333, data: '2026-11-01', grupo: 'g', parcela: 3, parcelasTotal: 3 },
-    ],
-  };
-  assert.deepEqual(atalhosFrequentes(estado), []);
-});
-
-test('o mesmo nome em bancos diferentes são atalhos diferentes', () => {
-  const estado = {
-    categorias: CONTEXTO.categorias,
-    lancamentos: [
-      { tipo: 'saida', descricao: 'Almoço', contaId: 'bb', categoriaId: 'ali', valor: 3000, data: '2026-09-01' },
-      { tipo: 'saida', descricao: 'Almoço', contaId: 'bb', categoriaId: 'ali', valor: 3200, data: '2026-09-02' },
-      { tipo: 'saida', descricao: 'Almoço', contaId: 'nu', categoriaId: 'ali', valor: 2800, data: '2026-09-03' },
-      { tipo: 'saida', descricao: 'Almoço', contaId: 'nu', categoriaId: 'ali', valor: 2900, data: '2026-09-04' },
-    ],
-  };
-  const atalhos = atalhosFrequentes(estado);
-  assert.equal(atalhos.length, 2);
-  assert.deepEqual(atalhos.map((a) => a.contaId).sort(), ['bb', 'nu']);
 });
 
 /* ==================== aprender a categoria ============================== */

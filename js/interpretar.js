@@ -216,11 +216,6 @@ export function nomeDoDia(data, hoje) {
 }
 
 /**
- * Os gastos que mais se repetem, do mais usado para o menos, para virarem
- * atalhos de um toque. Junta pela combinação que a pessoa de fato repete:
- * o mesmo lugar, no mesmo banco.
- */
-/**
  * A categoria mais provável para um lançamento com este nome, aprendida do
  * que já foi classificado antes.
  *
@@ -273,36 +268,4 @@ export function categoriaProvavel(estado, descricao, tipo) {
   return melhor && (estado.categorias || []).some((c) => c.id === melhor.id)
     ? melhor.id
     : null;
-}
-
-export function atalhosFrequentes(estado, quantidade = 4) {
-  const contagem = new Map();
-
-  for (const l of estado.lancamentos) {
-    if (l.tipo !== 'saida') continue;
-    // As parcelas de uma compra parecem repetição, mas não são hábito: são o
-    // mesmo ato dividido. E o atalho copiaria o valor de UMA parcela para um
-    // lançamento avulso, criando um registro errado.
-    if (l.parcelasTotal > 1) continue;
-    const rotulo = (l.descricao || '').trim()
-      || (estado.categorias.find((c) => c.id === l.categoriaId) || {}).nome;
-    if (!rotulo) continue;
-
-    const chave = `${simplificar(rotulo)}|${l.contaId}`;
-    const atual = contagem.get(chave) || {
-      rotulo, contaId: l.contaId, categoriaId: l.categoriaId, vezes: 0, ultimoValor: 0, ultimaData: '',
-    };
-    atual.vezes += 1;
-    if (l.data >= atual.ultimaData) {
-      atual.ultimaData = l.data;
-      atual.ultimoValor = l.valor;
-      atual.categoriaId = l.categoriaId;
-    }
-    contagem.set(chave, atual);
-  }
-
-  return [...contagem.values()]
-    .filter((a) => a.vezes > 1) // atalho para algo feito uma vez só é ruído
-    .sort((a, b) => (b.vezes - a.vezes) || b.ultimaData.localeCompare(a.ultimaData))
-    .slice(0, quantidade);
 }

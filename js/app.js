@@ -18,7 +18,7 @@ import * as calc from './calculos.js';
 import * as conta from './conta.js';
 import * as tranca from './tranca.js';
 import * as tema from './tema.js';
-import { interpretar, explicar, atalhosFrequentes, categoriaProvavel } from './interpretar.js';
+import { interpretar, explicar, categoriaProvavel } from './interpretar.js';
 import { el, trocar, hexDaConta, hexDaCategoria, hexDaCor, recado, baixarArquivo, nomeComData } from './ui.js';
 import { VERSAO_APP } from './configuracao.js';
 
@@ -706,7 +706,6 @@ function aplicarTipo(dialogo) {
   if ($('campo-parcelas').hidden) $('ajuda-parcelas').hidden = true;
   else mostrarContaDasParcelas();
 
-  pintarAtalhos(editando);
   mostrarNaturezaSePrecisar();
 
   // Transferir de um banco para ele mesmo não existe, e o app recusaria na
@@ -890,39 +889,6 @@ function abrirLancamento(lancamentoId, pronto) {
 
   abrirDialogo('dialogo-lancamento');
   if (!existente) $('lancamento-valor').focus();
-}
-
-/**
- * Atalhos para o que você repete. Só aparecem ao criar um gasto novo: numa
- * edição eles sobrescreveriam o que está sendo corrigido.
- */
-function pintarAtalhos(editando) {
-  const caixa = $('atalhos');
-  const lista = editando || tipoEmEdicao !== 'saida'
-    ? []
-    : atalhosFrequentes(dados.obter(), 4);
-
-  caixa.hidden = !lista.length;
-  if (!lista.length) return;
-
-  trocar(caixa, lista.map((atalho) => {
-    const conta = dados.conta(atalho.contaId);
-    return el('button', {
-      class: 'atalho',
-      type: 'button',
-      onclick: () => {
-        $('lancamento-valor').value = fmt.valor(atalho.ultimoValor);
-        $('lancamento-conta').value = atalho.contaId;
-        if (atalho.categoriaId) $('lancamento-categoria').value = atalho.categoriaId;
-        $('lancamento-descricao').value = atalho.rotulo;
-        mostrarContaDasParcelas();
-      },
-    }, [
-      el('span', { class: 'atalho__ponto', estilo: { background: hexDaConta(conta) } }),
-      atalho.rotulo,
-      el('span', { class: 'atalho__valor', texto: fmt.moeda(atalho.ultimoValor) }),
-    ]);
-  }));
 }
 
 /* ========================= diálogo de conta ============================ */
