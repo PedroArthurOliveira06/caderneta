@@ -584,6 +584,7 @@ function ligarDialogoLancamento() {
   // distrai mais do que ajuda.
   $('lancamento-descricao').addEventListener('blur', sugerirCategoria);
 
+
   aplicarMascaraDeValor($('lancamento-valor'));
 
   trocar($('lancamento-parcelas'), Array.from({ length: 24 }, (_, i) => el('option', {

@@ -392,3 +392,68 @@ test('id desconhecido é ignorado sem atrapalhar os outros', () => {
   assert.equal(quantos, 1);
   assert.equal(dados.lancamento(existente.id).categoriaId, alimentacao.id);
 });
+
+/* ------------- o lançamento sempre nasce com nome próprio -------------- */
+
+// O formulário manda `id: undefined` para dizer "este é novo". Espalhar isso
+// por cima de um id recém-criado apagava o id, e o lançamento nascia sem
+// nome: não dava para editar, não dava para apagar, e cada reenvio da fila
+// criaria uma cópia no servidor em vez de atualizar a mesma linha.
+test('lançamento novo tem id mesmo quando quem chama manda id vazio', () => {
+  comecarDoZero();
+  const bb = acharConta('Banco do Brasil');
+
+  dados.salvarLancamento({
+    id: undefined, tipo: 'saida', valor: 5000, data: '2026-09-20', contaId: bb.id,
+  });
+
+  const salvo = dados.obter().lancamentos.at(-1);
+  assert.ok(salvo.id, 'sem id não dá para editar nem apagar');
+  assert.equal(dados.lancamento(salvo.id).valor, 5000);
+});
+
+test('parcelas também nascem com id, mesmo recebendo id vazio', () => {
+  comecarDoZero();
+  const bb = acharConta('Banco do Brasil');
+
+  dados.salvarParcelas([
+    { id: undefined, data: '2026-09-01', tipo: 'saida', valor: 1000, contaId: bb.id },
+    { id: undefined, data: '2026-10-01', tipo: 'saida', valor: 1000, contaId: bb.id },
+  ]);
+
+  const parcelas = dados.obter().lancamentos;
+  assert.equal(parcelas.length, 2);
+  assert.ok(parcelas.every((l) => l.id));
+  assert.notEqual(parcelas[0].id, parcelas[1].id, 'duas parcelas, dois nomes');
+});
+
+test('editar continua encontrando o lançamento pelo id, sem criar outro', () => {
+  comecarDoZero();
+  const bb = acharConta('Banco do Brasil');
+  dados.salvarLancamento({ id: undefined, tipo: 'saida', valor: 5000, data: '2026-09-20', contaId: bb.id });
+  const salvo = dados.obter().lancamentos.at(-1);
+
+  dados.salvarLancamento({ id: salvo.id, tipo: 'saida', valor: 7000, data: '2026-09-20', contaId: bb.id });
+
+  assert.equal(dados.obter().lancamentos.length, 1, 'editar não duplica');
+  assert.equal(dados.lancamento(salvo.id).valor, 7000);
+});
+
+// Quem já tem lançamentos gravados sem id pelo defeito antigo recebe um ao
+// abrir o app, senão eles ficariam para sempre impossíveis de editar.
+test('lançamento antigo sem id ganha um ao carregar', () => {
+  guardado.clear();
+  guardado.set('caderneta.v1', JSON.stringify({
+    versao: 1, configurado: true,
+    contas: [{ id: 'bb', nome: 'Banco do Brasil', tipo: 'conta', saldoInicial: 0, ordem: 0 }],
+    categorias: [{ id: 'c1', nome: 'Mercado', tipo: 'saida' }],
+    lancamentos: [{ data: '2026-09-20', tipo: 'saida', valor: 5000, contaId: 'bb', descricao: 'Sem nome' }],
+  }));
+
+  dados.carregar();
+  const recuperado = dados.obter().lancamentos[0];
+
+  assert.ok(recuperado.id);
+  assert.equal(recuperado.valor, 5000, 'o resto do lançamento fica intacto');
+  assert.equal(dados.lancamento(recuperado.id).descricao, 'Sem nome');
+});

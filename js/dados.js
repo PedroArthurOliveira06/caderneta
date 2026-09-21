@@ -171,7 +171,11 @@ function migrar(dados) {
   pronto.categorias = Array.isArray(dados.categorias) && dados.categorias.length
     ? dados.categorias
     : base.categorias;
-  pronto.lancamentos = Array.isArray(dados.lancamentos) ? dados.lancamentos : [];
+  // Lançamento sem id existia por um defeito antigo desta mesma função de
+  // gravar. Dar um nome a ele agora é o que devolve a possibilidade de
+  // editá-lo e apagá-lo — e o que impede o envio de criar cópias.
+  pronto.lancamentos = (Array.isArray(dados.lancamentos) ? dados.lancamentos : [])
+    .map((l) => (l && l.id ? l : { ...l, id: id() }));
   pronto.recorrentes = Array.isArray(dados.recorrentes) ? dados.recorrentes : [];
   return pronto;
 }
@@ -504,9 +508,14 @@ export function salvarLancamento(dados) {
       salvo = alvo;
     } else {
       salvo = {
-        id: id(),
         criadoEm: new Date().toISOString(),
         ...dados,
+        // DEPOIS do espalhamento, nunca antes. Quem chama manda
+        // `id: undefined` para dizer "é novo", e espalhar isso por cima de um
+        // id recém-criado apagava o id — o lançamento nascia sem nome. Sem
+        // nome ele não pode ser editado nem apagado, e cada reenvio da fila
+        // criaria uma cópia no servidor em vez de atualizar a mesma linha.
+        id: dados.id || id(),
         valor: Math.abs(dados.valor || 0),
       };
       e.lancamentos.push(salvo);
@@ -522,9 +531,9 @@ export function salvarLancamento(dados) {
 export function salvarParcelas(lista) {
   const grupo = id();
   const parcelas = lista.map((dados, i) => ({
-    id: id(),
     criadoEm: new Date().toISOString(),
     ...dados,
+    id: dados.id || id(),   // depois do espalhamento; ver salvarLancamento
     valor: Math.abs(dados.valor || 0),
     grupo,
     parcela: i + 1,
