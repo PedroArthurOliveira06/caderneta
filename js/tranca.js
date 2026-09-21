@@ -26,6 +26,7 @@ let digitado = '';
 let primeiroPin = '';
 let erros = 0;
 let esperarAte = 0;
+let conferindo = false;
 let saiuDaTelaEm = 0;
 let aoDestravar = () => {};
 let aoSairPelaConta = null;
@@ -140,13 +141,25 @@ function montarTeclado() {
   $('tranca-confirmar').addEventListener('click', confirmar);
 }
 
+/**
+ * Quantos números tem o PIN deste aparelho, ou 0 se não sabemos.
+ *
+ * Não sabemos nos PINs criados antes de o tamanho passar a ser guardado. Aí
+ * ninguém entra sozinho: é o botão Confirmar que decide. Chutar 4 era o que
+ * o app fazia antes, e para quem escolheu 5 ou mais isso conferia o PIN pela
+ * metade, dizia "PIN errado" no meio da digitação e ainda apagava tudo.
+ */
+function tamanhoDoPin() {
+  return segredo && Number(segredo.tamanho) > 0 ? Number(segredo.tamanho) : 0;
+}
+
 function digitar(numero) {
   if (digitado.length >= 8) return;
   digitado += numero;
   $('tranca-erro').hidden = true;
   pintar();
-  // No modo de abrir, quem tem PIN de 4 já entra sem apertar mais nada.
-  if (modo === 'abrir' && segredo && digitado.length === 4) confirmar();
+  // Completou o PIN, entra. Sem tamanho guardado, espera o Confirmar.
+  if (modo === 'abrir' && segredo && digitado.length === tamanhoDoPin()) confirmar();
 }
 
 function apagar() {
@@ -164,7 +177,20 @@ function mostrarErro(mensagem) {
 
 async function confirmar() {
   if (digitado.length < 4) return;
+  // Entrar sozinho e tocar em Confirmar podem disparar quase juntos, e
+  // conferir demora uns instantes. Sem esta trava, um PIN errado contaria
+  // duas tentativas e a espera de castigo chegaria na metade do tempo.
+  if (conferindo) return;
+  conferindo = true;
+  try {
+    await decidir();
+  } finally {
+    conferindo = false;
+  }
+}
 
+/** A decisão em si, separada só para a trava acima ter onde envolver. */
+async function decidir() {
   if (modo === 'definir') {
     const problema = problemaNoPin(digitado);
     if (problema) {
@@ -204,6 +230,10 @@ async function confirmar() {
   }
 
   if (await conferir(digitado, segredo)) {
+    // PIN antigo, de antes de o tamanho ser guardado: agora que ele acertou,
+    // sabemos quantos números são. Da próxima vez já entra sozinho, sem ele
+    // precisar recriar a tranca.
+    if (!tamanhoDoPin()) guardar({ ...segredo, tamanho: digitado.length });
     erros = 0;
     digitado = '';
     trancado = false;

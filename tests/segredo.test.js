@@ -55,3 +55,23 @@ test('conferir um PIN demora o bastante para desencorajar tentativa e erro', asy
   // 10 mil combinações de um PIN de 4 dígitos precisa custar tempo de verdade.
   assert.ok(gasto > 20, `conferir levou ${gasto}ms — rápido demais para segurar força bruta`);
 });
+
+// O tamanho é o que faz a tela saber a hora de entrar sozinha. Sem ele o app
+// chutava 4, e quem escolheu 5 ou mais levava "PIN errado" no meio da
+// digitação — com o que já tinha digitado apagado junto.
+test('o segredo guarda quantos números o PIN tem, e nunca quais', async () => {
+  const guardado = await criarSegredo('198427');
+
+  assert.equal(guardado.tamanho, 6);
+  // O PIN não pode aparecer em lugar nenhum do que foi salvo.
+  assert.equal(JSON.stringify(guardado).includes('198427'), false);
+  assert.equal(await conferir('198427', guardado), true);
+  // Meio PIN é PIN errado, e continua sendo.
+  assert.equal(await conferir('1984', guardado), false);
+});
+
+test('PIN de quatro também tem o tamanho registrado', async () => {
+  const guardado = await criarSegredo('1984');
+  assert.equal(guardado.tamanho, 4);
+  assert.equal(await conferir('1984', guardado), true);
+});

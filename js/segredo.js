@@ -43,12 +43,24 @@ async function embaralhar(pin, sal, iteracoes) {
   return paraHex(bits);
 }
 
-/** Transforma o PIN no que será guardado. */
+/**
+ * Transforma o PIN no que será guardado.
+ *
+ * `tamanho` guarda QUANTOS números o PIN tem — e só isso, nunca quais. Serve
+ * para a tela saber a hora de entrar sozinha, sem a pessoa apertar mais nada.
+ *
+ * É informação a menos guardada do que parece. Quem consegue ler isto aqui já
+ * tem o aparelho na mão e já podia testar os 10 mil PINs de 4 números contra
+ * o resultado — o tamanho não abre nenhuma porta que estivesse fechada. O que
+ * ele evita é o app tentar conferir um PIN pela metade, que é o que acontecia
+ * com quem escolheu mais de 4 números.
+ */
 export async function criarSegredo(pin) {
   const sal = crypto.getRandomValues(new Uint8Array(TAMANHO_SAL));
   return {
     sal: paraHex(sal),
     iteracoes: ITERACOES,
+    tamanho: String(pin).length,
     resultado: await embaralhar(pin, sal, ITERACOES),
   };
 }
