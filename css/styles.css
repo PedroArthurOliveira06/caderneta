@@ -519,7 +519,10 @@ button { font: inherit; color: inherit; }
   top: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: 44px 1fr 44px 44px;
+  /* Um botão de cada lado, e só. Com um terceiro à direita o nome do mês
+     ficava 24px fora do centro em todas as abas — e nas que não têm o
+     terceiro botão o desalinhamento não tinha nem explicação visual. */
+  grid-template-columns: 44px 1fr 44px;
   align-items: center;
   gap: 4px;
   background: var(--tinta);
@@ -966,6 +969,23 @@ button { font: inherit; color: inherit; }
   background: var(--selecionado-fundo);
   border-color: var(--selecionado-fundo);
   color: var(--selecionado-texto);
+}
+
+/* A busca é a primeira pílula do filtro: faz o mesmo serviço das outras,
+   estreitar o que está à vista. Vem com a cor da tinta para se distinguir
+   das que ligam e desligam bancos. */
+.pilula--busca {
+  gap: 6px;
+  color: var(--texto-suave);
+}
+
+.pilula__lupa {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
 }
 
 .pilula__ponto,

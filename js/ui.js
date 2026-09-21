@@ -9,11 +9,21 @@
 import { corValida } from './dados.js';
 
 /** el('div', {class: 'x', onclick: fn}, ['texto', outroNo]) */
+/* Desenho vetorial vive noutro dicionário de nomes que o resto do HTML, e o
+   `createElement` comum cria uma caixa vazia com o nome certo e nenhum
+   desenho dentro. É silencioso: não dá erro, só não aparece nada. */
+const ESPACO_SVG = 'http://www.w3.org/2000/svg';
+const TAGS_SVG = new Set(['svg', 'g', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon']);
+
 export function el(tag, props = {}, filhos = []) {
-  const no = document.createElement(tag);
+  const no = TAGS_SVG.has(tag)
+    ? document.createElementNS(ESPACO_SVG, tag)
+    : document.createElement(tag);
   for (const [chave, valor] of Object.entries(props)) {
     if (valor === null || valor === undefined || valor === false) continue;
-    if (chave === 'class') no.className = valor;
+    // setAttribute e não `no.className`: em SVG a propriedade className é só
+    // de leitura, e atribuir nela não faz nada — de novo em silêncio.
+    if (chave === 'class') no.setAttribute('class', valor);
     else if (chave === 'texto') no.textContent = valor;
     else if (chave === 'estilo') Object.assign(no.style, valor);
     else if (chave.startsWith('on')) no.addEventListener(chave.slice(2), valor);

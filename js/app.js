@@ -218,16 +218,16 @@ function ligarNavegacao() {
  * Fechar devolve o mês que estava aberto, intacto: quem procurou uma coisa
  * quase sempre quer voltar para onde estava, não para hoje.
  */
+function abrirBusca() {
+  visao.busca = '';
+  $('campo-busca').value = '';
+  pintar();
+  $('campo-busca').focus();
+  window.scrollTo({ top: 0 });
+}
+
 function ligarBusca() {
   const campo = $('campo-busca');
-
-  $('abrir-busca').addEventListener('click', () => {
-    visao.busca = '';
-    campo.value = '';
-    pintar();
-    campo.focus();
-    window.scrollTo({ top: 0 });
-  });
 
   $('fechar-busca').addEventListener('click', fecharBusca);
 
@@ -276,7 +276,6 @@ function pintar() {
   $('mes-anterior').hidden = buscando;
   $('mes-proximo').hidden = buscando;
   $('barra-mes-centro').hidden = buscando;
-  $('abrir-busca').hidden = buscando || visao.tela !== 'extrato';
   $('barra-busca').hidden = !buscando;
 
   // O painel de saldos e o campo de lançar saem de cena: um responde sobre o
@@ -310,6 +309,7 @@ function pintar() {
     aoEditarCategoria: (id) => editarCategoria(id),
     aoEditarRecorrente: (id) => abrirRecorrente(id),
     aoLancarRecorrentes: (pendentes) => lancarRecorrentes(pendentes),
+    aoBuscar: () => abrirBusca(),
     termo: visao.busca,
   };
 

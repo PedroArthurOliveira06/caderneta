@@ -231,7 +231,23 @@ export function pintarFiltro(estado, contexto) {
     rotulo,
   ]);
 
+  // A busca mora aqui, junto dos filtros, porque faz o mesmo serviço deles:
+  // estreitar o que está à vista. E porque na barra do mês ela era o terceiro
+  // botão de um lado só — o que empurrava o nome do mês 24px para fora do
+  // centro em todas as abas.
   trocar(alvo,
+    el('button', {
+      class: 'pilula pilula--busca',
+      type: 'button',
+      'aria-label': 'Procurar em todo o histórico',
+      onclick: () => contexto.aoBuscar(),
+    }, [
+      el('svg', { viewBox: '0 0 24 24', class: 'pilula__lupa', 'aria-hidden': 'true' }, [
+        el('circle', { cx: '11', cy: '11', r: '6' }),
+        el('path', { d: 'M15.5 15.5L20 20' }),
+      ]),
+      'Buscar',
+    ]),
     pilula('Todos os bancos', null, null),
     [...estado.contas]
       .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
