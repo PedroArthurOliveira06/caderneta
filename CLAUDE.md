@@ -53,7 +53,7 @@ testáveis sem navegador.
 
 ```bash
 npm run dev      # http://localhost:4173 (servidor próprio, sem dependências)
-npm test         # 110 testes, Node puro, sem instalar nada
+npm test         # 141 testes, Node puro, sem instalar nada
 npm run versao   # OBRIGATÓRIO antes de cada publicação (ver armadilhas)
 npm run icones   # regera icons/
 ```
@@ -131,9 +131,11 @@ No ar: **https://pedroarthuroliveira06.github.io/caderneta/**
 login com aprovação manual, recuperação de senha, PIN, modo escuro,
 importação de arquivo (adicionar, acertar contas, mover datas), aviso e
 botão de atualização, lembrete da fatura com o pagamento já preenchido,
-busca em todo o histórico, gastos que se repetem todo mês.
+busca em todo o histórico, gastos que se repetem todo mês, classificador em
+lote, categoria aprendida pelo nome, aviso de categoria acima da média,
+cor por categoria.
 
-A cada envio o GitHub roda sozinho os 110 testes e confere se a versão foi
+A cada envio o GitHub roda sozinho os 141 testes e confere se a versão foi
 carimbada — inclusive se o commit mexeu no app sem carimbar, que é o erro
 que os três arquivos de versão concordando entre si NÃO pegam.
 
@@ -145,9 +147,13 @@ pesados em tela e rede.
 **A lista que ele pediu acabou.** Sobrava a previsão de quanto sobra no fim
 do mês, e em 21/09/2026 ele disse que não quer.
 
-**Pendência com ele:** confirmar se rodou
-`db/RODAR-NO-SUPABASE-gastos-que-se-repetem.sql`. Sem essa tabela, a Apple e
-o Spotify existem só no aparelho onde foram cadastrados.
+**Pendências com ele:**
+
+- `db/RODAR-NO-SUPABASE-gastos-que-se-repetem.sql` — rodado em 21/09/2026.
+  Falta confirmar se a Apple e o Spotify sobreviveram: foram cadastrados
+  ANTES da tabela existir, e envio recusado pelo servidor é descartado.
+- `db/RODAR-NO-SUPABASE-cor-da-categoria.sql` — ainda não confirmado. Sem
+  ele a cor da categoria fica só no aparelho onde foi escolhida.
 
 ## Lições de 20–21/09/2026 (o dia em que o app "resetou" no celular dele)
 
@@ -166,6 +172,20 @@ Três erros meus em fila. O padrão vale para o que vier:
   servidor — nunca num 500 nem numa falha sem status.
 - **`el()` faz SVG agora**, com `createElementNS`, e `class` vai por
   `setAttribute`. Antes criava uma caixa vazia sem desenho, sem erro nenhum.
+- **O evento `close` do `<dialog>` não dispara em todo navegador.** O
+  atributo `open` vai e volta certinho, o evento nunca chega. Quem precisa
+  saber que um diálogo fechou observa o atributo (`MutationObserver`), não o
+  evento — é o que destrava a página em `ligarDialogos()`.
+- **Campo de formulário com `background` precisa de `color` junto.** Sem ela
+  o navegador pinta o texto de preto por conta própria, e no modo escuro
+  fica preto sobre fundo escuro. Aconteceu em `.linha-nova input`.
+- **Atualizar o app é uma viagem de DUAS etapas, e tem de continuar sendo.**
+  Enquanto o service worker comanda a página, todo `fetch` passa por ele —
+  inclusive `cache: 'reload'`, que então nunca chega ao cache do navegador.
+  Etapa 1 desliga o service worker e recarrega; etapa 2, já livre, renova os
+  arquivos. Se falhar duas vezes, o app para e diz para fechar e voltar em
+  dez minutos. Perdi meia hora "consertando" isso pela metade porque medi o
+  cache errado — a versão chegou a ANDAR PARA TRÁS no teste.
 
 E duas do pente-fino de design:
 
