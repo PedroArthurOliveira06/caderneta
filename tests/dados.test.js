@@ -352,3 +352,43 @@ test('a fila de envio não é confundida com dados guardados', () => {
   guardado.set('caderneta.v1.fila.11111111-1111-1111-1111-111111111111', '[]');
   assert.equal(dados.temDadosDeConta(), false);
 });
+
+/* ------------------ classificar em lote -------------------------------- */
+
+test('classificar um grupo põe a categoria em todos de uma vez', () => {
+  comecarDoZero();
+  const bb = acharConta('Banco do Brasil');
+  const alimentacao = dados.obter().categorias.find((c) => c.nome === 'Alimentação');
+
+  dados.adicionarLancamentos([
+    { data: '2026-03-02', tipo: 'saida', valor: 5000, banco: 'Banco do Brasil', descricao: 'Mercado' },
+    { data: '2026-04-02', tipo: 'saida', valor: 6000, banco: 'Banco do Brasil', descricao: 'Mercado' },
+    { data: '2026-05-02', tipo: 'saida', valor: 7000, banco: 'Banco do Brasil', descricao: 'Padaria' },
+  ]);
+
+  const mercados = dados.obter().lancamentos.filter((l) => l.descricao === 'Mercado');
+  assert.equal(mercados.length, 2);
+
+  const quantos = dados.classificarLancamentos(mercados.map((l) => l.id), alimentacao.id);
+
+  assert.equal(quantos, 2);
+  for (const l of dados.obter().lancamentos) {
+    assert.equal(l.categoriaId, l.descricao === 'Mercado' ? alimentacao.id : null);
+  }
+  assert.equal(bb.id, acharConta('Banco do Brasil').id); // nada mais se mexeu
+});
+
+// Um id que não existe não pode derrubar o resto do grupo.
+test('id desconhecido é ignorado sem atrapalhar os outros', () => {
+  comecarDoZero();
+  const alimentacao = dados.obter().categorias.find((c) => c.nome === 'Alimentação');
+  dados.adicionarLancamentos([
+    { data: '2026-03-02', tipo: 'saida', valor: 5000, banco: 'Banco do Brasil', descricao: 'Mercado' },
+  ]);
+  const existente = dados.obter().lancamentos[0];
+
+  const quantos = dados.classificarLancamentos([existente.id, 'nao-existe'], alimentacao.id);
+
+  assert.equal(quantos, 1);
+  assert.equal(dados.lancamento(existente.id).categoriaId, alimentacao.id);
+});

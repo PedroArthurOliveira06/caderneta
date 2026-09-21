@@ -548,6 +548,29 @@ export function lancamento(lancamentoId) {
   return estado.lancamentos.find((l) => l.id === lancamentoId) || null;
 }
 
+/**
+ * Põe a mesma categoria em vários lançamentos de uma vez.
+ *
+ * Um envio só para o grupo inteiro, e não um por lançamento: classificar
+ * vinte "Mercado" de uma vez tem de custar uma viagem ao servidor, não
+ * vinte. Numa importação antiga isso é a diferença entre um toque e uma
+ * fila que demora minutos para escoar.
+ */
+export function classificarLancamentos(ids, categoriaId) {
+  const procurados = new Set(ids);
+  const mudados = [];
+
+  mutar((e) => {
+    for (const l of e.lancamentos) {
+      if (!procurados.has(l.id)) continue;
+      l.categoriaId = categoriaId || null;
+      mudados.push(l);
+    }
+  }, () => (mudados.length ? enviarLancamentos(mudados) : []));
+
+  return mudados.length;
+}
+
 /* --------------------- gastos que se repetem --------------------------- */
 
 /**

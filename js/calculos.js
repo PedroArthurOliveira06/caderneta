@@ -164,6 +164,55 @@ export function rotuloDoLancamento(estado, l) {
   return categoria ? categoria.nome : 'Sem categoria';
 }
 
+/* ===================== o que falta classificar ========================= */
+
+/**
+ * Os lançamentos sem categoria, juntados pelo nome.
+ *
+ * A importação da planilha antiga trouxe 154 lançamentos com a categoria
+ * vazia, e classificar um por um é abrir 154 diálogos. Mas gasto de verdade
+ * se repete pelo nome: "Mercado" aparece vinte vezes. Juntando pelo nome, o
+ * mesmo trabalho vira uma dúzia de escolhas.
+ *
+ * Transferência fica de fora porque não tem categoria por definição — passar
+ * dinheiro de um banco para o outro não é um gasto de nada.
+ *
+ * O tipo entra na chave porque as categorias são separadas em gasto e
+ * entrada: um grupo misturado não teria uma lista de categorias para
+ * oferecer.
+ */
+export function paraClassificar(estado) {
+  const grupos = new Map();
+
+  for (const l of estado.lancamentos) {
+    if (l.tipo === 'transferencia' || l.categoriaId) continue;
+
+    const chave = `${l.tipo}|${simplificar(l.descricao)}`;
+    if (!grupos.has(chave)) {
+      grupos.set(chave, {
+        chave,
+        tipo: l.tipo,
+        rotulo: l.descricao || 'Sem descrição',
+        itens: [],
+        valor: 0,
+      });
+    }
+    const grupo = grupos.get(chave);
+    grupo.itens.push(l);
+    grupo.valor += l.valor;
+  }
+
+  // Maior grupo primeiro: é o que encolhe a fila mais rápido por toque.
+  return [...grupos.values()]
+    .sort((a, b) => b.itens.length - a.itens.length || b.valor - a.valor);
+}
+
+/** Quantos lançamentos ainda esperam categoria, para o aviso dizer o número. */
+export function quantosSemCategoria(estado) {
+  return estado.lancamentos
+    .filter((l) => l.tipo !== 'transferencia' && !l.categoriaId).length;
+}
+
 /* ====================== gastos que se repetem ========================= */
 
 /**

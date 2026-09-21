@@ -11,6 +11,10 @@
 import * as dados from './dados.js';
 import * as fmt from './formato.js';
 import * as telas from './telas.js';
+// Leitura direta do cálculo puro, como já se faz com formato.js: a fila de
+// classificação é uma pergunta de dados, e quem responde qual grupo vem
+// agora é aqui, porque "o que foi pulado" é estado de tela.
+import * as calc from './calculos.js';
 import * as conta from './conta.js';
 import * as tranca from './tranca.js';
 import * as tema from './tema.js';
@@ -59,6 +63,7 @@ async function iniciar() {
   ligarDialogoLancamento();
   ligarDialogoConta();
   ligarDialogoRecorrente();
+  ligarClassificador();
   ligarAjustes();
   registrarServiceWorker();
 
@@ -310,6 +315,7 @@ function pintar() {
     aoEditarRecorrente: (id) => abrirRecorrente(id),
     aoLancarRecorrentes: (pendentes) => lancarRecorrentes(pendentes),
     aoBuscar: () => abrirBusca(),
+    aoClassificar: () => abrirClassificador(),
     termo: visao.busca,
   };
 
@@ -325,6 +331,7 @@ function pintar() {
     telas.pintarFiltro(estado, contexto);
     telas.pintarExtrato(estado, contexto);
   } else if (visao.tela === 'resumo') {
+    telas.pintarAvisoDeClassificar(estado, contexto);
     telas.pintarResumo(estado, contexto);
   } else {
     telas.pintarAjustes(estado, contexto);
@@ -905,6 +912,96 @@ function pintarCores() {
     'aria-label': cor.nome,
     'aria-pressed': String(cor.id === corEscolhida),
     onclick: () => { corEscolhida = cor.id; pintarCores(); },
+  })));
+}
+
+/* ======================== classificar em lote ========================== */
+
+/* Quais grupos foram pulados nesta sessão. Não fica guardado: pular é "agora
+   não", não "nunca" — no dia seguinte a pergunta volta. */
+let pulados = new Set();
+
+function ligarClassificador() {
+  $('dialogo-classificar')
+    .querySelector('[data-fechar-classificar]')
+    .addEventListener('click', () => $('dialogo-classificar').close());
+
+  $('classificar-pular').addEventListener('click', () => {
+    const grupo = grupoAtual();
+    if (grupo) pulados.add(grupo.chave);
+    mostrarProximoGrupo();
+  });
+}
+
+function filaDeClassificacao() {
+  return calc.paraClassificar(dados.obter()).filter((g) => !pulados.has(g.chave));
+}
+
+function grupoAtual() {
+  return filaDeClassificacao()[0] || null;
+}
+
+function abrirClassificador() {
+  pulados = new Set();
+  if (!grupoAtual()) {
+    recado('Não há nada sem categoria.');
+    return;
+  }
+  mostrarProximoGrupo();
+  $('dialogo-classificar').showModal();
+}
+
+/**
+ * Desenha o grupo da vez. Escolher uma categoria classifica o grupo inteiro
+ * e já traz o próximo — sem confirmar, sem fechar e reabrir. É o que faz uma
+ * fila de 154 lançamentos caber em uma dúzia de toques.
+ */
+function mostrarProximoGrupo() {
+  const fila = filaDeClassificacao();
+  const grupo = fila[0];
+
+  if (!grupo) {
+    $('dialogo-classificar').close();
+    recado(pulados.size ? 'Por hoje é isso. Os pulados voltam depois.' : 'Tudo classificado.');
+    return;
+  }
+
+  const estado = dados.obter();
+  const quantos = grupo.itens.length;
+  const contas = [...new Set(grupo.itens.map((l) => {
+    const c = estado.contas.find((x) => x.id === l.contaId);
+    return c ? c.nome : null;
+  }).filter(Boolean))];
+
+  const datas = grupo.itens.map((l) => l.data).sort();
+  const periodo = datas[0] === datas[datas.length - 1]
+    ? fmt.dataLonga(datas[0])
+    : `${fmt.dataLonga(datas[0])} a ${fmt.dataLonga(datas[datas.length - 1])}`;
+
+  $('classificar-contagem').textContent = `${fila.length} ${fila.length === 1 ? 'restante' : 'restantes'}`;
+  $('classificar-nome').textContent = grupo.rotulo;
+  $('classificar-meta').textContent = [
+    quantos === 1 ? '1 lançamento' : `${quantos} lançamentos`,
+    fmt.moeda(grupo.valor),
+    contas.join(', '),
+    periodo,
+  ].filter(Boolean).join(' · ');
+
+  $('classificar-pergunta').textContent = grupo.tipo === 'entrada'
+    ? 'De onde veio esse dinheiro?'
+    : 'Em que categoria isso entra?';
+
+  trocar($('classificar-categorias'), dados.categoriasDe(grupo.tipo).map((c) => el('button', {
+    class: 'pilula',
+    type: 'button',
+    texto: c.nome,
+    onclick: () => {
+      const quantos = dados.classificarLancamentos(grupo.itens.map((l) => l.id), c.id);
+      recado(quantos === 1
+        ? `1 lançamento em ${c.nome}.`
+        : `${quantos} lançamentos em ${c.nome}.`);
+      mostrarProximoGrupo();
+    },
   })));
 }
 

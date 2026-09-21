@@ -595,3 +595,86 @@ test('o total por mês soma só os que estão ligados, e só os gastos', () => {
   e.recorrentes.push({ id: 's', descricao: 'Salário', valor: 500000, dia: 5, contaId: 'cbb', tipo: 'entrada', ativo: true });
   assert.equal(calc.totalDosRecorrentes(e), 1990); // entrada não é gasto
 });
+
+/* ==================== o que falta classificar =========================== */
+
+function paraClassificarCenario() {
+  return {
+    contas: [
+      { id: 'bb', nome: 'Banco do Brasil', tipo: 'conta', saldoInicial: 0, ordem: 0 },
+      { id: 'cbb', nome: 'Cartão BB', tipo: 'cartao', saldoInicial: 0, ordem: 1 },
+    ],
+    categorias: [
+      { id: 'alim', nome: 'Alimentação', tipo: 'saida' },
+      { id: 'aj', nome: 'Ajuda da família', tipo: 'entrada' },
+    ],
+    lancamentos: [
+      { id: '1', data: '2026-03-02', tipo: 'saida', valor: 5000, contaId: 'bb', categoriaId: null, descricao: 'Mercado' },
+      { id: '2', data: '2026-04-02', tipo: 'saida', valor: 6000, contaId: 'bb', categoriaId: null, descricao: 'mercado' },
+      { id: '3', data: '2026-05-02', tipo: 'saida', valor: 7000, contaId: 'cbb', categoriaId: null, descricao: 'MERCADO' },
+      { id: '4', data: '2026-05-09', tipo: 'saida', valor: 4590, contaId: 'cbb', categoriaId: null, descricao: 'iFood' },
+      { id: '5', data: '2026-06-01', tipo: 'entrada', valor: 200000, contaId: 'bb', categoriaId: null, descricao: 'Ajuda' },
+      { id: '6', data: '2026-06-10', tipo: 'transferencia', valor: 30000, contaId: 'bb', contaDestinoId: 'cbb', categoriaId: null, descricao: '' },
+      { id: '7', data: '2026-07-01', tipo: 'saida', valor: 1000, contaId: 'bb', categoriaId: 'alim', descricao: 'Padaria' },
+      { id: '8', data: '2026-07-05', tipo: 'saida', valor: 2500, contaId: 'bb', categoriaId: null, descricao: '' },
+    ],
+  };
+}
+
+// O ganho inteiro está aqui: "Mercado", "mercado" e "MERCADO" são a mesma
+// coisa para quem digitou, e classificar os três de uma vez é o que
+// transforma 154 diálogos numa dúzia de toques.
+test('lançamentos com o mesmo nome viram um grupo só, sem ligar para maiúscula', () => {
+  const grupos = calc.paraClassificar(paraClassificarCenario());
+  const mercado = grupos.find((g) => g.itens.length === 3);
+
+  assert.deepEqual(mercado.itens.map((l) => l.id), ['1', '2', '3']);
+  assert.equal(mercado.valor, 18000);
+  assert.equal(mercado.tipo, 'saida');
+});
+
+test('o maior grupo vem primeiro, que é o que encolhe a fila mais rápido', () => {
+  const grupos = calc.paraClassificar(paraClassificarCenario());
+  assert.equal(grupos[0].itens.length, 3);
+  assert.deepEqual(grupos.map((g) => g.itens.length), [3, 1, 1, 1]);
+});
+
+// Transferência não tem categoria por definição: passar dinheiro de um banco
+// para outro não é gasto de nada. Oferecê-la para classificar seria pedir uma
+// resposta que não existe.
+test('transferência nunca entra na fila de classificar', () => {
+  const grupos = calc.paraClassificar(paraClassificarCenario());
+  const todos = grupos.flatMap((g) => g.itens.map((l) => l.id));
+  assert.equal(todos.includes('6'), false);
+  assert.equal(calc.quantosSemCategoria(paraClassificarCenario()), 6);
+});
+
+test('o que já tem categoria não volta para a fila', () => {
+  const grupos = calc.paraClassificar(paraClassificarCenario());
+  const todos = grupos.flatMap((g) => g.itens.map((l) => l.id));
+  assert.equal(todos.includes('7'), false);
+});
+
+// Entrada e gasto não podem cair no mesmo grupo: as categorias são separadas,
+// e um grupo misto não teria lista de categorias para oferecer.
+test('entrada e gasto ficam em grupos separados', () => {
+  const e = paraClassificarCenario();
+  e.lancamentos.push({ id: '9', data: '2026-06-02', tipo: 'saida', valor: 100, contaId: 'bb', categoriaId: null, descricao: 'Ajuda' });
+  const grupos = calc.paraClassificar(e);
+  const ajudas = grupos.filter((g) => g.rotulo.toLowerCase() === 'ajuda');
+  assert.equal(ajudas.length, 2);
+  assert.deepEqual(ajudas.map((g) => g.tipo).sort(), ['entrada', 'saida']);
+});
+
+test('lançamento sem descrição tem o seu próprio grupo, com nome legível', () => {
+  const grupos = calc.paraClassificar(paraClassificarCenario());
+  const semNome = grupos.find((g) => g.itens.some((l) => l.id === '8'));
+  assert.equal(semNome.rotulo, 'Sem descrição');
+});
+
+test('sem nada para classificar, a fila é vazia', () => {
+  const e = paraClassificarCenario();
+  for (const l of e.lancamentos) l.categoriaId = 'alim';
+  assert.deepEqual(calc.paraClassificar(e), []);
+  assert.equal(calc.quantosSemCategoria(e), 0);
+});

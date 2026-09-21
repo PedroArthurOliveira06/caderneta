@@ -839,6 +839,54 @@ button { font: inherit; color: inherit; }
 .busca-total__saida { color: var(--saida); }
 .busca-total__entrada { color: var(--entrada); }
 
+/* ======================== classificar em lote ========================= */
+
+.classificar-aviso__titulo { font-weight: 600; margin-bottom: 4px; }
+.classificar-aviso .botao { margin-top: 12px; }
+
+.dialogo__contagem {
+  font-size: 0.8125rem;
+  color: var(--texto-fraco);
+  justify-self: end;
+}
+
+/* O nome do grupo é o herói do diálogo: é a única coisa que a pessoa precisa
+   ler para decidir. Tudo em volta fica pequeno de propósito. */
+.classificar__grupo {
+  padding: 14px 0 4px;
+  border-bottom: 1px solid var(--linha);
+  margin-bottom: 14px;
+}
+
+.classificar__nome {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.classificar__meta {
+  font-size: 0.8125rem;
+  color: var(--texto-fraco);
+  margin-top: 4px;
+}
+
+.classificar__pergunta {
+  font-size: 0.8125rem;
+  color: var(--texto-suave);
+  margin-bottom: 8px;
+}
+
+/* As categorias embrulham em várias linhas em vez de rolarem para o lado:
+   aqui elas são a escolha principal, e escolha escondida fora da tela vira
+   escolha que não existe. */
+.classificar__categorias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
 /* ==================== gastos que se repetem =========================== */
 
 .repetem {

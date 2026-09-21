@@ -257,6 +257,7 @@
 
     <!-- ---------------------- resumo ----------------------- -->
     <section id="tela-resumo" class="tela" hidden aria-label="Resumo do mês">
+      <div id="aviso-classificar"></div>
       <div id="resumo-topo"></div>
       <div id="resumo-natureza"></div>
       <div id="resumo-categorias"></div>
@@ -518,6 +519,33 @@
 </dialog>
 
 <!-- ======================= conta ======================== -->
+<dialog id="dialogo-classificar" class="dialogo">
+  <div class="formulario">
+    <header class="dialogo__topo">
+      <button type="button" class="botao botao--texto" data-fechar-classificar>Fechar</button>
+      <strong>Classificar</strong>
+      <span class="dialogo__contagem" id="classificar-contagem"></span>
+    </header>
+
+    <div class="classificar__grupo">
+      <p class="classificar__nome" id="classificar-nome">—</p>
+      <p class="classificar__meta" id="classificar-meta"></p>
+    </div>
+
+    <p class="classificar__pergunta" id="classificar-pergunta">Em que categoria isso entra?</p>
+    <div class="classificar__categorias" id="classificar-categorias"></div>
+
+    <button type="button" id="classificar-pular" class="botao botao--secundario botao--largo">
+      Pular este
+    </button>
+
+    <p class="ajuda">
+      A categoria escolhida vale para todos os lançamentos com esse nome, de
+      uma vez. Dá para mudar depois, um por um, tocando no lançamento.
+    </p>
+  </div>
+</dialog>
+
 <dialog id="dialogo-recorrente" class="dialogo">
   <form id="form-recorrente" method="dialog" class="formulario">
     <header class="dialogo__topo">

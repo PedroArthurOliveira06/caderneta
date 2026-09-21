@@ -401,6 +401,41 @@ function linhaDoExtrato(estado, l, aoTocar) {
 
 /* ============================== resumo ================================= */
 
+/**
+ * O aviso de que há lançamentos sem categoria esperando.
+ *
+ * Mora no Resumo porque é lá que a falta dói: "Para onde foi o dinheiro" com
+ * metade do mês em "Sem categoria" não responde nada. O aviso conta o
+ * histórico inteiro, não só o mês — o buraco veio da importação da planilha
+ * antiga, e ele está espalhado por todos os meses.
+ */
+export function pintarAvisoDeClassificar(estado, contexto) {
+  const alvo = document.getElementById('aviso-classificar');
+  const quantos = calc.quantosSemCategoria(estado);
+
+  if (!quantos) {
+    trocar(alvo);
+    return;
+  }
+
+  const grupos = calc.paraClassificar(estado).length;
+
+  trocar(alvo, el('div', { class: 'bloco classificar-aviso' }, [
+    el('p', { class: 'classificar-aviso__titulo', texto: quantos === 1
+      ? 'Um lançamento ainda não tem categoria'
+      : `${quantos} lançamentos ainda não têm categoria` }),
+    el('p', { class: 'ajuda', texto: grupos === 1
+      ? 'Sem categoria eles não aparecem em "Para onde foi o dinheiro".'
+      : `Sem categoria eles não aparecem em "Para onde foi o dinheiro". Como se repetem pelo nome, são ${grupos} escolhas, não ${quantos}.` }),
+    el('button', {
+      class: 'botao botao--principal botao--largo',
+      type: 'button',
+      texto: 'Classificar agora',
+      onclick: () => contexto.aoClassificar(),
+    }),
+  ]));
+}
+
 export function pintarResumo(estado, contexto) {
   const { ano, mes, filtroContaId } = contexto;
   const totais = calc.totaisDoMes(estado, ano, mes, filtroContaId);
