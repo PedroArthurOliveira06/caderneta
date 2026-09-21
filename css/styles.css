@@ -519,10 +519,11 @@ button { font: inherit; color: inherit; }
   top: 0;
   z-index: 20;
   display: grid;
-  /* Um botão de cada lado, e só. Com um terceiro à direita o nome do mês
-     ficava 24px fora do centro em todas as abas — e nas que não têm o
-     terceiro botão o desalinhamento não tinha nem explicação visual. */
-  grid-template-columns: 44px 1fr 44px;
+  /* Perfil à esquerda, título ao lado dele, setas do mês à direita. O título
+     é alinhado à esquerda de propósito: centralizar exigiria o mesmo número
+     de botões dos dois lados, e num celular estreito não sobra largura para
+     "Dezembro de 2026" espremido entre quatro botões. */
+  grid-template-columns: 44px minmax(0, 1fr) 44px 44px;
   align-items: center;
   gap: 4px;
   background: var(--tinta);
@@ -531,7 +532,7 @@ button { font: inherit; color: inherit; }
   padding-top: calc(10px + env(safe-area-inset-top, 0px));
 }
 
-.barra-mes__centro { text-align: center; min-width: 0; }
+.barra-mes__centro { text-align: left; min-width: 0; padding-left: 2px; }
 
 .barra-mes__titulo {
   font-size: 1.0625rem;

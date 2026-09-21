@@ -206,14 +206,24 @@
 <div id="app" class="app" hidden>
 
   <header class="barra-mes">
-    <button type="button" id="mes-anterior" class="barra-mes__seta" aria-label="Mês anterior">
+    <button type="button" id="abrir-perfil" class="barra-mes__seta" aria-label="Meu perfil">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="8" r="3.6"/><path d="M4.8 20c0-3.6 3.2-5.6 7.2-5.6s7.2 2 7.2 5.6"/>
+      </svg>
+    </button>
+    <button type="button" id="voltar-do-perfil" class="barra-mes__seta" aria-label="Voltar" hidden>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
     </button>
+
     <div id="barra-mes-centro" class="barra-mes__centro">
       <h1 id="rotulo-mes" class="barra-mes__titulo">—</h1>
       <button type="button" id="ir-para-hoje" class="barra-mes__hoje" hidden>Voltar para hoje</button>
       <p id="estado-envio" class="barra-mes__envio" hidden></p>
     </div>
+
+    <button type="button" id="mes-anterior" class="barra-mes__seta" aria-label="Mês anterior">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
     <button type="button" id="mes-proximo" class="barra-mes__seta" aria-label="Próximo mês">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
     </button>
@@ -266,8 +276,63 @@
       <div id="resumo-evolucao"></div>
     </section>
 
-    <!-- ---------------------- ajustes ---------------------- -->
-    <section id="tela-ajustes" class="tela" hidden aria-label="Ajustes">
+    <!-- ------------------- configurações ------------------- -->
+    <section id="tela-ajustes" class="tela" hidden aria-label="Configurações">
+
+      <div class="bloco">
+        <h2 class="bloco__titulo">Bancos e cartões</h2>
+        <div id="ajustes-contas" class="lista-ajuste"></div>
+        <button type="button" id="nova-conta" class="botao botao--secundario botao--largo">
+          Adicionar banco ou cartão
+        </button>
+      </div>
+
+      <div class="bloco">
+        <h2 class="bloco__titulo">Gastos que se repetem</h2>
+        <p class="ajuda" id="resumo-recorrentes"></p>
+        <div id="ajustes-recorrentes" class="lista-ajuste"></div>
+        <button type="button" id="novo-recorrente" class="botao botao--secundario botao--largo">
+          Adicionar gasto que se repete
+        </button>
+        <p class="ajuda">
+          Serve para o que volta todo mês sempre igual: assinatura, mesada,
+          salário. <strong>Compra parcelada não entra aqui</strong> — ela tem
+          fim, e para ela existe o campo "parcelas" na hora de lançar.
+        </p>
+      </div>
+
+      <div class="bloco">
+        <h2 class="bloco__titulo">Categorias</h2>
+        <div id="ajustes-categorias" class="lista-ajuste"></div>
+        <form id="form-nova-categoria" class="linha-nova">
+          <input type="text" id="nome-categoria" placeholder="Nova categoria" maxlength="30" required>
+          <select id="tipo-categoria" aria-label="Tipo da categoria">
+            <option value="saida">Gasto</option>
+            <option value="entrada">Entrada</option>
+          </select>
+          <button type="submit" class="botao botao--secundario">Criar</button>
+        </form>
+      </div>
+
+      <div class="bloco">
+        <h2 class="bloco__titulo">Versão</h2>
+        <p class="ajuda" id="versao-app">Caderneta</p>
+        <p class="ajuda" id="versao-servidor"></p>
+        <div class="botoes-backup">
+          <button type="button" id="forcar-atualizacao" class="botao botao--secundario">
+            Buscar versão nova
+          </button>
+        </div>
+        <p class="ajuda">
+          Descarta as cópias guardadas no aparelho e baixa tudo de novo do
+          servidor. Não mexe nos seus lançamentos.
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ---------------------- perfil ----------------------- -->
+    <section id="tela-perfil" class="tela" hidden aria-label="Perfil">
 
       <div class="bloco">
         <h2 class="bloco__titulo">Sua conta</h2>
@@ -329,41 +394,6 @@
       </div>
 
       <div class="bloco">
-        <h2 class="bloco__titulo">Bancos e cartões</h2>
-        <div id="ajustes-contas" class="lista-ajuste"></div>
-        <button type="button" id="nova-conta" class="botao botao--secundario botao--largo">
-          Adicionar banco ou cartão
-        </button>
-      </div>
-
-      <div class="bloco">
-        <h2 class="bloco__titulo">Gastos que se repetem</h2>
-        <p class="ajuda" id="resumo-recorrentes"></p>
-        <div id="ajustes-recorrentes" class="lista-ajuste"></div>
-        <button type="button" id="novo-recorrente" class="botao botao--secundario botao--largo">
-          Adicionar gasto que se repete
-        </button>
-        <p class="ajuda">
-          Serve para o que volta todo mês sempre igual: assinatura, mesada,
-          salário. <strong>Compra parcelada não entra aqui</strong> — ela tem
-          fim, e para ela existe o campo "parcelas" na hora de lançar.
-        </p>
-      </div>
-
-      <div class="bloco">
-        <h2 class="bloco__titulo">Categorias</h2>
-        <div id="ajustes-categorias" class="lista-ajuste"></div>
-        <form id="form-nova-categoria" class="linha-nova">
-          <input type="text" id="nome-categoria" placeholder="Nova categoria" maxlength="30" required>
-          <select id="tipo-categoria" aria-label="Tipo da categoria">
-            <option value="saida">Gasto</option>
-            <option value="entrada">Entrada</option>
-          </select>
-          <button type="submit" class="botao botao--secundario">Criar</button>
-        </form>
-      </div>
-
-      <div class="bloco">
         <h2 class="bloco__titulo">Backup</h2>
         <p class="ajuda">
           Seus lançamentos ficam guardados neste navegador, neste aparelho.
@@ -404,20 +434,6 @@
         </button>
       </div>
 
-      <div class="bloco">
-        <h2 class="bloco__titulo">Versão</h2>
-        <p class="ajuda" id="versao-app">Caderneta</p>
-        <p class="ajuda" id="versao-servidor"></p>
-        <div class="botoes-backup">
-          <button type="button" id="forcar-atualizacao" class="botao botao--secundario">
-            Buscar versão nova
-          </button>
-        </div>
-        <p class="ajuda">
-          Descarta as cópias guardadas no aparelho e baixa tudo de novo do
-          servidor. Não mexe nos seus lançamentos.
-        </p>
-      </div>
     </section>
 
   </main>
@@ -430,7 +446,7 @@
   <nav class="abas" aria-label="Seções">
     <button type="button" class="aba aba--ativa" data-tela="extrato" aria-current="page">Extrato</button>
     <button type="button" class="aba" data-tela="resumo">Resumo</button>
-    <button type="button" class="aba" data-tela="ajustes">Ajustes</button>
+    <button type="button" class="aba" data-tela="ajustes">Configurações</button>
   </nav>
 </div>
 

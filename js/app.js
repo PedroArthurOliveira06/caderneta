@@ -263,12 +263,8 @@ function ligarNavegacao() {
   document.querySelectorAll('.aba').forEach((aba) => {
     aba.addEventListener('click', () => {
       visao.tela = aba.dataset.tela;
-      document.querySelectorAll('.aba').forEach((outra) => {
-        const ativa = outra === aba;
-        outra.classList.toggle('aba--ativa', ativa);
-        if (ativa) outra.setAttribute('aria-current', 'page');
-        else outra.removeAttribute('aria-current');
-      });
+      telaAntesDoPerfil = visao.tela;
+      marcarAbaAtiva(visao.tela);
       visao.busca = null;
       pintar();
       window.scrollTo({ top: 0 });
@@ -276,6 +272,37 @@ function ligarNavegacao() {
   });
 
   $('botao-lancar').addEventListener('click', () => abrirLancamento(null));
+
+  // O Perfil não é uma aba: é um desvio. Por isso guarda de onde veio e
+  // devolve para lá — sair dele pelo botão do mês deixaria a pessoa numa
+  // tela que ela não escolheu.
+  $('abrir-perfil').addEventListener('click', () => {
+    telaAntesDoPerfil = visao.tela;
+    visao.tela = 'perfil';
+    visao.busca = null;
+    marcarAbaAtiva(null);
+    pintar();
+    window.scrollTo({ top: 0 });
+  });
+
+  $('voltar-do-perfil').addEventListener('click', () => {
+    visao.tela = telaAntesDoPerfil;
+    marcarAbaAtiva(telaAntesDoPerfil);
+    pintar();
+    window.scrollTo({ top: 0 });
+  });
+}
+
+let telaAntesDoPerfil = 'extrato';
+
+/** Acende a aba certa lá embaixo, ou nenhuma quando se está no Perfil. */
+function marcarAbaAtiva(tela) {
+  document.querySelectorAll('.aba').forEach((aba) => {
+    const ativa = aba.dataset.tela === tela;
+    aba.classList.toggle('aba--ativa', ativa);
+    if (ativa) aba.setAttribute('aria-current', 'page');
+    else aba.removeAttribute('aria-current');
+  });
 }
 
 /**
@@ -332,15 +359,25 @@ function pintar() {
   if (!estado.configurado || !estado.contas.length) return;
 
   const buscando = visao.busca !== null && visao.tela === 'extrato';
+  // Mês só faz sentido onde o mês é o assunto. Em Configurações e no Perfil
+  // ele não muda nada, e ficar mostrando "Setembro de 2026" sobre uma tela
+  // de senha é enfeite que finge ser informação.
+  const telaDeMes = visao.tela === 'extrato' || visao.tela === 'resumo';
+  const noPerfil = visao.tela === 'perfil';
 
-  $('rotulo-mes').textContent = fmt.mesPorExtenso(visao.ano, visao.mes);
   const mesCorrente = `${visao.ano}-${String(visao.mes).padStart(2, '0')}` === fmt.chaveMes(hoje);
-  $('ir-para-hoje').hidden = mesCorrente || buscando;
+  $('rotulo-mes').textContent = telaDeMes
+    ? fmt.mesPorExtenso(visao.ano, visao.mes)
+    : (noPerfil ? 'Perfil' : 'Configurações');
+
+  $('ir-para-hoje').hidden = mesCorrente || buscando || !telaDeMes;
 
   // Buscando, o mês sai da barra: os achados vêm de meses diferentes, e um
   // título dizendo "Setembro" em cima de um gasto de março seria mentira.
-  $('mes-anterior').hidden = buscando;
-  $('mes-proximo').hidden = buscando;
+  $('mes-anterior').hidden = buscando || !telaDeMes;
+  $('mes-proximo').hidden = buscando || !telaDeMes;
+  $('abrir-perfil').hidden = buscando || noPerfil;
+  $('voltar-do-perfil').hidden = !noPerfil;
   $('barra-mes-centro').hidden = buscando;
   $('barra-busca').hidden = !buscando;
 
@@ -355,6 +392,7 @@ function pintar() {
   $('tela-extrato').hidden = visao.tela !== 'extrato';
   $('tela-resumo').hidden = visao.tela !== 'resumo';
   $('tela-ajustes').hidden = visao.tela !== 'ajustes';
+  $('tela-perfil').hidden = visao.tela !== 'perfil';
   // Só no Extrato. O Resumo é tela de leitura, e ali o botão flutuante
   // ficava por cima dos próprios números que a pessoa foi ler.
   $('botao-lancar').hidden = visao.tela !== 'extrato' || buscando;
@@ -395,11 +433,12 @@ function pintar() {
     telas.pintarAvisoDeClassificar(estado, contexto);
     telas.pintarAcimaDoNormal(estado, contexto);
     telas.pintarResumo(estado, contexto);
-  } else {
+  } else if (visao.tela === 'ajustes') {
     telas.pintarAjustes(estado, contexto);
+    $('versao-app').textContent = `Caderneta · versão de ${VERSAO_APP}`;
+  } else {
     pintarAvisoDeBackup(estado);
     pintarBotoesDaTranca();
-    $('versao-app').textContent = `Caderneta · versão de ${VERSAO_APP}`;
     conta.pintarAjustes();
   }
 }
