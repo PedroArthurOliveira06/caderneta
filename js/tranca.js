@@ -121,6 +121,12 @@ export function pintar() {
     class: `ponto${i < digitado.length ? ' ponto--cheio' : ''}`,
   })));
 
+  // Ao abrir, sabendo o tamanho do PIN, a tela entra sozinha e o botão não
+  // tem o que fazer: ficava ali sugerindo um passo que não existe mais.
+  // Continua aparecendo para escolher um PIN novo, onde o tamanho é a pessoa
+  // que decide, e nos PINs antigos, que ainda não têm o tamanho guardado.
+  const precisaDoBotao = modo !== 'abrir' || !tamanhoDoPin();
+  $('tranca-confirmar').hidden = !precisaDoBotao;
   $('tranca-confirmar').disabled = digitado.length < 4;
 }
 
