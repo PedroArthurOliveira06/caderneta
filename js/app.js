@@ -38,9 +38,10 @@ const $ = (id) => document.getElementById(id);
 async function iniciar() {
   // Depois de uma atualização forçada, tira o parâmetro da barra de
   // endereço: ele serviu para furar o cache e não precisa ficar aparecendo.
-  if (location.search.includes('atualizado=')) {
-    history.replaceState(null, '', location.pathname);
-  }
+  const etapaDaAtualizacao = Number(
+    new URLSearchParams(location.search).get('atualizado')) || 0;
+  // O parâmetro serviu para furar o cache; não precisa ficar aparecendo.
+  if (etapaDaAtualizacao) history.replaceState(null, '', location.pathname);
 
   // Antes de tudo: sem isso a tela pisca clara antes de escurecer.
   tema.iniciar();
@@ -74,7 +75,7 @@ async function iniciar() {
   });
   window.addEventListener('offline', mostrarEstadoDoEnvio);
 
-  ligarAvisoDeVersao();
+  ligarAvisoDeVersao(etapaDaAtualizacao);
 
   try {
     mostrarTelaCerta(await conta.iniciar(mostrarTelaCerta));
@@ -1436,11 +1437,11 @@ function aplicarMascaraDeValor(campo) {
  *
  * O aviso não interrompe nada: é uma faixa no rodapé que dá para ignorar.
  */
-function ligarAvisoDeVersao() {
+function ligarAvisoDeVersao(etapa = 0) {
   $('atualizar-agora').addEventListener('click', forcarAtualizacao);
   $('forcar-atualizacao').addEventListener('click', forcarAtualizacao);
 
-  conferirVersao();
+  conferirVersao(etapa);
   // Ao voltar para o app depois de um tempo fora, pergunta de novo.
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) conferirVersao();
@@ -1459,6 +1460,24 @@ function ligarAvisoDeVersao() {
  * Nada disso toca nos lançamentos: eles ficam noutra gaveta (localStorage),
  * e na conta do servidor.
  */
+/**
+ * Joga fora o que está guardado e busca de novo — em DUAS etapas.
+ *
+ * Duas, e não por capricho. Enquanto o service worker comanda a página, todo
+ * pedido passa por ele, inclusive um pedido que diz "ignore o cache do
+ * navegador" — que então nunca chega ao cache do navegador. Foi o que fez o
+ * botão prometer e não cumprir: ele limpava o que alcançava, recarregava, e
+ * o navegador devolvia os mesmos arquivos de dez minutos atrás.
+ *
+ * Etapa 1, aqui: apaga o que dá, desliga o service worker e recarrega. Essa
+ * carga ainda vem velha, e tudo bem — o que importa é que ela chega SEM
+ * ninguém no meio do caminho.
+ *
+ * Etapa 2, no arranque seguinte: agora sim o "ignore o cache" chega ao
+ * destino. Renova os arquivos e recarrega uma última vez.
+ *
+ * Nada disso toca nos lançamentos: eles ficam noutra gaveta, e na conta.
+ */
 async function forcarAtualizacao() {
   recado('Buscando versão nova…');
   try {
@@ -1473,19 +1492,63 @@ async function forcarAtualizacao() {
   } catch (erro) {
     console.warn('Não deu para limpar tudo:', erro);
   }
-  location.replace(`${location.pathname}?atualizado=${Date.now()}`);
+  location.replace(`${location.pathname}?atualizado=1&t=${Date.now()}`);
 }
 
-async function conferirVersao() {
+/** Força o navegador a rebuscar no servidor tudo o que esta página carregou. */
+async function renovarArquivos() {
+  await Promise.all(arquivosCarregados().map((url) =>
+    fetch(url, { cache: 'reload' }).catch(() => {})));
+}
+
+/**
+ * Tudo o que esta página carregou da nossa própria origem.
+ *
+ * Vem do navegador, não de uma lista escrita à mão: uma lista à mão fica
+ * para trás no dia em que um arquivo novo é criado, e o esquecido seria
+ * justamente o que continuaria velho.
+ */
+function arquivosCarregados() {
+  const urls = new Set([location.origin + location.pathname]);
+  try {
+    for (const item of performance.getEntriesByType('resource')) {
+      if (item.name.startsWith(location.origin)) urls.add(item.name);
+    }
+  } catch {
+    // Navegador sem essa medição: sobra o essencial, logo abaixo.
+  }
+  for (const caminho of ['index.html', 'css/styles.css', 'js/app.js']) {
+    urls.add(new URL(caminho, location.href).href);
+  }
+  return [...urls];
+}
+
+async function conferirVersao(etapa = 0) {
   try {
     const resposta = await fetch('versao.json', { cache: 'no-store' });
     if (!resposta.ok) return;
     const { versao } = await resposta.json();
     const diferente = Boolean(versao) && versao !== VERSAO_APP;
+
+    // A segunda etapa da atualização. A página está livre do service worker
+    // agora, então é aqui que renovar os arquivos finalmente funciona.
+    if (diferente && etapa === 1) {
+      recado('Quase lá…');
+      await renovarArquivos();
+      location.replace(`${location.pathname}?atualizado=2&t=${Date.now()}`);
+      return;
+    }
+
     $('tem-versao-nova').hidden = !diferente;
-    $('versao-servidor').textContent = diferente
-      ? `No servidor já existe a versão de ${versao}.`
-      : 'Esta é a versão mais nova.';
+    $('versao-servidor').textContent = !diferente
+      ? 'Esta é a versão mais nova.'
+      : etapa >= 2
+        // Tentamos as duas etapas e ele continua velho. Dizer "existe versão
+        // nova" e calar seria deixá-lo tocando um botão que não resolve.
+        ? `No servidor já existe a versão de ${versao}, mas este aparelho ainda `
+          + 'está guardando a antiga com força. Feche o app e abra daqui a dez '
+          + 'minutos: some sozinho.'
+        : `No servidor já existe a versão de ${versao}.`;
   } catch {
     // Sem internet não há o que conferir, e isso não é problema.
   }

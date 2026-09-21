@@ -18,7 +18,7 @@
    lembrar, eu esqueci sete vezes seguidas.
    ========================================================================= */
 
-const VERSAO = 'caderneta-2026-09-21-1100';
+const VERSAO = 'caderneta-2026-09-21-1111';
 
 const ARQUIVOS = [
   './',
@@ -47,7 +47,13 @@ const ARQUIVOS = [
 self.addEventListener('install', (evento) => {
   evento.waitUntil(
     caches.open(VERSAO)
-      .then((cache) => cache.addAll(ARQUIVOS))
+      // Um por um com `reload`, e não `addAll`: o `addAll` aceita o que
+      // estiver no cache do navegador, e o service worker novo nasceria
+      // guardando os arquivos da versão anterior.
+      .then((cache) => Promise.all(ARQUIVOS.map(async (caminho) => {
+        const resposta = await fetch(new Request(caminho, { cache: 'reload' }));
+        if (resposta.ok) await cache.put(caminho, resposta);
+      })))
       .then(() => self.skipWaiting())
   );
 });
@@ -75,7 +81,20 @@ self.addEventListener('fetch', (evento) => {
 
   evento.respondWith((async () => {
     try {
-      const resposta = await fetch(requisicao);
+      // `no-cache` não quer dizer "não guarde": quer dizer "pergunte ao
+      // servidor se mudou antes de usar o que está guardado". Sem isto, a
+      // estratégia de rede primeiro era mentira por dez minutos a cada
+      // publicação — o GitHub manda o navegador guardar os arquivos por esse
+      // tempo, e o `fetch` daqui era atendido pelo cache do navegador sem
+      // nunca tocar na rede. O app baixava a si mesmo, velho, e achava que
+      // tinha atualizado.
+      //
+      // Não custa download: quando nada mudou o servidor responde "igual" em
+      // uma linha, e o navegador entrega o que já tinha.
+      const resposta = await fetch(new Request(requisicao.url, {
+        cache: 'no-cache',
+        credentials: 'same-origin',
+      }));
 
       if (resposta && resposta.ok) {
         const cache = await caches.open(VERSAO);
