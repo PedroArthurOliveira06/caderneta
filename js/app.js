@@ -66,6 +66,7 @@ async function iniciar() {
   ligarDialogoRecorrente();
   ligarClassificador();
   ligarDialogoCategoria();
+  ligarDialogos();
   ligarAjustes();
   registrarServiceWorker();
 
@@ -187,6 +188,64 @@ function ligarBoasVindas() {
     mostrarTelaCerta();
     recado('Pronto. Agora é só lançar.');
   });
+}
+
+/* ============================ diálogos ================================= */
+
+/**
+ * Abre um diálogo e tranca a página atrás dele.
+ *
+ * O `showModal` já impede tocar no que está atrás, mas não impede ROLAR: no
+ * celular, arrastar o dedo em cima do diálogo levava o extrato embora lá
+ * atrás, e ao fechar a pessoa estava noutro lugar da lista.
+ *
+ * Travar é `position: fixed`, e não só `overflow: hidden`, porque no celular
+ * o `overflow` sozinho não segura. O preço é que a página salta para o topo,
+ * então a altura é guardada e devolvida ao fechar — senão o remédio seria do
+ * tamanho da doença.
+ */
+let alturaGuardada = 0;
+
+function abrirDialogo(id) {
+  travarFundo();
+  document.getElementById(id).showModal();
+}
+
+function travarFundo() {
+  if (document.body.classList.contains('travado')) return;
+  alturaGuardada = window.scrollY;
+  document.body.style.top = `-${alturaGuardada}px`;
+  document.body.classList.add('travado');
+}
+
+function destravarFundo() {
+  // Só destrava quando não sobrou nenhum aberto: um diálogo que abre outro
+  // não pode soltar a página ao fechar o de cima.
+  if (document.querySelector('dialog[open]')) return;
+  if (!document.body.classList.contains('travado')) return;
+  document.body.classList.remove('travado');
+  document.body.style.top = '';
+  window.scrollTo(0, alturaGuardada);
+}
+
+/**
+ * Destrava a página quando o último diálogo fecha.
+ *
+ * Olhando o atributo `open`, e não o evento `close`: encontrei um navegador
+ * onde o diálogo abre e fecha direito — o atributo vai e volta — mas o
+ * evento nunca chega. Ficar preso numa página travada é caro demais para
+ * depender de um aviso que pode não vir. O atributo é o que de fato muda, e
+ * muda em todos os caminhos: botão de fechar, Esc e envio do formulário.
+ */
+function ligarDialogos() {
+  const observador = new MutationObserver(() => {
+    if (document.querySelector('dialog[open]')) travarFundo();
+    else destravarFundo();
+  });
+
+  for (const dialogo of document.querySelectorAll('dialog')) {
+    observador.observe(dialogo, { attributes: true, attributeFilter: ['open'] });
+  }
 }
 
 /* ============================ navegação ================================ */
@@ -789,7 +848,7 @@ function abrirLancamento(lancamentoId, pronto) {
 
   pintarAtalhosDeData();
 
-  dialogo.showModal();
+  abrirDialogo('dialogo-lancamento');
   if (!existente) $('lancamento-valor').focus();
 }
 
@@ -944,7 +1003,7 @@ function abrirConta(contaId) {
 
   aplicarTipoConta();
   pintarCores();
-  $('dialogo-conta').showModal();
+  abrirDialogo('dialogo-conta');
 }
 
 function pintarCores() {
@@ -991,7 +1050,7 @@ function abrirClassificador() {
     return;
   }
   mostrarProximoGrupo();
-  $('dialogo-classificar').showModal();
+  abrirDialogo('dialogo-classificar');
 }
 
 /**
@@ -1156,7 +1215,7 @@ function abrirRecorrente(recorrenteId) {
   aplicarTipoRecorrente();
   if (r && r.categoriaId) $('recorrente-categoria').value = r.categoriaId;
 
-  $('dialogo-recorrente').showModal();
+  abrirDialogo('dialogo-recorrente');
   if (!r) $('recorrente-descricao').focus();
 }
 
@@ -1302,7 +1361,7 @@ function editarCategoria(categoriaId) {
   $('ajuda-excluir-categoria').hidden = podeExcluir;
 
   pintarCoresDaCategoria();
-  $('dialogo-categoria').showModal();
+  abrirDialogo('dialogo-categoria');
 }
 
 /** Qual nome de cor está por trás do que a tela mostra hoje para ela. */

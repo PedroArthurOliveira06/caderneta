@@ -1290,14 +1290,20 @@ button { font: inherit; color: inherit; }
 
 .linha-nova { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; }
 
+/* `color` não é detalhe aqui: sem ela o navegador pinta o texto de preto por
+   conta própria, e no modo escuro isso vira preto sobre fundo escuro. Era o
+   único campo do app que tinha fundo do tema e texto do navegador. */
 .linha-nova input, .linha-nova select {
   border: 1px solid var(--linha-forte);
   border-radius: var(--raio-p);
   padding: 9px 10px;
   font-size: 0.9375rem;
   background: var(--superficie);
+  color: var(--texto);
   min-width: 0;
 }
+
+.linha-nova input::placeholder { color: var(--texto-fraco); }
 
 .botoes-backup { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 
@@ -1412,6 +1418,16 @@ button { font: inherit; color: inherit; }
   height: 2px;
   background: var(--capa-azul);
   border-radius: 0 0 2px 2px;
+}
+
+/* Página travada enquanto um diálogo está aberto. `position: fixed` e não
+   só `overflow: hidden`, porque no celular o overflow sozinho não segura o
+   arrasto do dedo. A altura de onde a pessoa estava é guardada pelo app e
+   devolvida ao fechar. */
+body.travado {
+  position: fixed;
+  width: 100%;
+  overflow: hidden;
 }
 
 /* ============================ diálogos ================================ */
