@@ -1275,13 +1275,6 @@ button { font: inherit; color: inherit; }
 }
 .barra-categoria--tocavel:active { opacity: 0.6; }
 
-/* A cor diz DIREÇÃO do dinheiro, nunca 'subiu' ou 'desceu'. Gastar mais
-   que o normal é vermelho; receber mais que o normal é verde. Ligar o
-   vermelho a 'acima' faria um salário acima da média virar alarme. */
-.barra-categoria__normal { font-size: 0.75rem; }
-.barra-categoria__normal--saiu-mais { color: var(--saida); }
-.barra-categoria__normal--entrou-mais { color: var(--entrada); }
-
 .evolucao {
   display: grid;
   grid-auto-flow: column;

@@ -526,27 +526,7 @@ function mesesDeHistorico(estado, ano, mes, teto) {
   return Math.max(1, Math.min(teto, distancia));
 }
 
-function barraDeCategoria(linha, maior, estado, contexto, tipo = 'saida') {
-  const passado = linha.mesAnterior;
-  // Diferença pequena não é notícia: dizer '3% a mais que em agosto' em toda
-  // barra transforma a comparação em decoração.
-  const fora = linha.anterior > 0
-    && Math.abs(linha.diferenca) >= Math.max(2000, linha.anterior * 0.1);
-
-  const subiu = linha.diferenca > 0;
-  // Mais gasto OU menos entrada: nos dois casos sobrou menos dinheiro.
-  const saiuMais = tipo === 'saida' ? subiu : !subiu;
-
-  // Estreou: não tinha nada no mês passado. Não é 'aumentou 100%', porque
-  // porcentagem sobre zero não existe — é gasto novo, e dizer isso é mais
-  // útil do que um número inventado.
-  const estreou = linha.anterior === 0 && linha.valor > 0;
-
-  const comparacao = estreou
-    ? `não teve em ${fmt.mesNome(passado.mes)}`
-    : `${fmt.moeda(Math.abs(linha.diferenca))} ${subiu ? 'a mais' : 'a menos'}`
-      + ` que em ${fmt.mesNome(passado.mes)} (${fmt.moeda(linha.anterior)})`;
-
+function barraDeCategoria(linha, maior, estado, contexto) {
   return el('button', {
     class: 'barra-categoria barra-categoria--tocavel',
     type: 'button',
@@ -568,14 +548,6 @@ function barraDeCategoria(linha, maior, estado, contexto, tipo = 'saida') {
         },
       }),
     ]),
-    fora || estreou
-      ? el('span', {
-          class: 'barra-categoria__normal'
-            + (estreou ? '' : ' barra-categoria__normal--'
-              + (saiuMais ? 'saiu-mais' : 'entrou-mais')),
-          texto: comparacao,
-        })
-      : null,
   ]);
 }
 
@@ -637,7 +609,7 @@ export function pintarResumo(estado, contexto) {
     : null);
 
   /* ---- gasto por categoria ---- */
-  const categorias = calc.comparadoComOMesAnterior(estado, ano, mes, filtroContaId);
+  const categorias = calc.porCategoria(estado, ano, mes, filtroContaId);
   const maior = categorias.length ? categorias[0].valor : 0;
 
   trocar(document.getElementById('resumo-categorias'),
@@ -652,14 +624,14 @@ export function pintarResumo(estado, contexto) {
   /* ---- de onde veio o dinheiro ---- */
   // O contrário do bloco de cima. Some quando não houve entrada no mês, em
   // vez de mostrar uma lista vazia: mês sem entrada é comum e não é notícia.
-  const entradas = calc.comparadoComOMesAnterior(estado, ano, mes, filtroContaId, 'entrada');
+  const entradas = calc.porCategoria(estado, ano, mes, filtroContaId, 'entrada');
   const maiorEntrada = entradas.length ? entradas[0].valor : 0;
 
   trocar(document.getElementById('resumo-entradas'), entradas.length
     ? el('div', { class: 'bloco' }, [
         el('h2', { class: 'bloco__titulo', texto: 'De onde veio o dinheiro' }),
         el('div', {}, entradas.map((linha) =>
-          barraDeCategoria(linha, maiorEntrada, estado, contexto, 'entrada'))),
+          barraDeCategoria(linha, maiorEntrada, estado, contexto))),
       ])
     : null);
 

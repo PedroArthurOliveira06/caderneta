@@ -884,50 +884,6 @@ test('guardar na caixinha não parece prejuízo no patrimônio', () => {
   assert.equal(setembro.total, 100000);
 });
 
-test('categoria é comparada com o MESMO mês anterior, não com a média', () => {
-  const e = {
-    contas: [{ id: 'a', nome: 'Banco', saldoInicial: 0, ordem: 0 }],
-    categorias: [
-      { id: 'comida', nome: 'Comida', tipo: 'saida' },
-      { id: 'novo', nome: 'Novidade', tipo: 'saida' },
-    ],
-    lancamentos: [
-      { id: '1', data: '2026-06-10', tipo: 'saida', valor: 10000, contaId: 'a', categoriaId: 'comida' },
-      { id: '2', data: '2026-07-10', tipo: 'saida', valor: 20000, contaId: 'a', categoriaId: 'comida' },
-      { id: '3', data: '2026-08-10', tipo: 'saida', valor: 30000, contaId: 'a', categoriaId: 'comida' },
-      { id: '4', data: '2026-09-10', tipo: 'saida', valor: 40000, contaId: 'a', categoriaId: 'comida' },
-      { id: '5', data: '2026-09-11', tipo: 'saida', valor: 9900, contaId: 'a', categoriaId: 'novo' },
-    ],
-  };
-  const linhas = calc.comparadoComOMesAnterior(e, 2026, 9);
-  const comida = linhas.find((l) => l.categoriaId === 'comida');
-  const novidade = linhas.find((l) => l.categoriaId === 'novo');
-
-  // Agosto foi 300. A média dos três meses seria 200 — e é justamente o
-  // número que ele NÃO quer ver. Vale o mês anterior, e só ele.
-  assert.equal(comida.anterior, 30000);
-  assert.equal(comida.diferenca, 10000);
-  assert.deepEqual(comida.mesAnterior, { ano: 2026, mes: 8 });
-
-  // Gasto que estreou tem zero atrás, não 'aumentou 100%'.
-  assert.equal(novidade.anterior, 0);
-  assert.equal(novidade.diferenca, 9900);
-});
-
-test('comparação atravessa a virada do ano', () => {
-  const e = {
-    contas: [{ id: 'a', nome: 'Banco', saldoInicial: 0, ordem: 0 }],
-    categorias: [{ id: 'c', nome: 'Comida', tipo: 'saida' }],
-    lancamentos: [
-      { id: '1', data: '2026-12-10', tipo: 'saida', valor: 5000, contaId: 'a', categoriaId: 'c' },
-      { id: '2', data: '2027-01-10', tipo: 'saida', valor: 8000, contaId: 'a', categoriaId: 'c' },
-    ],
-  };
-  const [linha] = calc.comparadoComOMesAnterior(e, 2027, 1);
-  assert.deepEqual(linha.mesAnterior, { ano: 2026, mes: 12 });
-  assert.equal(linha.diferenca, 3000);
-});
-
 test('histórico da categoria mostra zero no mês em que ela não apareceu', () => {
   const e = {
     contas: [{ id: 'a', nome: 'Banco', saldoInicial: 0, ordem: 0 }],

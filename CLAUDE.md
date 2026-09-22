@@ -53,7 +53,7 @@ testáveis sem navegador.
 
 ```bash
 npm run dev      # http://localhost:4173 (servidor próprio, sem dependências)
-npm test         # 161 testes, Node puro, sem instalar nada
+npm test         # 159 testes, Node puro, sem instalar nada
 npm run versao   # OBRIGATÓRIO antes de cada publicação (ver armadilhas)
 npm run icones   # regera icons/
 ```
@@ -141,7 +141,7 @@ busca em todo o histórico, gastos que se repetem todo mês, classificador em
 lote, categoria aprendida pelo nome, aviso de categoria acima da média,
 cor por categoria.
 
-A cada envio o GitHub roda sozinho os 161 testes e confere se a versão foi
+A cada envio o GitHub roda sozinho os 159 testes e confere se a versão foi
 carimbada — inclusive se o commit mexeu no app sem carimbar, que é o erro
 que os três arquivos de versão concordando entre si NÃO pegam.
 
@@ -218,17 +218,19 @@ O que sobra depois disso costuma ser **rendimento**, que nenhum extrato
 lança como linha: o saldo só cresce sozinho. Foi 0,39 no BB, 0,04 no Itaú,
 2,94 no Nubank e 3,25 na Caixinha.
 
-**Comparação é com o MÊS ANTERIOR, não com a média.** Em 22/09/2026 ele
-recusou o "quanto acima do normal": quer mês a mês. A razão é boa —
-"gastei mais que mês passado?" é conta que ele confere sozinho virando a
-tela para o mês anterior; média de três meses é conta que só o app sabe
-fazer, e por isso não dá para checar. `comparadoComOMesAnterior` é a
-função; `categoriasAcimaDoNormal`, que alimenta o aviso do topo do Resumo,
-continua na média — **falta perguntar a ele se quer trocar essa também**.
+**A barra de categoria mostra só o número.** Em 22/09/2026 ele pediu a
+comparação mês a mês em vez da média e, ao ver as frases embaixo de cada
+barra, mandou tirar: "deixa só os valores sem comentários". A lição não é
+sobre média nem sobre mês a mês — é que **uma explicação por linha vira
+ruído quando a lista é longa**. Seis categorias com seis frases embaixo
+escondem o ranking, que era o que o bloco existia para mostrar.
 
-Categoria que não existia no mês passado não "aumentou 100%": porcentagem
-sobre zero não existe. O texto diz "não teve em agosto", que é a informação
-de verdade.
+A comparação não sumiu: mora no diálogo que abre ao TOCAR na barra, onde é
+a resposta pedida em vez de um comentário não solicitado.
+`comparadoComOMesAnterior` foi apagada junto — ninguém mais a chamava.
+
+O aviso do topo do Resumo (`categoriasAcimaDoNormal`) continua na média —
+**falta perguntar a ele se quer trocar essa também**.
 
 ## Lições de 20–21/09/2026 (o dia em que o app "resetou" no celular dele)
 
