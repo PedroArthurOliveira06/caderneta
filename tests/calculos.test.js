@@ -884,7 +884,7 @@ test('guardar na caixinha não parece prejuízo no patrimônio', () => {
   assert.equal(setembro.total, 100000);
 });
 
-test('categoria comparada com o normal só compara quando há normal', () => {
+test('categoria é comparada com o MESMO mês anterior, não com a média', () => {
   const e = {
     contas: [{ id: 'a', nome: 'Banco', saldoInicial: 0, ordem: 0 }],
     categorias: [
@@ -899,17 +899,33 @@ test('categoria comparada com o normal só compara quando há normal', () => {
       { id: '5', data: '2026-09-11', tipo: 'saida', valor: 9900, contaId: 'a', categoriaId: 'novo' },
     ],
   };
-  const linhas = calc.comparadoComONormal(e, 2026, 9);
+  const linhas = calc.comparadoComOMesAnterior(e, 2026, 9);
   const comida = linhas.find((l) => l.categoriaId === 'comida');
   const novidade = linhas.find((l) => l.categoriaId === 'novo');
 
-  // Média de junho, julho e agosto = 200. Gastou 400: 200 acima.
-  assert.equal(comida.media, 20000);
-  assert.equal(comida.diferenca, 20000);
+  // Agosto foi 300. A média dos três meses seria 200 — e é justamente o
+  // número que ele NÃO quer ver. Vale o mês anterior, e só ele.
+  assert.equal(comida.anterior, 30000);
+  assert.equal(comida.diferenca, 10000);
+  assert.deepEqual(comida.mesAnterior, { ano: 2026, mes: 8 });
 
-  // Gasto que nunca apareceu antes não está acima nem abaixo de nada.
-  assert.equal(novidade.media, null);
-  assert.equal(novidade.diferenca, null);
+  // Gasto que estreou tem zero atrás, não 'aumentou 100%'.
+  assert.equal(novidade.anterior, 0);
+  assert.equal(novidade.diferenca, 9900);
+});
+
+test('comparação atravessa a virada do ano', () => {
+  const e = {
+    contas: [{ id: 'a', nome: 'Banco', saldoInicial: 0, ordem: 0 }],
+    categorias: [{ id: 'c', nome: 'Comida', tipo: 'saida' }],
+    lancamentos: [
+      { id: '1', data: '2026-12-10', tipo: 'saida', valor: 5000, contaId: 'a', categoriaId: 'c' },
+      { id: '2', data: '2027-01-10', tipo: 'saida', valor: 8000, contaId: 'a', categoriaId: 'c' },
+    ],
+  };
+  const [linha] = calc.comparadoComOMesAnterior(e, 2027, 1);
+  assert.deepEqual(linha.mesAnterior, { ano: 2026, mes: 12 });
+  assert.equal(linha.diferenca, 3000);
 });
 
 test('histórico da categoria mostra zero no mês em que ela não apareceu', () => {

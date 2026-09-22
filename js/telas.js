@@ -527,14 +527,25 @@ function mesesDeHistorico(estado, ano, mes, teto) {
 }
 
 function barraDeCategoria(linha, maior, estado, contexto, tipo = 'saida') {
-  const fora = linha.media !== null && linha.diferenca !== null
-    // Menos que isso é oscilação de mês, não notícia: dizer '3% acima do
-    // normal' em toda barra transformaria o aviso em decoração.
-    && Math.abs(linha.diferenca) >= Math.max(2000, linha.media * 0.15);
+  const passado = linha.mesAnterior;
+  // Diferença pequena não é notícia: dizer '3% a mais que em agosto' em toda
+  // barra transforma a comparação em decoração.
+  const fora = linha.anterior > 0
+    && Math.abs(linha.diferenca) >= Math.max(2000, linha.anterior * 0.1);
 
-  const acima = fora && linha.diferenca > 0;
+  const subiu = linha.diferenca > 0;
   // Mais gasto OU menos entrada: nos dois casos sobrou menos dinheiro.
-  const saiuMais = tipo === 'saida' ? acima : !acima;
+  const saiuMais = tipo === 'saida' ? subiu : !subiu;
+
+  // Estreou: não tinha nada no mês passado. Não é 'aumentou 100%', porque
+  // porcentagem sobre zero não existe — é gasto novo, e dizer isso é mais
+  // útil do que um número inventado.
+  const estreou = linha.anterior === 0 && linha.valor > 0;
+
+  const comparacao = estreou
+    ? `não teve em ${fmt.mesNome(passado.mes)}`
+    : `${fmt.moeda(Math.abs(linha.diferenca))} ${subiu ? 'a mais' : 'a menos'}`
+      + ` que em ${fmt.mesNome(passado.mes)} (${fmt.moeda(linha.anterior)})`;
 
   return el('button', {
     class: 'barra-categoria barra-categoria--tocavel',
@@ -557,12 +568,12 @@ function barraDeCategoria(linha, maior, estado, contexto, tipo = 'saida') {
         },
       }),
     ]),
-    fora
+    fora || estreou
       ? el('span', {
-          class: 'barra-categoria__normal barra-categoria__normal--'
-            + (saiuMais ? 'saiu-mais' : 'entrou-mais'),
-          texto: `${fmt.moeda(Math.abs(linha.diferenca))} ${acima ? 'acima' : 'abaixo'}`
-            + ` do normal (${fmt.moeda(linha.media)})`,
+          class: 'barra-categoria__normal'
+            + (estreou ? '' : ' barra-categoria__normal--'
+              + (saiuMais ? 'saiu-mais' : 'entrou-mais')),
+          texto: comparacao,
         })
       : null,
   ]);
@@ -626,7 +637,7 @@ export function pintarResumo(estado, contexto) {
     : null);
 
   /* ---- gasto por categoria ---- */
-  const categorias = calc.comparadoComONormal(estado, ano, mes, filtroContaId);
+  const categorias = calc.comparadoComOMesAnterior(estado, ano, mes, filtroContaId);
   const maior = categorias.length ? categorias[0].valor : 0;
 
   trocar(document.getElementById('resumo-categorias'),
@@ -641,7 +652,7 @@ export function pintarResumo(estado, contexto) {
   /* ---- de onde veio o dinheiro ---- */
   // O contrário do bloco de cima. Some quando não houve entrada no mês, em
   // vez de mostrar uma lista vazia: mês sem entrada é comum e não é notícia.
-  const entradas = calc.comparadoComONormal(estado, ano, mes, filtroContaId, 'entrada');
+  const entradas = calc.comparadoComOMesAnterior(estado, ano, mes, filtroContaId, 'entrada');
   const maiorEntrada = entradas.length ? entradas[0].valor : 0;
 
   trocar(document.getElementById('resumo-entradas'), entradas.length
@@ -947,11 +958,9 @@ export function pintarHistoricoDaCategoria(estado, categoriaId, contexto) {
   const categoria = estado.categorias.find((c) => c.id === categoriaId);
   const nome = categoria ? categoria.nome : 'Sem categoria';
 
-  const comGasto = meses.filter((m) => m.valor > 0);
-  const media = comGasto.length
-    ? Math.round(comGasto.reduce((s, m) => s + m.valor, 0) / comGasto.length)
-    : 0;
   const teto = Math.max(...meses.map((m) => m.valor), 1);
+  const atual = meses[meses.length - 1];
+  const passado = meses[meses.length - 2];
 
   document.getElementById('dialogo-historico-titulo').textContent = nome;
 
@@ -973,15 +982,17 @@ export function pintarHistoricoDaCategoria(estado, categoriaId, contexto) {
       }),
     ]))),
 
-    el('p', { class: 'ajuda', texto: media
-      ? `Nos meses em que apareceu, a média é ${fmt.moeda(media)}.`
-      : 'Sem gasto nenhum nestes meses.' }),
+    el('p', { class: 'ajuda', texto: !passado
+      ? 'Este é o primeiro mês do seu histórico.'
+      : passado.valor === 0
+        ? `Não teve em ${fmt.mesNome(passado.mes)}.`
+        : atual.valor === passado.valor
+          ? `Igual a ${fmt.mesNome(passado.mes)}.`
+          : `De ${fmt.mesNome(passado.mes)} para ${fmt.mesNome(atual.mes)}: `
+            + `${fmt.moeda(Math.abs(atual.valor - passado.valor))} `
+            + `${atual.valor > passado.valor ? 'a mais' : 'a menos'}.` }),
 
-    // Mês sem gasto fica de fora da média de propósito: o exame que acontece
-    // de três em três meses custa o que custa, não um terço disso.
-    comGasto.length && comGasto.length < meses.length
-      ? el('p', { class: 'ajuda', texto: `Apareceu em ${comGasto.length} dos ${meses.length} meses.`
-          + ' Os meses sem gasto não entram na média.' })
-      : null,
+    // As colunas contam o resto: se isto está subindo há meses ou se foi só
+    // um mês fora da curva, o gráfico responde melhor que qualquer frase.
   );
 }

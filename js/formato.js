@@ -125,6 +125,14 @@ export function mesPorExtenso(ano, mes) {
   return comMaiuscula(`${MESES[mes - 1]} de ${ano}`);
 }
 
+/**
+ * (9) -> 'setembro'. Minúsculo e sem o ano, para caber no meio de uma
+ * frase: 'R$ 180,00 a mais que em setembro'.
+ */
+export function mesNome(mes) {
+  return MESES[mes - 1] || '';
+}
+
 /** (9) -> 'Set' */
 export function mesCurto(mes) {
   return comMaiuscula(MESES_CURTO[mes - 1]);

@@ -548,33 +548,31 @@ export function patrimonioPorMes(estado, ano, mes, quantidade = 12) {
 }
 
 /**
- * Cada categoria do mês ao lado da média dos meses anteriores.
+ * Cada categoria do mês ao lado do MESMO mês anterior.
  *
- * Irmã de `categoriasAcimaDoNormal`, que só devolve o que estourou para virar
- * aviso. Esta devolve TODAS, com a diferença para o normal, para a barra do
- * Resumo poder dizer "38% acima do normal" sem alarme nenhum.
+ * Comparar com a média dos últimos meses e comparar com o mês passado são
+ * perguntas diferentes, e ele quis a segunda: "gastei mais que mês passado?"
+ * é a conta que a pessoa faz de cabeça, e a que ela pode conferir olhando a
+ * tela do mês anterior. A média é uma conta que só o app sabe fazer, e por
+ * isso não dá para checar.
  *
- * `media` vem nula quando não há meses anteriores suficientes: um gasto que
- * apareceu pela primeira vez não está acima nem abaixo de coisa nenhuma, e
- * inventar uma média de um mês só seria comparar com o acaso.
+ * `anterior` vem zero quando a categoria não apareceu no mês passado. Isso
+ * NÃO é "aumentou 100%": é gasto que estreou, e quem desenha decide como
+ * dizer isso — porcentagem sobre zero não existe.
  */
-export function comparadoComONormal(estado, ano, mes, filtroContaId, tipo = 'saida') {
-  const anteriores = [];
-  for (let i = 1; i <= MESES_DE_COMPARACAO; i++) {
-    const { ano: a, mes: m } = deslocarMes(ano, mes, -i);
-    anteriores.push(new Map(
-      porCategoria(estado, a, m, filtroContaId, tipo).map((c) => [c.categoriaId, c.valor])));
-  }
+export function comparadoComOMesAnterior(estado, ano, mes, filtroContaId, tipo = 'saida') {
+  const { ano: a, mes: m } = deslocarMes(ano, mes, -1);
+  const passado = new Map(
+    porCategoria(estado, a, m, filtroContaId, tipo).map((c) => [c.categoriaId, c.valor]));
 
   return porCategoria(estado, ano, mes, filtroContaId, tipo).map((linha) => {
-    const gastos = anteriores
-      .map((mapa) => mapa.get(linha.categoriaId) || 0)
-      .filter((v) => v > 0);
-
-    if (gastos.length < 2) return { ...linha, media: null, diferenca: null, mesesComparados: gastos.length };
-
-    const media = Math.round(gastos.reduce((a, b) => a + b, 0) / gastos.length);
-    return { ...linha, media, diferenca: linha.valor - media, mesesComparados: gastos.length };
+    const anterior = passado.get(linha.categoriaId) || 0;
+    return {
+      ...linha,
+      anterior,
+      mesAnterior: { ano: a, mes: m },
+      diferenca: linha.valor - anterior,
+    };
   });
 }
 
