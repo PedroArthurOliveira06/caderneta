@@ -9,7 +9,7 @@
    de gastos mentir para o dono.
    ========================================================================= */
 
-import { simplificar, valor as textoDoValor, dataCurta, deslocarMes } from './formato.js';
+import { simplificar, valor as textoDoValor, dataCurta, deslocarMes, limitesDoMes } from './formato.js';
 
 /** Quanto o lançamento mexe no saldo DESTA conta. Positivo entra, negativo sai. */
 export function efeitoNaConta(lancamento, contaId) {
@@ -218,6 +218,18 @@ export function categoriasAcimaDoNormal(estado, ano, mes) {
 /* ===================== o que falta classificar ========================= */
 
 /**
+ * Tira o "(parcela 3/12)" do fim do nome.
+ *
+ * Doze parcelas do mesmo curso são a MESMA compra, e perguntar a categoria
+ * doze vezes rende doze vezes a mesma resposta. O sufixo continua no
+ * lançamento, que é onde ele informa alguma coisa; some só de onde serve
+ * para agrupar.
+ */
+export function semParcela(descricao) {
+  return String(descricao || '').replace(/\s*\(parcela \d+\/\d+\)\s*$/i, '').trim();
+}
+
+/**
  * Os lançamentos sem categoria, juntados pelo nome.
  *
  * A importação da planilha antiga trouxe 154 lançamentos com a categoria
@@ -232,18 +244,6 @@ export function categoriasAcimaDoNormal(estado, ano, mes) {
  * entrada: um grupo misturado não teria uma lista de categorias para
  * oferecer.
  */
-/**
- * Tira o "(parcela 3/12)" do fim do nome.
- *
- * Doze parcelas do mesmo curso são a MESMA compra, e perguntar a categoria
- * doze vezes rende doze vezes a mesma resposta. O sufixo continua no
- * lançamento, que é onde ele informa alguma coisa; some só de onde serve
- * para agrupar.
- */
-export function semParcela(descricao) {
-  return String(descricao || '').replace(/\s*\(parcela \d+\/\d+\)\s*$/i, '').trim();
-}
-
 export function paraClassificar(estado) {
   const grupos = new Map();
 
@@ -517,4 +517,165 @@ export function evolucao(estado, ano, mes, quantidade = 6) {
     meses.push({ ano: a, mes: m, ...totaisDoMes(estado, a, m) });
   }
   return meses;
+}
+
+/* ======================= as análises do Resumo ========================= */
+
+/**
+ * Quanto dinheiro ele TINHA no fim de cada mês, separado em disponível e
+ * guardado.
+ *
+ * A caixinha entra aqui, ao contrário do número grande do Extrato. Lá a
+ * pergunta é "quanto posso gastar", e o que está separado para um objetivo
+ * não conta. Aqui a pergunta é "estou juntando ou torrando", e guardar
+ * dinheiro é o oposto de torrar: deixar a caixinha de fora faria uma
+ * transferência para ela parecer prejuízo.
+ *
+ * O cartão fica de fora dos dois. Fatura em aberto é dívida de curtíssimo
+ * prazo que já está descontada do banco no mês seguinte; misturá-la aqui
+ * faria o mês do vencimento dar um tranco que não é do patrimônio.
+ */
+export function patrimonioPorMes(estado, ano, mes, quantidade = 12) {
+  const meses = [];
+  for (let i = quantidade - 1; i >= 0; i--) {
+    const { ano: a, mes: m } = deslocarMes(ano, mes, -i);
+    const { fim } = limitesDoMes(a, m);
+    const disponivel = saldos(estado, fim, 'conta').total;
+    const guardado = saldos(estado, fim, 'reserva').total;
+    meses.push({ ano: a, mes: m, disponivel, guardado, total: disponivel + guardado });
+  }
+  return meses;
+}
+
+/**
+ * Cada categoria do mês ao lado da média dos meses anteriores.
+ *
+ * Irmã de `categoriasAcimaDoNormal`, que só devolve o que estourou para virar
+ * aviso. Esta devolve TODAS, com a diferença para o normal, para a barra do
+ * Resumo poder dizer "38% acima do normal" sem alarme nenhum.
+ *
+ * `media` vem nula quando não há meses anteriores suficientes: um gasto que
+ * apareceu pela primeira vez não está acima nem abaixo de coisa nenhuma, e
+ * inventar uma média de um mês só seria comparar com o acaso.
+ */
+export function comparadoComONormal(estado, ano, mes, filtroContaId, tipo = 'saida') {
+  const anteriores = [];
+  for (let i = 1; i <= MESES_DE_COMPARACAO; i++) {
+    const { ano: a, mes: m } = deslocarMes(ano, mes, -i);
+    anteriores.push(new Map(
+      porCategoria(estado, a, m, filtroContaId, tipo).map((c) => [c.categoriaId, c.valor])));
+  }
+
+  return porCategoria(estado, ano, mes, filtroContaId, tipo).map((linha) => {
+    const gastos = anteriores
+      .map((mapa) => mapa.get(linha.categoriaId) || 0)
+      .filter((v) => v > 0);
+
+    if (gastos.length < 2) return { ...linha, media: null, diferenca: null, mesesComparados: gastos.length };
+
+    const media = Math.round(gastos.reduce((a, b) => a + b, 0) / gastos.length);
+    return { ...linha, media, diferenca: linha.valor - media, mesesComparados: gastos.length };
+  });
+}
+
+/**
+ * Os últimos meses de UMA categoria, para responder se o gasto está
+ * crescendo com o tempo ou se foi só um mês ruim.
+ *
+ * `sem-categoria` é o id que `porCategoria` usa para o que ainda não foi
+ * classificado; funciona igual aqui, e é de propósito — ver o buraco
+ * encolhendo mês a mês é o que mostra que classificar está adiantando.
+ */
+export function historicoDaCategoria(estado, categoriaId, ano, mes, quantidade = 12, tipo = 'saida') {
+  const meses = [];
+  for (let i = quantidade - 1; i >= 0; i--) {
+    const { ano: a, mes: m } = deslocarMes(ano, mes, -i);
+    const linha = porCategoria(estado, a, m, null, tipo).find((c) => c.categoriaId === categoriaId);
+    meses.push({ ano: a, mes: m, valor: linha ? linha.valor : 0 });
+  }
+  return meses;
+}
+
+/**
+ * Lançamentos que parecem ser o mesmo que está sendo salvo agora.
+ *
+ * Existe por três erros encontrados no mesmo dia, 22/09/2026: a mesma
+ * entrada de 308,34 lançada duas vezes no Itaú, dinheiro que era saldo
+ * inicial da caixinha E transferência para ela, e o pagamento de uma fatura
+ * contado sem as compras. Nenhum apareceu como erro — apareceram como saldo,
+ * e ficaram meses assim.
+ *
+ * O critério é estreito de propósito: mesma conta, mesmo dia, mesmo valor.
+ * Dois cafés de R$ 5,00 no mesmo dia existem, então isto PERGUNTA, nunca
+ * impede. Tipo diferente conta: uma entrada de 200 e uma saída de 200 no
+ * mesmo dia são o par de uma transferência, não uma duplicata.
+ */
+export function possiveisRepetidos(estado, dados) {
+  if (!dados || !dados.contaId || !dados.data || !dados.valor) return [];
+  const valor = Math.abs(dados.valor);
+  return estado.lancamentos.filter((l) => l.id !== dados.id
+    && l.data === dados.data
+    && l.tipo === dados.tipo
+    && Math.abs(l.valor) === valor
+    && (l.contaId === dados.contaId
+      || (l.tipo === 'transferencia' && l.contaDestinoId === dados.contaId)));
+}
+
+/* ====================== conferir com o banco =========================== */
+
+/** Depois disto, a conta merece uma olhada. Um mês é o ritmo do extrato. */
+const DIAS_ATE_COBRAR_CONFERENCIA = 30;
+
+/**
+ * Como está a conta em relação ao que o banco disse na última conferência.
+ *
+ * `diferenca` é sempre **app menos banco**, e o sinal importa: nos três erros
+ * de 22/09/2026 ele era POSITIVO, porque o app tinha dinheiro a mais — o
+ * mesmo dinheiro contado duas vezes. Diferença negativa é o contrário, algo
+ * que saiu e não foi lançado.
+ *
+ * A comparação usa o saldo do app NA DATA da conferência, não o de hoje.
+ * Comparar com hoje faria toda compra feita depois virar "diferença", e o
+ * aviso passaria a mentir um dia depois de cada conferência.
+ */
+export function estadoDaConferencia(estado, contaId, hoje) {
+  const conta = estado.contas.find((c) => c.id === contaId);
+  if (!conta) return null;
+
+  const minhas = (estado.conferencias || [])
+    .filter((c) => c.contaId === contaId)
+    .sort((a, b) => (a.data < b.data ? 1 : -1));
+  const ultima = minhas[0] || null;
+
+  if (!ultima) {
+    return { conta, ultima: null, diferenca: null, diasSemConferir: null, pedindo: true };
+  }
+
+  const noApp = saldoDaConta(estado, contaId, ultima.data);
+  const dias = Math.max(0, Math.round(
+    (new Date(hoje) - new Date(ultima.data)) / 86400000));
+
+  return {
+    conta,
+    ultima,
+    noApp,
+    diferenca: noApp - ultima.saldoInformado,
+    diasSemConferir: dias,
+    pedindo: dias >= DIAS_ATE_COBRAR_CONFERENCIA,
+  };
+}
+
+/**
+ * A conferência de todas as contas, com as que têm problema na frente.
+ *
+ * Cartão fica de fora: "quanto o banco diz que você tem" não é pergunta que
+ * se faça a uma fatura, e o saldo de um cartão muda de significado conforme
+ * o dia do ciclo.
+ */
+export function conferencias(estado, hoje) {
+  return estado.contas
+    .filter((c) => tipoDaConta(c) !== 'cartao')
+    .map((c) => estadoDaConferencia(estado, c.id, hoje))
+    .filter(Boolean)
+    .sort((a, b) => Math.abs(b.diferenca || 0) - Math.abs(a.diferenca || 0));
 }

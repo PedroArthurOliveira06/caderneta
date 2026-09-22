@@ -95,6 +95,7 @@ function estadoVazio() {
     categorias: CATEGORIAS_INICIAIS.map((c) => ({ id: id(), ...c })),
     lancamentos: [],
     recorrentes: [],
+    conferencias: [],
   };
 }
 
@@ -191,6 +192,7 @@ function migrar(dados) {
   pronto.lancamentos = (Array.isArray(dados.lancamentos) ? dados.lancamentos : [])
     .map((l) => (l && l.id ? l : { ...l, id: id() }));
   pronto.recorrentes = Array.isArray(dados.recorrentes) ? dados.recorrentes : [];
+  pronto.conferencias = Array.isArray(dados.conferencias) ? dados.conferencias : [];
   return pronto;
 }
 
@@ -340,8 +342,12 @@ export async function sincronizar() {
   // Coisa nova não pode ter poder de veto sobre o que já funcionava.
   const recorrentes = await servidor.listar('recorrentes', 'select=*&order=dia')
     .catch(() => []);
+  const conferencias = await servidor.listar('conferencias', 'select=*&order=data.desc')
+    .catch(() => []);
 
-  const doServidor = mapear.estadoParaApp({ contas, categorias, lancamentos, recorrentes });
+  const doServidor = mapear.estadoParaApp({
+    contas, categorias, lancamentos, recorrentes, conferencias,
+  });
 
   estado = {
     ...estadoVazio(),
@@ -369,6 +375,9 @@ const enviarLancamentos = (lista) =>
 
 const enviarRecorrentes = (lista) =>
   [{ op: 'upsert', tabela: 'recorrentes', linhas: lista.map((r) => mapear.recorrenteParaBanco(r, usuarioId)) }];
+
+const enviarConferencias = (lista) =>
+  [{ op: 'upsert', tabela: 'conferencias', linhas: lista.map((c) => mapear.conferenciaParaBanco(c, usuarioId)) }];
 
 const apagar = (tabela, filtro) => [{ op: 'delete', tabela, filtro }];
 
@@ -702,6 +711,39 @@ export function removerRecorrente(recorrenteId) {
     apagar('recorrentes', 'id=eq.' + recorrenteId));
 }
 
+/* ---------------------- conferir com o banco --------------------------- */
+
+/**
+ * Guarda o que o BANCO dizia hoje, para o app poder comparar.
+ *
+ * Uma por conta por dia: conferir duas vezes no mesmo dia e guardar as
+ * duas encheria a lista de linhas que dizem a mesma coisa. A segunda
+ * corrige a primeira.
+ *
+ * NAO mexe em lancamento nenhum. Conferir e anotar o que o banco diz, nao
+ * acertar o saldo na marra: se o app esta errado, o conserto e achar o
+ * lancamento errado, e para isso a diferenca precisa continuar a vista.
+ */
+export function salvarConferencia(contaId, data, saldoInformado) {
+  let salvo;
+  mutar((e) => {
+    const antiga = e.conferencias.find((c) => c.contaId === contaId && c.data === data);
+    if (antiga) {
+      antiga.saldoInformado = Math.round(saldoInformado);
+      salvo = antiga;
+    } else {
+      salvo = { id: id(), contaId, data, saldoInformado: Math.round(saldoInformado) };
+      e.conferencias.push(salvo);
+    }
+  }, () => (salvo ? enviarConferencias([salvo]) : []));
+  return salvo;
+}
+
+export function removerConferencia(conferenciaId) {
+  mutar((e) => { e.conferencias = e.conferencias.filter((c) => c.id !== conferenciaId); },
+    apagar('conferencias', 'id=eq.' + conferenciaId));
+}
+
 /**
  * Transforma os pendentes do mês em lançamentos de verdade.
  *
@@ -915,6 +957,7 @@ export function importarJSON(texto) {
     e.categorias = pronto.categorias;
     e.lancamentos = pronto.lancamentos;
     e.recorrentes = pronto.recorrentes;
+    e.conferencias = pronto.conferencias;
   }, [
     // Restaurar é substituir: o que havia no servidor sai antes de o
     // arquivo entrar, senão sobrariam lançamentos antigos misturados.
@@ -922,10 +965,12 @@ export function importarJSON(texto) {
     ...apagar('contas', `usuario=eq.${usuarioId}`),
     ...apagar('categorias', `usuario=eq.${usuarioId}`),
     ...apagar('recorrentes', `usuario=eq.${usuarioId}`),
+    ...apagar('conferencias', `usuario=eq.${usuarioId}`),
     ...enviarCategorias(pronto.categorias),
     ...enviarContas(pronto.contas),
     ...enviarLancamentos(pronto.lancamentos),
     ...enviarRecorrentes(pronto.recorrentes),
+    ...enviarConferencias(pronto.conferencias),
   ]);
   return { ok: true, total: estado.lancamentos.length };
 }
@@ -937,5 +982,6 @@ export function apagarTudo() {
     ...apagar('contas', `usuario=eq.${usuarioId}`),
     ...apagar('categorias', `usuario=eq.${usuarioId}`),
     ...apagar('recorrentes', `usuario=eq.${usuarioId}`),
+    ...apagar('conferencias', `usuario=eq.${usuarioId}`),
   ]);
 }

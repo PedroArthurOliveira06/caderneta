@@ -272,7 +272,9 @@
       <div id="resumo-natureza"></div>
       <div id="resumo-acima"></div>
       <div id="resumo-categorias"></div>
+      <div id="resumo-entradas"></div>
       <div id="resumo-contas"></div>
+      <div id="resumo-patrimonio"></div>
       <div id="resumo-evolucao"></div>
     </section>
 
@@ -285,6 +287,15 @@
         <button type="button" id="nova-conta" class="botao botao--secundario botao--largo">
           Adicionar banco ou cartão
         </button>
+      </div>
+
+      <div class="bloco">
+        <h2 class="bloco__titulo">Conferir com o banco</h2>
+        <p class="ajuda">
+          Abra o aplicativo do banco e escreva aqui quanto ele mostra. O app
+          compara com o que ele calculou e avisa se os dois se separaram.
+        </p>
+        <div id="ajustes-conferencias" class="lista-ajuste"></div>
       </div>
 
       <div class="bloco">
@@ -691,6 +702,54 @@
       Para de oferecer nos próximos meses. O que já foi lançado fica onde
       está — aquele dinheiro saiu de verdade.
     </p>
+  </form>
+</dialog>
+
+<dialog id="dialogo-historico" class="dialogo">
+  <form method="dialog" class="formulario">
+    <header class="dialogo__topo">
+      <button type="button" class="botao botao--texto" data-fechar>Fechar</button>
+      <strong id="dialogo-historico-titulo">Categoria</strong>
+      <span></span>
+    </header>
+    <div id="historico-corpo"></div>
+  </form>
+</dialog>
+
+<dialog id="dialogo-conferencia" class="dialogo">
+  <form id="form-conferencia" method="dialog" class="formulario">
+    <header class="dialogo__topo">
+      <button type="button" class="botao botao--texto" data-fechar>Cancelar</button>
+      <strong id="dialogo-conferencia-titulo">Conferir com o banco</strong>
+      <button type="submit" class="botao botao--texto botao--destaque">Salvar</button>
+    </header>
+
+    <input type="hidden" id="conferencia-conta">
+
+    <div class="campo">
+      <label for="conferencia-data">Dia do saldo</label>
+      <input type="date" id="conferencia-data" required>
+      <p class="ajuda">
+        O dia a que esse saldo se refere. Normalmente hoje — mas se você está
+        olhando um extrato de ontem, ponha ontem.
+      </p>
+    </div>
+
+    <div class="campo">
+      <label for="conferencia-valor">Quanto o banco mostra</label>
+      <input type="text" id="conferencia-valor" inputmode="decimal" placeholder="0,00" autocomplete="off" required>
+      <p class="ajuda" id="conferencia-comparacao"></p>
+    </div>
+
+    <p class="ajuda">
+      Isto <strong>não muda nenhum lançamento</strong>. Só anota o que o banco
+      disse, para o app poder mostrar a diferença. Se houver diferença, ela é
+      para ser investigada, não apagada.
+    </p>
+
+    <button type="button" id="excluir-conferencia" class="botao botao--texto botao--perigo botao--largo" hidden>
+      Apagar esta conferência
+    </button>
   </form>
 </dialog>
 

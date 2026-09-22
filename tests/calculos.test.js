@@ -856,3 +856,155 @@ test('nome sem parcela nenhuma continua inteiro', () => {
   // Só no fim: "(parcela 1/2) do curso" é nome, não sufixo.
   assert.equal(calc.semParcela('(parcela 1/2) do curso'), '(parcela 1/2) do curso');
 });
+
+/* ---------------------- as análises do Resumo ------------------------- */
+
+test('guardar na caixinha não parece prejuízo no patrimônio', () => {
+  const e = {
+    contas: [
+      { id: 'banco', nome: 'Banco', tipo: 'conta', saldoInicial: 100000, ordem: 0 },
+      { id: 'caixa', nome: 'Caixinha', tipo: 'reserva', saldoInicial: 0, ordem: 1 },
+      { id: 'cartao', nome: 'Cartão', tipo: 'cartao', saldoInicial: 0, ordem: 2 },
+    ],
+    categorias: [],
+    lancamentos: [
+      { id: '1', data: '2026-09-10', tipo: 'transferencia', valor: 40000, contaId: 'banco', contaDestinoId: 'caixa' },
+      { id: '2', data: '2026-09-11', tipo: 'saida', valor: 5000, contaId: 'cartao' },
+    ],
+  };
+  const [setembro] = calc.patrimonioPorMes(e, 2026, 9, 1);
+
+  // Mandar 400 para a caixinha derruba o disponível e não muda o total: é a
+  // diferença entre guardar e torrar, e é o ponto do gráfico inteiro.
+  assert.equal(setembro.disponivel, 60000);
+  assert.equal(setembro.guardado, 40000);
+  assert.equal(setembro.total, 100000);
+
+  // A fatura de 50 não entra: dívida de cartão não é patrimônio a menos aqui.
+  assert.equal(setembro.total, 100000);
+});
+
+test('categoria comparada com o normal só compara quando há normal', () => {
+  const e = {
+    contas: [{ id: 'a', nome: 'Banco', saldoInicial: 0, ordem: 0 }],
+    categorias: [
+      { id: 'comida', nome: 'Comida', tipo: 'saida' },
+      { id: 'novo', nome: 'Novidade', tipo: 'saida' },
+    ],
+    lancamentos: [
+      { id: '1', data: '2026-06-10', tipo: 'saida', valor: 10000, contaId: 'a', categoriaId: 'comida' },
+      { id: '2', data: '2026-07-10', tipo: 'saida', valor: 20000, contaId: 'a', categoriaId: 'comida' },
+      { id: '3', data: '2026-08-10', tipo: 'saida', valor: 30000, contaId: 'a', categoriaId: 'comida' },
+      { id: '4', data: '2026-09-10', tipo: 'saida', valor: 40000, contaId: 'a', categoriaId: 'comida' },
+      { id: '5', data: '2026-09-11', tipo: 'saida', valor: 9900, contaId: 'a', categoriaId: 'novo' },
+    ],
+  };
+  const linhas = calc.comparadoComONormal(e, 2026, 9);
+  const comida = linhas.find((l) => l.categoriaId === 'comida');
+  const novidade = linhas.find((l) => l.categoriaId === 'novo');
+
+  // Média de junho, julho e agosto = 200. Gastou 400: 200 acima.
+  assert.equal(comida.media, 20000);
+  assert.equal(comida.diferenca, 20000);
+
+  // Gasto que nunca apareceu antes não está acima nem abaixo de nada.
+  assert.equal(novidade.media, null);
+  assert.equal(novidade.diferenca, null);
+});
+
+test('histórico da categoria mostra zero no mês em que ela não apareceu', () => {
+  const e = {
+    contas: [{ id: 'a', nome: 'Banco', saldoInicial: 0, ordem: 0 }],
+    categorias: [{ id: 'comida', nome: 'Comida', tipo: 'saida' }],
+    lancamentos: [
+      { id: '1', data: '2026-07-10', tipo: 'saida', valor: 10000, contaId: 'a', categoriaId: 'comida' },
+      { id: '2', data: '2026-09-10', tipo: 'saida', valor: 30000, contaId: 'a', categoriaId: 'comida' },
+    ],
+  };
+  const meses = calc.historicoDaCategoria(e, 'comida', 2026, 9, 3);
+  assert.deepEqual(meses.map((m) => m.valor), [10000, 0, 30000]);
+});
+
+test('lançamento repetido é achado; o par de uma transferência não é', () => {
+  const e = {
+    contas: [
+      { id: 'a', nome: 'Banco A', saldoInicial: 0, ordem: 0 },
+      { id: 'b', nome: 'Banco B', saldoInicial: 0, ordem: 1 },
+    ],
+    categorias: [],
+    lancamentos: [
+      { id: 'x', data: '2026-08-06', tipo: 'entrada', valor: 30834, contaId: 'a', descricao: 'Retroativo' },
+      { id: 'y', data: '2026-08-06', tipo: 'saida', valor: 30834, contaId: 'a', descricao: 'Outra coisa' },
+      { id: 'z', data: '2026-08-07', tipo: 'entrada', valor: 30834, contaId: 'a', descricao: 'Outro dia' },
+      { id: 'w', data: '2026-08-06', tipo: 'entrada', valor: 30834, contaId: 'b', descricao: 'Outro banco' },
+    ],
+  };
+
+  // O erro do Itaú: a mesma entrada, no mesmo dia, no mesmo banco.
+  const achados = calc.possiveisRepetidos(e, {
+    contaId: 'a', data: '2026-08-06', tipo: 'entrada', valor: 30834,
+  });
+  assert.deepEqual(achados.map((l) => l.id), ['x']);
+
+  // Editar o próprio lançamento não faz dele um repetido de si mesmo.
+  assert.deepEqual(calc.possiveisRepetidos(e, {
+    id: 'x', contaId: 'a', data: '2026-08-06', tipo: 'entrada', valor: 30834,
+  }), []);
+
+  // Saída de 200 e entrada de 200 no mesmo dia são as duas pontas de uma
+  // transferência lançada à mão, não uma duplicata.
+  assert.deepEqual(calc.possiveisRepetidos(e, {
+    contaId: 'a', data: '2026-08-06', tipo: 'saida', valor: 30834,
+  }).map((l) => l.id), ['y']);
+});
+
+test('conferência compara com o saldo do DIA em que foi feita', () => {
+  const e = {
+    contas: [{ id: 'a', nome: 'Banco', tipo: 'conta', saldoInicial: 0, ordem: 0 }],
+    categorias: [],
+    lancamentos: [
+      { id: '1', data: '2026-09-10', tipo: 'entrada', valor: 10000, contaId: 'a' },
+      { id: '2', data: '2026-09-20', tipo: 'saida', valor: 3000, contaId: 'a' },
+    ],
+    conferencias: [{ id: 'c1', contaId: 'a', data: '2026-09-15', saldoInformado: 10000 }],
+  };
+  const r = calc.estadoDaConferencia(e, 'a', '2026-09-22');
+
+  // Em 15/09 o app tinha 100 e o banco dizia 100: confere. A compra do dia 20
+  // veio depois e não pode virar diferença.
+  assert.equal(r.noApp, 10000);
+  assert.equal(r.diferenca, 0);
+  assert.equal(r.diasSemConferir, 7);
+});
+
+test('dinheiro contado duas vezes aparece como diferença positiva', () => {
+  const e = {
+    contas: [{ id: 'a', nome: 'Caixinha', tipo: 'reserva', saldoInicial: 138463, ordem: 0 }],
+    categorias: [],
+    lancamentos: [
+      { id: '1', data: '2026-09-16', tipo: 'entrada', valor: 138300, contaId: 'a' },
+    ],
+    conferencias: [{ id: 'c1', contaId: 'a', data: '2026-09-22', saldoInformado: 138625 }],
+  };
+  const r = calc.estadoDaConferencia(e, 'a', '2026-09-22');
+
+  // O caso real da caixinha: app 2.767,63 contra 1.386,25 do banco. App a
+  // MAIS, que é a assinatura de dinheiro contado duas vezes.
+  assert.equal(r.noApp, 276763);
+  assert.equal(r.diferenca, 138138);
+  assert.ok(r.diferenca > 0);
+});
+
+test('conta nunca conferida pede conferência, e cartão fica de fora', () => {
+  const e = {
+    contas: [
+      { id: 'a', nome: 'Banco', tipo: 'conta', saldoInicial: 0, ordem: 0 },
+      { id: 'cc', nome: 'Cartão', tipo: 'cartao', saldoInicial: 0, ordem: 1 },
+    ],
+    categorias: [], lancamentos: [], conferencias: [],
+  };
+  const lista = calc.conferencias(e, '2026-09-22');
+  assert.deepEqual(lista.map((l) => l.conta.id), ['a']);
+  assert.equal(lista[0].pedindo, true);
+  assert.equal(lista[0].ultima, null);
+});

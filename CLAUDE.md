@@ -53,7 +53,7 @@ testáveis sem navegador.
 
 ```bash
 npm run dev      # http://localhost:4173 (servidor próprio, sem dependências)
-npm test         # 141 testes, Node puro, sem instalar nada
+npm test         # 160 testes, Node puro, sem instalar nada
 npm run versao   # OBRIGATÓRIO antes de cada publicação (ver armadilhas)
 npm run icones   # regera icons/
 ```
@@ -130,7 +130,10 @@ No ar: **https://pedroarthuroliveira06.github.io/caderneta/**
 - Bancos: Banco do Brasil (amarelo), Nubank (roxo), Itaú (laranja),
   Cartão BB (azul), Caixinha do Nubank (roxo claro)
 
-**Pronto:** cartão de crédito, parcelamento, caixinha, lançar escrevendo,
+**Pronto:** conferir com o banco, aviso de lançamento repetido, patrimônio
+mês a mês, categoria comparada com o normal dela, histórico de uma
+categoria, de onde veio o dinheiro, cartão de crédito, parcelamento,
+caixinha, lançar escrevendo,
 login com aprovação manual, recuperação de senha, PIN, modo escuro,
 importação de arquivo (adicionar, acertar contas, mover datas), aviso e
 botão de atualização, lembrete da fatura com o pagamento já preenchido,
@@ -138,7 +141,7 @@ busca em todo o histórico, gastos que se repetem todo mês, classificador em
 lote, categoria aprendida pelo nome, aviso de categoria acima da média,
 cor por categoria.
 
-A cada envio o GitHub roda sozinho os 141 testes e confere se a versão foi
+A cada envio o GitHub roda sozinho os 160 testes e confere se a versão foi
 carimbada — inclusive se o commit mexeu no app sem carimbar, que é o erro
 que os três arquivos de versão concordando entre si NÃO pegam.
 
@@ -157,8 +160,10 @@ do mês, e em 21/09/2026 ele disse que não quer.
 - `db/RODAR-NO-SUPABASE-cor-da-categoria.sql` e
   `db/RODAR-NO-SUPABASE-categoria-dos-dois-lados.sql` — rodados em
   22/09/2026. **Todas as migrações do `db/` estão aplicadas.**
-- Nada pendente com ele em 22/09/2026. Seguro BB e Tarifa MSG cadastrados,
-  categorias salvas uma a uma para as cores subirem, tudo classificado.
+- `db/RODAR-NO-SUPABASE-conferir-com-o-banco.sql` — **ele ainda precisa
+  rodar.** Sem ele o "conferir com o banco" funciona, mas cada conferência
+  fica só no aparelho onde foi feita: a tabela é buscada com
+  `.catch(() => [])` e o envio recusado é descartado, então nada quebra.
 
 **Extrato do BB importado em 21/09/2026.** Sete meses de CSV viraram 159
 lançamentos; o saldo fecha em R$ 60,61, igual ao do banco. Duas coisas que
@@ -201,6 +206,13 @@ Três casos no mesmo dia, todos de dinheiro contado duas vezes:
 
 Primeira pergunta diante de uma diferença: "isso entrou duas vezes?" —
 antes de "o que está faltando?".
+
+Em 22/09/2026 isso virou funcionalidade: `conferencias` guarda o que o
+BANCO dizia num dia, e `estadoDaConferencia` compara com o saldo do app
+**naquela data** — nunca com o de hoje, senão toda compra feita depois da
+conferência viraria diferença e o aviso mentiria no dia seguinte. O aviso
+mora na própria linha do saldo, não numa faixa no topo: alerta longe do
+número que ele acusa faz procurar.
 
 O que sobra depois disso costuma ser **rendimento**, que nenhum extrato
 lança como linha: o saldo só cresce sozinho. Foi 0,39 no BB, 0,04 no Itaú,

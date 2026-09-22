@@ -44,6 +44,12 @@
   --saida-viva: #e63a2e;
   --saida-bg: #fde3e0;
 
+  /* Patrimônio: disponível x guardado. Azul e roxo da capa, porque isto
+     é identidade de LUGAR, não direção — verde e vermelho continuam
+     querendo dizer só entrou e saiu. */
+  --disponivel: #2563d8;
+  --guardado: #a07ce6;
+
   --raio-g: 14px;
   --raio: 10px;
   --raio-p: 7px;
@@ -119,6 +125,9 @@
 
     --selecionado-fundo: #e7eee9;
     --selecionado-texto: #101713;
+
+    --disponivel: #6ba3f0;
+    --guardado: #c9aafb;
 
     --conta-amarelo: #f5c542;
     --conta-azul: #6ba3f0;
@@ -1257,6 +1266,22 @@ button { font: inherit; color: inherit; }
 .barra-categoria__trilho { height: 6px; background: var(--superficie-2); border-radius: 999px; overflow: hidden; }
 .barra-categoria__preenchimento { height: 100%; background: var(--capa-azul); border-radius: 999px; }
 
+/* A barra virou botão. Sem aparência de botão: ela já é uma linha de
+   lista, e uma borda em volta de cada categoria viraria uma grade. */
+.barra-categoria--tocavel {
+  width: 100%; text-align: left; background: none; border: 0;
+  font: inherit; color: inherit; cursor: pointer;
+  padding: 9px 0; min-height: 44px;
+}
+.barra-categoria--tocavel:active { opacity: 0.6; }
+
+/* A cor diz DIREÇÃO do dinheiro, nunca 'subiu' ou 'desceu'. Gastar mais
+   que o normal é vermelho; receber mais que o normal é verde. Ligar o
+   vermelho a 'acima' faria um salário acima da média virar alarme. */
+.barra-categoria__normal { font-size: 0.75rem; }
+.barra-categoria__normal--saiu-mais { color: var(--saida); }
+.barra-categoria__normal--entrou-mais { color: var(--entrada); }
+
 .evolucao {
   display: grid;
   grid-auto-flow: column;
@@ -1272,12 +1297,31 @@ button { font: inherit; color: inherit; }
 .evolucao__coluna { width: 12px; border-radius: 3px 3px 0 0; min-height: 2px; }
 .evolucao__coluna--entrada { background: var(--entrada-viva); }
 .evolucao__coluna--saida { background: var(--saida-viva); }
+
+/* Empilhada: guardado e disponível são partes do mesmo dinheiro, então
+   uma coluna só, repartida — e não duas lado a lado, que fariam guardar
+   parecer perder. */
+.evolucao__colunas--empilhada { flex-direction: column-reverse; gap: 0; }
+.evolucao__colunas--empilhada .evolucao__coluna { width: 16px; border-radius: 0; }
+.evolucao__colunas--empilhada .evolucao__coluna--guardado { border-radius: 3px 3px 0 0; }
+.evolucao__coluna--disponivel { background: var(--disponivel); }
+.evolucao__coluna--guardado { background: var(--guardado); }
+
+/* Dentro do diálogo há altura de sobra, e doze meses num gráfico baixo
+   viram uma linha reta — a diferença entre os meses some. */
+.evolucao--alta { height: 160px; }
+.evolucao--alta .evolucao__coluna { width: 14px; }
 .evolucao__rotulo { font-size: 0.6875rem; color: var(--texto-fraco); }
 .evolucao__rotulo--atual { color: var(--texto); font-weight: 600; }
 
 .legenda { display: flex; gap: 16px; font-size: 0.75rem; color: var(--texto-fraco); margin-top: 12px; }
 .legenda__item { display: flex; align-items: center; gap: 6px; }
 .legenda__marca { width: 10px; height: 10px; border-radius: 3px; }
+
+/* Saldo que não bate com o banco, e a linha da conferência que o diz. */
+.saldo-conta__antes--alerta { color: var(--saida); font-weight: 600; }
+.linha-ajuste__meta--alerta { color: var(--saida); font-weight: 600; }
+.ajuda--alerta { color: var(--saida); font-weight: 600; }
 
 /* ============================= ajustes ================================ */
 

@@ -158,12 +158,37 @@ export function recorrenteParaBanco(r, usuario) {
 
 /* ------------------------------ atalhos --------------------------------- */
 
-export function estadoParaApp({ contas = [], categorias = [], lancamentos = [], recorrentes = [] }) {
+/**
+ * Uma conferencia e o que o BANCO dizia num dia: o app guarda para poder
+ * responder 'confere' ou 'nao confere' depois, e para saber ha quanto tempo
+ * ninguem olha para aquela conta.
+ */
+export function conferenciaParaApp(linha) {
+  return {
+    id: linha.id,
+    contaId: linha.conta_id,
+    data: linha.data,
+    saldoInformado: Number(linha.saldo_informado) || 0,
+  };
+}
+
+export function conferenciaParaBanco(c, usuario) {
+  return {
+    id: c.id,
+    usuario,
+    conta_id: c.contaId,
+    data: c.data,
+    saldo_informado: Math.round(c.saldoInformado || 0),
+  };
+}
+
+export function estadoParaApp({ contas = [], categorias = [], lancamentos = [], recorrentes = [], conferencias = [] }) {
   return {
     contas: contas.map(contaParaApp).sort((a, b) => a.ordem - b.ordem),
     categorias: categorias.map(categoriaParaApp),
     lancamentos: lancamentos.map(lancamentoParaApp),
     recorrentes: recorrentes.map(recorrenteParaApp),
+    conferencias: conferencias.map(conferenciaParaApp),
   };
 }
 
@@ -208,6 +233,11 @@ export function renomearIds(pronto, novoId) {
       id: novo(r.id),
       contaId: novo(r.contaId),
       categoriaId: novo(r.categoriaId),
+    })),
+    conferencias: (pronto.conferencias || []).map((c) => ({
+      ...c,
+      id: novo(c.id),
+      contaId: novo(c.contaId),
     })),
   };
 }

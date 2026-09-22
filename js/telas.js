@@ -31,6 +31,13 @@ export function pintarSaldos(estado, contexto) {
   // tem "largura" de dinheiro guardado, e somá-lo distorceria as fatias.
   const somaPositiva = linhas.reduce((s, l) => s + Math.max(l.saldo, 0), 0);
 
+  // O aviso de 'não confere' mora na própria linha do saldo, e não numa
+  // faixa no topo: a tela tem de começar mostrando extrato, e um alerta
+  // longe do número que ele acusa faz procurar.
+  const naoConfere = new Map(calc.conferencias(estado, fmt.hojeISO())
+    .filter((c) => c.ultima && c.diferenca !== 0)
+    .map((c) => [c.conta.id, c.diferenca]));
+
   const hoje = fmt.hojeISO();
   const ehMesCorrente = fmt.chaveMes(hoje) === `${ano}-${String(mes).padStart(2, '0')}`;
 
@@ -60,7 +67,7 @@ export function pintarSaldos(estado, contexto) {
     // metades de cabeça, e a tela inicial acabava antes do primeiro
     // lançamento aparecer.
     el('div', { class: 'saldos-contas' }, [
-      ...linhas.map((l) => linhaDeSaldo(l, null, aoTocarConta, antes.get(l.conta.id))),
+      ...linhas.map((l) => linhaDeSaldo(l, null, aoTocarConta, antes.get(l.conta.id), naoConfere.get(l.conta.id))),
 
       // Uma frase explica os dois grupos de uma vez, no lugar de um rótulo
       // repetido em cada linha: o que vem abaixo dela existe, mas não entra
@@ -72,7 +79,7 @@ export function pintarSaldos(estado, contexto) {
       // "De onde veio" só nos bancos, que foi o que ele pediu. Na caixinha o
       // saldo quase não muda, e no cartão o número já É o do mês — em nenhum
       // dos dois a comparação com o mês passado responde alguma coisa.
-      ...reservas.linhas.map((l) => linhaDeSaldo(l, null, aoTocarConta)),
+      ...reservas.linhas.map((l) => linhaDeSaldo(l, null, aoTocarConta, undefined, naoConfere.get(l.conta.id))),
       ...cartoes.linhas.map((l) => linhaDeSaldo(l, 'fatura', aoTocarConta)),
     ]),
 
@@ -99,7 +106,7 @@ export function pintarSaldos(estado, contexto) {
  * que é caixinha, e a frase acima do grupo já explicou por que ela está
  * separada. Um rótulo a mais ali só fazia o nome quebrar em duas linhas.
  */
-function linhaDeSaldo(l, marca, aoTocarConta, saldoAntes) {
+function linhaDeSaldo(l, marca, aoTocarConta, saldoAntes, diferenca) {
   const deve = marca === 'fatura' && l.saldo < 0;
   const valor = deve ? -l.saldo : l.saldo;
   const mexeu = typeof saldoAntes === 'number' && saldoAntes !== l.saldo;
@@ -114,12 +121,20 @@ function linhaDeSaldo(l, marca, aoTocarConta, saldoAntes) {
       el('span', { class: 'saldo-conta__nome', texto: l.conta.nome }),
       // Só quando mudou. Repetir o mesmo número duas vezes na mesma linha
       // não conta nada, e num mês sem movimento seria só ruído.
-      mexeu
+      // A conferência vem na frente do 'começou o mês com': saber que o
+      // número está errado importa mais do que saber de onde ele veio.
+      diferenca
         ? el('span', {
-            class: 'saldo-conta__antes',
-            texto: `começou o mês com ${fmt.moeda(marca === 'fatura' ? -saldoAntes : saldoAntes)}`,
+            class: 'saldo-conta__antes saldo-conta__antes--alerta',
+            texto: `não confere: ${fmt.moeda(Math.abs(diferenca))} `
+              + `${diferenca > 0 ? 'a mais' : 'a menos'} que o banco`,
           })
-        : null,
+        : mexeu
+          ? el('span', {
+              class: 'saldo-conta__antes',
+              texto: `começou o mês com ${fmt.moeda(marca === 'fatura' ? -saldoAntes : saldoAntes)}`,
+            })
+          : null,
     ]),
     marca
       ? el('span', { class: 'saldo-conta__marca', texto: deve ? 'fatura' : marca })
@@ -495,6 +510,64 @@ export function pintarAvisoDeClassificar(estado, contexto) {
   ]));
 }
 
+/**
+ * Uma barra de categoria: nome, quanto, quanto isso é do total, e — quando
+ * há com que comparar — o tanto que foge do normal dela.
+ *
+ * Ela é um BOTÃO porque o número de um mês não responde a pergunta que vem
+ * logo depois: 'isso está subindo ou foi só este mês?'. Tocar abre os doze
+ * meses daquela categoria.
+ */
+/** Quantos meses cabem entre o primeiro lançamento e o mês que está na tela. */
+function mesesDeHistorico(estado, ano, mes, teto) {
+  const primeiro = calc.primeiroMes(estado);
+  if (!primeiro) return 1;
+  const distancia = (ano * 12 + mes) - (primeiro.ano * 12 + primeiro.mes) + 1;
+  return Math.max(1, Math.min(teto, distancia));
+}
+
+function barraDeCategoria(linha, maior, estado, contexto, tipo = 'saida') {
+  const fora = linha.media !== null && linha.diferenca !== null
+    // Menos que isso é oscilação de mês, não notícia: dizer '3% acima do
+    // normal' em toda barra transformaria o aviso em decoração.
+    && Math.abs(linha.diferenca) >= Math.max(2000, linha.media * 0.15);
+
+  const acima = fora && linha.diferenca > 0;
+  // Mais gasto OU menos entrada: nos dois casos sobrou menos dinheiro.
+  const saiuMais = tipo === 'saida' ? acima : !acima;
+
+  return el('button', {
+    class: 'barra-categoria barra-categoria--tocavel',
+    type: 'button',
+    onclick: () => contexto.aoTocarCategoria && contexto.aoTocarCategoria(linha.categoriaId),
+  }, [
+    el('div', { class: 'barra-categoria__topo' }, [
+      el('span', { class: 'barra-categoria__nome' }, [
+        linha.categoria.nome,
+        el('span', { class: 'barra-categoria__fatia', texto: `${Math.round(linha.fatia * 100)}%` }),
+      ]),
+      el('span', { class: 'barra-categoria__valor', texto: fmt.moeda(linha.valor) }),
+    ]),
+    el('div', { class: 'barra-categoria__trilho' }, [
+      el('div', {
+        class: 'barra-categoria__preenchimento',
+        estilo: {
+          width: `${maior ? (linha.valor / maior) * 100 : 0}%`,
+          background: hexDaCategoria(linha.categoria, estado.categorias),
+        },
+      }),
+    ]),
+    fora
+      ? el('span', {
+          class: 'barra-categoria__normal barra-categoria__normal--'
+            + (saiuMais ? 'saiu-mais' : 'entrou-mais'),
+          texto: `${fmt.moeda(Math.abs(linha.diferenca))} ${acima ? 'acima' : 'abaixo'}`
+            + ` do normal (${fmt.moeda(linha.media)})`,
+        })
+      : null,
+  ]);
+}
+
 export function pintarResumo(estado, contexto) {
   const { ano, mes, filtroContaId } = contexto;
   const totais = calc.totaisDoMes(estado, ano, mes, filtroContaId);
@@ -553,33 +626,31 @@ export function pintarResumo(estado, contexto) {
     : null);
 
   /* ---- gasto por categoria ---- */
-  const categorias = calc.porCategoria(estado, ano, mes, filtroContaId);
+  const categorias = calc.comparadoComONormal(estado, ano, mes, filtroContaId);
   const maior = categorias.length ? categorias[0].valor : 0;
 
   trocar(document.getElementById('resumo-categorias'),
     el('div', { class: 'bloco' }, [
       el('h2', { class: 'bloco__titulo', texto: 'Para onde foi o dinheiro' }),
       categorias.length
-        ? el('div', {}, categorias.map((linha) => el('div', { class: 'barra-categoria' }, [
-            el('div', { class: 'barra-categoria__topo' }, [
-              el('span', { class: 'barra-categoria__nome' }, [
-                linha.categoria.nome,
-                el('span', { class: 'barra-categoria__fatia', texto: `${Math.round(linha.fatia * 100)}%` }),
-              ]),
-              el('span', { class: 'barra-categoria__valor', texto: fmt.moeda(linha.valor) }),
-            ]),
-            el('div', { class: 'barra-categoria__trilho' }, [
-              el('div', {
-                class: 'barra-categoria__preenchimento',
-                estilo: {
-                  width: `${maior ? (linha.valor / maior) * 100 : 0}%`,
-                  background: hexDaCategoria(linha.categoria, estado.categorias),
-                },
-              }),
-            ]),
-          ])))
+        ? el('div', {}, categorias.map((linha) =>
+            barraDeCategoria(linha, maior, estado, contexto)))
         : vazio('Sem gastos neste mês', 'Quando houver gastos, eles aparecem aqui ranqueados por categoria.'),
     ]));
+
+  /* ---- de onde veio o dinheiro ---- */
+  // O contrário do bloco de cima. Some quando não houve entrada no mês, em
+  // vez de mostrar uma lista vazia: mês sem entrada é comum e não é notícia.
+  const entradas = calc.comparadoComONormal(estado, ano, mes, filtroContaId, 'entrada');
+  const maiorEntrada = entradas.length ? entradas[0].valor : 0;
+
+  trocar(document.getElementById('resumo-entradas'), entradas.length
+    ? el('div', { class: 'bloco' }, [
+        el('h2', { class: 'bloco__titulo', texto: 'De onde veio o dinheiro' }),
+        el('div', {}, entradas.map((linha) =>
+          barraDeCategoria(linha, maiorEntrada, estado, contexto, 'entrada'))),
+      ])
+    : null);
 
   /* ---- gasto por banco ---- */
   // Conta sem gasto nenhum no mês sai da lista. A caixinha é o caso que
@@ -607,6 +678,63 @@ export function pintarResumo(estado, contexto) {
         ]),
       ]))),
     ]));
+
+  /* ---- estou juntando ou torrando? ---- */
+  // Precisa de pelo menos dois meses: um ponto sozinho não é tendência, é
+  // um número, e o Extrato já mostra esse número melhor do que um gráfico.
+  const patrimonio = calc.patrimonioPorMes(estado, ano, mes,
+    mesesDeHistorico(estado, ano, mes, 12));
+  const tetoPat = Math.max(...patrimonio.map((m) => m.total), 1);
+  const primeiro = patrimonio[0];
+  const ultimo = patrimonio[patrimonio.length - 1];
+  const variacao = patrimonio.length > 1 ? ultimo.total - primeiro.total : null;
+
+  trocar(document.getElementById('resumo-patrimonio'), patrimonio.length > 1
+    ? el('div', { class: 'bloco' }, [
+        el('h2', { class: 'bloco__titulo', texto: 'Quanto você tinha, mês a mês' }),
+
+        el('div', { class: 'evolucao' }, patrimonio.map((m, i) => el('div', { class: 'evolucao__mes' }, [
+          el('div', { class: 'evolucao__colunas evolucao__colunas--empilhada' }, [
+            // Empilhado, e não lado a lado: guardado e disponível são partes
+            // do MESMO dinheiro. Duas colunas separadas fariam parecer que
+            // mandar para a caixinha some com o dinheiro de um lugar.
+            el('span', {
+              class: 'evolucao__coluna evolucao__coluna--guardado',
+              estilo: { height: `${(Math.max(m.guardado, 0) / tetoPat) * 100}%` },
+              title: `Guardado ${fmt.moeda(m.guardado)}`,
+            }),
+            el('span', {
+              class: 'evolucao__coluna evolucao__coluna--disponivel',
+              estilo: { height: `${(Math.max(m.disponivel, 0) / tetoPat) * 100}%` },
+              title: `Disponível ${fmt.moeda(m.disponivel)}`,
+            }),
+          ]),
+          el('span', {
+            class: `evolucao__rotulo${i === patrimonio.length - 1 ? ' evolucao__rotulo--atual' : ''}`,
+            texto: fmt.mesCurto(m.mes),
+          }),
+        ]))),
+
+        el('div', { class: 'legenda' }, [
+          el('span', { class: 'legenda__item' }, [
+            el('span', { class: 'legenda__marca', estilo: { background: 'var(--disponivel)' } }), 'Disponível',
+          ]),
+          el('span', { class: 'legenda__item' }, [
+            el('span', { class: 'legenda__marca', estilo: { background: 'var(--guardado)' } }), 'Guardado',
+          ]),
+        ]),
+
+        el('p', { class: 'ajuda', texto: variacao === 0
+          ? `Você tem hoje o mesmo que tinha em ${fmt.mesPorExtenso(primeiro.ano, primeiro.mes)}.`
+          : variacao > 0
+            ? `De ${fmt.mesPorExtenso(primeiro.ano, primeiro.mes)} para cá você juntou ${fmt.moeda(variacao)}.`
+            : `De ${fmt.mesPorExtenso(primeiro.ano, primeiro.mes)} para cá você tem ${fmt.moeda(-variacao)} a menos.` }),
+
+        el('p', { class: 'ajuda', texto: 'A fatura do cartão não entra aqui:'
+          + ' ela é dívida de um mês, e faria o mês do vencimento dar um tranco'
+          + ' que não é do seu dinheiro.' }),
+      ])
+    : null);
 
   /* ---- evolução ---- */
   const meses = calc.evolucao(estado, ano, mes, 6);
@@ -705,6 +833,7 @@ export function pintarAjustes(estado, contexto) {
         el('span', { class: 'linha-ajuste__acao', texto: 'Editar' }),
       ])));
 
+  pintarConferenciasNosAjustes(estado, contexto);
   pintarRecorrentesNosAjustes(estado, contexto);
 
   // Gastos primeiro, depois as que servem aos dois, depois as entradas — do
@@ -763,4 +892,96 @@ function pintarRecorrentesNosAjustes(estado, contexto) {
         }),
       ]);
     }));
+}
+
+/**
+ * A lista de 'conferir com o banco': uma linha por conta, dizendo se bate.
+ *
+ * O texto da linha é a resposta inteira, sem precisar abrir nada: ou 'confere',
+ * ou quanto está sobrando ou faltando. Um app que só diz 'conferido em 22/09'
+ * obriga a pessoa a fazer a subtração de cabeça, que é justamente o trabalho
+ * que ele deveria poupar.
+ */
+function pintarConferenciasNosAjustes(estado, contexto) {
+  const { hoje, aoConferir } = contexto;
+
+  trocar(document.getElementById('ajustes-conferencias'),
+    calc.conferencias(estado, hoje).map((c) => {
+      const bate = c.ultima && c.diferenca === 0;
+      const meta = !c.ultima
+        ? 'nunca conferido'
+        : bate
+          ? `confere — conferido ${fmt.dataCurta(c.ultima.data)}`
+          : `o app tem ${fmt.moeda(Math.abs(c.diferenca))} `
+            + `${c.diferenca > 0 ? 'a mais' : 'a menos'} que o banco`;
+
+      return el('button', {
+        class: 'linha-ajuste',
+        type: 'button',
+        onclick: () => aoConferir(c.conta.id),
+      }, [
+        el('span', { class: 'linha-ajuste__spine', estilo: { background: hexDaConta(c.conta) } }),
+        el('span', { class: 'linha-ajuste__corpo' }, [
+          el('span', { class: 'linha-ajuste__nome', texto: c.conta.nome }),
+          el('span', {
+            class: `linha-ajuste__meta${!bate && c.ultima ? ' linha-ajuste__meta--alerta' : ''}`,
+            texto: meta,
+          }),
+        ]),
+        el('span', { class: 'linha-ajuste__acao', texto: c.ultima ? 'Conferir' : 'Conferir' }),
+      ]);
+    }));
+}
+
+/**
+ * Os últimos meses de uma categoria, desenhados dentro do diálogo.
+ *
+ * Responde a pergunta que a barra do mês não responde: se aquilo está
+ * subindo com o tempo ou se foi só um mês ruim. A média fica marcada por uma
+ * linha, porque 'alto' só quer dizer alguma coisa comparado a alguma coisa.
+ */
+export function pintarHistoricoDaCategoria(estado, categoriaId, contexto) {
+  const { ano, mes, tipo = 'saida' } = contexto;
+  const meses = calc.historicoDaCategoria(estado, categoriaId, ano, mes,
+    mesesDeHistorico(estado, ano, mes, 12), tipo);
+  const categoria = estado.categorias.find((c) => c.id === categoriaId);
+  const nome = categoria ? categoria.nome : 'Sem categoria';
+
+  const comGasto = meses.filter((m) => m.valor > 0);
+  const media = comGasto.length
+    ? Math.round(comGasto.reduce((s, m) => s + m.valor, 0) / comGasto.length)
+    : 0;
+  const teto = Math.max(...meses.map((m) => m.valor), 1);
+
+  document.getElementById('dialogo-historico-titulo').textContent = nome;
+
+  trocar(document.getElementById('historico-corpo'),
+    el('div', { class: 'evolucao evolucao--alta' }, meses.map((m, i) => el('div', { class: 'evolucao__mes' }, [
+      el('div', { class: 'evolucao__colunas' }, [
+        el('span', {
+          class: 'evolucao__coluna evolucao__coluna--categoria',
+          estilo: {
+            height: `${(m.valor / teto) * 100}%`,
+            background: categoria ? hexDaCategoria(categoria, estado.categorias) : 'var(--linha-forte)',
+          },
+          title: `${fmt.mesCurto(m.mes)}: ${fmt.moeda(m.valor)}`,
+        }),
+      ]),
+      el('span', {
+        class: `evolucao__rotulo${i === meses.length - 1 ? ' evolucao__rotulo--atual' : ''}`,
+        texto: fmt.mesCurto(m.mes),
+      }),
+    ]))),
+
+    el('p', { class: 'ajuda', texto: media
+      ? `Nos meses em que apareceu, a média é ${fmt.moeda(media)}.`
+      : 'Sem gasto nenhum nestes meses.' }),
+
+    // Mês sem gasto fica de fora da média de propósito: o exame que acontece
+    // de três em três meses custa o que custa, não um terço disso.
+    comGasto.length && comGasto.length < meses.length
+      ? el('p', { class: 'ajuda', texto: `Apareceu em ${comGasto.length} dos ${meses.length} meses.`
+          + ' Os meses sem gasto não entram na média.' })
+      : null,
+  );
 }

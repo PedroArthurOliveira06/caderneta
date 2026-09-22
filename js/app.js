@@ -64,6 +64,7 @@ async function iniciar() {
   ligarDialogoLancamento();
   ligarDialogoConta();
   ligarDialogoRecorrente();
+  ligarDialogoConferencia();
   ligarClassificador();
   ligarDialogoCategoria();
   ligarDialogos();
@@ -429,6 +430,8 @@ function pintar() {
     aoTocarConta: (id) => { visao.filtroContaId = visao.filtroContaId === id ? null : id; pintar(); },
     aoTocarLancamento: (id) => abrirLancamento(id),
     aoEditarConta: (id) => abrirConta(id),
+    aoTocarCategoria: (id) => abrirHistorico(id),
+    aoConferir: (id) => abrirConferencia(id),
     hoje,
     aoPagarFatura: (fatura) => pagarFatura(fatura),
     aoEditarCategoria: (id) => editarCategoria(id),
@@ -688,6 +691,20 @@ function ligarDialogoLancamento() {
       registro.categoriaId = $('lancamento-categoria').value || null;
       // Só faz sentido guardar no cartão; em banco o campo fica vazio.
       registro.natureza = dados.ehCartao(dados.conta(contaId)) ? naturezaEmEdicao : null;
+    }
+
+    // Perguntar, nunca impedir: dois cafés de R$ 5 no mesmo dia existem.
+    // Mas o mesmo lançamento duas vezes também existe, e esse não avisa —
+    // vira saldo, e fica meses assim.
+    const iguais = calc.possiveisRepetidos(dados.obter(), registro);
+    if (iguais.length) {
+      const outro = iguais[0];
+      const nome = calc.rotuloDoLancamento(dados.obter(), outro);
+      if (!confirm(`Já existe "${nome}" de ${fmt.moeda(outro.valor)} neste banco`
+        + ` no dia ${fmt.dataCurta(outro.data)}. Lançar assim mesmo?`)) {
+        evento.preventDefault();
+        return;
+      }
     }
 
     const vezes = Number($('lancamento-parcelas').value || 1);
@@ -1141,6 +1158,45 @@ function mostrarProximoGrupo() {
 let tipoRecorrenteEmEdicao = 'saida';
 let naturezaRecorrenteEmEdicao = 'corrente';
 
+function ligarDialogoConferencia() {
+  const dialogo = $('dialogo-conferencia');
+  aplicarMascaraDeValor($('conferencia-valor'));
+
+  // A conta refaz a cada tecla e a cada troca de dia: a diferença tem de
+  // aparecer enquanto ele olha para o banco, não depois de salvar.
+  $('conferencia-valor').addEventListener('input', compararConferencia);
+  $('conferencia-data').addEventListener('change', compararConferencia);
+
+  $('excluir-conferencia').addEventListener('click', () => {
+    const atual = calc.estadoDaConferencia(dados.obter(), $('conferencia-conta').value, hoje);
+    if (!atual || !atual.ultima) return;
+    if (!confirm('Apagar esta conferência? O saldo do app não muda.')) return;
+    dados.removerConferencia(atual.ultima.id);
+    dialogo.close();
+    recado('Conferência apagada.');
+  });
+
+  $('form-conferencia').addEventListener('submit', (evento) => {
+    const contaId = $('conferencia-conta').value;
+    const data = $('conferencia-data').value;
+    const digitado = $('conferencia-valor').value.trim();
+
+    if (!contaId || !data || !digitado) {
+      evento.preventDefault();
+      recado('Falta o valor que o banco mostra.');
+      return;
+    }
+
+    const informado = fmt.paraCentavos(digitado);
+    dados.salvarConferencia(contaId, data, informado);
+
+    const diferenca = calc.saldoDaConta(dados.obter(), contaId, data) - informado;
+    recado(diferenca === 0
+      ? 'Confere.'
+      : `Anotado. Sobra uma diferença de ${fmt.moeda(Math.abs(diferenca))}.`);
+  });
+}
+
 function ligarDialogoRecorrente() {
   const dialogo = $('dialogo-recorrente');
 
@@ -1221,6 +1277,73 @@ function aplicarTipoRecorrente() {
 function pintarNaturezaRecorrente() {
   $('dialogo-recorrente').querySelectorAll('[data-natureza-recorrente]').forEach((b) =>
     b.classList.toggle('segmento--ativo', b.dataset.naturezaRecorrente === naturezaRecorrenteEmEdicao));
+}
+
+/* ---------------------- conferir com o banco --------------------------- */
+
+/**
+ * Abre a conferência de uma conta já com o dia de hoje e, se houver, o que
+ * o banco disse da última vez.
+ *
+ * A comparação aparece enquanto ele digita, e não só depois de salvar: o
+ * valor certo é o que ele está lendo na tela do banco naquele instante, e
+ * fazer salvar para só então descobrir a diferença obriga a voltar.
+ */
+function abrirConferencia(contaId) {
+  const estado = dados.obter();
+  const alvo = estado.contas.find((c) => c.id === contaId);
+  if (!alvo) return;
+
+  const atual = calc.estadoDaConferencia(estado, contaId, hoje);
+  $('dialogo-conferencia-titulo').textContent = alvo.nome;
+  $('conferencia-conta').value = contaId;
+  $('conferencia-data').value = hoje;
+  $('conferencia-valor').value = atual && atual.ultima && atual.ultima.data === hoje
+    ? fmt.valor(atual.ultima.saldoInformado)
+    : '';
+  $('excluir-conferencia').hidden = !(atual && atual.ultima);
+
+  compararConferencia();
+  abrirDialogo('dialogo-conferencia');
+  $('conferencia-valor').focus();
+}
+
+/** A frase embaixo do campo: quanto o app tem naquele dia, e a diferença. */
+function compararConferencia() {
+  const contaId = $('conferencia-conta').value;
+  const data = $('conferencia-data').value;
+  const texto = $('conferencia-comparacao');
+  if (!contaId || !data) { texto.textContent = ''; return; }
+
+  const noApp = calc.saldoDaConta(dados.obter(), contaId, data);
+  const digitado = $('conferencia-valor').value.trim();
+
+  if (!digitado) {
+    texto.textContent = `Neste dia o app calcula ${fmt.moeda(noApp)}.`;
+    texto.classList.remove('ajuda--alerta');
+    return;
+  }
+
+  const diferenca = noApp - fmt.paraCentavos(digitado);
+  texto.classList.toggle('ajuda--alerta', diferenca !== 0);
+  texto.textContent = diferenca === 0
+    ? `Confere: o app também calcula ${fmt.moeda(noApp)}.`
+    : `O app calcula ${fmt.moeda(noApp)} — ${fmt.moeda(Math.abs(diferenca))} `
+      + `${diferenca > 0 ? 'a mais' : 'a menos'} que o banco.`;
+}
+
+/* ------------------- histórico de uma categoria ------------------------ */
+
+function abrirHistorico(categoriaId) {
+  const alvo = dados.obter().categorias.find((c) => c.id === categoriaId);
+  telas.pintarHistoricoDaCategoria(dados.obter(), categoriaId, {
+    ano: visao.ano,
+    mes: visao.mes,
+    // Categoria dos dois lados aparece nos dois blocos do Resumo; o histórico
+    // segue o lado que ela tem, e 'ambos' cai no gasto, que é o mais comum.
+    tipo: alvo && alvo.tipo === 'entrada' ? 'entrada' : 'saida',
+  });
+  abrirDialogo('dialogo-historico');
 }
 
 function abrirRecorrente(recorrenteId) {
