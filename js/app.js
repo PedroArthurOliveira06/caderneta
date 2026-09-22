@@ -246,6 +246,11 @@ function ligarDialogos() {
 
   for (const dialogo of document.querySelectorAll('dialog')) {
     observador.observe(dialogo, { attributes: true, attributeFilter: ['open'] });
+
+    // Fechar não pode depender de alguém lembrar: o botão está no HTML de
+    // cada diálogo, e quem varre os diálogos é aqui.
+    dialogo.querySelectorAll('[data-fechar]').forEach((b) =>
+      b.addEventListener('click', () => dialogo.close()));
   }
 }
 
@@ -584,9 +589,6 @@ let naturezaEmEdicao = 'esporadico';
 
 function ligarDialogoLancamento() {
   const dialogo = $('dialogo-lancamento');
-
-  dialogo.querySelectorAll('[data-fechar]').forEach((b) =>
-    b.addEventListener('click', () => dialogo.close()));
 
   dialogo.querySelectorAll('.segmento').forEach((botao) => {
     botao.addEventListener('click', () => {
@@ -937,9 +939,6 @@ let tipoContaEmEdicao = 'conta';
 function ligarDialogoConta() {
   const dialogo = $('dialogo-conta');
 
-  dialogo.querySelectorAll('[data-fechar]').forEach((b) =>
-    b.addEventListener('click', () => dialogo.close()));
-
   dialogo.querySelectorAll('[data-tipo-conta]').forEach((botao) => {
     botao.addEventListener('click', () => {
       tipoContaEmEdicao = botao.dataset.tipoConta;
@@ -1068,10 +1067,6 @@ function pintarCores() {
 let pulados = new Set();
 
 function ligarClassificador() {
-  $('dialogo-classificar')
-    .querySelector('[data-fechar-classificar]')
-    .addEventListener('click', () => $('dialogo-classificar').close());
-
   $('classificar-pular').addEventListener('click', () => {
     const grupo = grupoAtual();
     if (grupo) pulados.add(grupo.chave);
@@ -1200,7 +1195,6 @@ function ligarDialogoConferencia() {
 function ligarDialogoRecorrente() {
   const dialogo = $('dialogo-recorrente');
 
-  dialogo.querySelector('[data-fechar]').addEventListener('click', () => dialogo.close());
   aplicarMascaraDeValor($('recorrente-valor'));
 
   dialogo.querySelectorAll('[data-tipo-recorrente]').forEach((botao) => {
@@ -1461,9 +1455,6 @@ let tipoDaCategoriaEmEdicao = 'saida';
 
 function ligarDialogoCategoria() {
   const dialogo = $('dialogo-categoria');
-
-  dialogo.querySelector('[data-fechar-categoria]')
-    .addEventListener('click', () => dialogo.close());
 
   $('excluir-categoria').addEventListener('click', () => {
     const alvo = dados.categoria($('categoria-id').value);

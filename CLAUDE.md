@@ -249,6 +249,11 @@ Três erros meus em fila. O padrão vale para o que vier:
   servidor — nunca num 500 nem numa falha sem status.
 - **`el()` faz SVG agora**, com `createElementNS`, e `class` vai por
   `setAttribute`. Antes criava uma caixa vazia sem desenho, sem erro nenhum.
+- **O botão `[data-fechar]` é ligado em `ligarDialogos()`, para todos os
+  diálogos de uma vez.** Antes cada `ligarDialogoX()` ligava o seu, e em
+  22/09/2026 criei dois diálogos novos e esqueci a linha nos dois: o botão
+  ficou ali, bonito, sem fazer nada. Quem varre os diálogos já existe —
+  ligar o botão lá tira o passo que dá para esquecer.
 - **O evento `close` do `<dialog>` não dispara em todo navegador.** O
   atributo `open` vai e volta certinho, o evento nunca chega. Quem precisa
   saber que um diálogo fechou observa o atributo (`MutationObserver`), não o
