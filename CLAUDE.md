@@ -122,8 +122,11 @@ No ar: **https://pedroarthuroliveira06.github.io/caderneta/**
 
 - GitHub: `PedroArthurOliveira06`, repositório `caderneta`, público
 - Supabase: projeto `sbelyvcsbilsgpzlecuw`; ele é dono e aprovado
-- Usa nos dois aparelhos, com 154 lançamentos importados da planilha antiga
-  (março a setembro/2026)
+- Usa nos dois aparelhos. Em 22/09/2026 o app passou a ter o histórico
+  INTEIRO de março a setembro/2026 — planilha antiga, extrato do BB e as
+  seis faturas do cartão — e as **cinco contas batem com o banco ao
+  centavo**: BB 61,00 · Nubank 158,43 · Itaú 1.000,42 · Caixinha 1.386,25 ·
+  Cartão −32,80
 - Bancos: Banco do Brasil (amarelo), Nubank (roxo), Itaú (laranja),
   Cartão BB (azul), Caixinha do Nubank (roxo claro)
 
@@ -188,6 +191,23 @@ setembro. Mais três armadilhas:
   doze parcelas em fevereiro. Mês da fatura menos um.
 - `pdftotext -raw` dá uma linha por lançamento; `-layout` separa a coluna
   de valores das descrições e embaralha tudo.
+
+**Quando um saldo não bate, o app costuma ter dinheiro A MAIS, não a menos.**
+Três casos no mesmo dia, todos de dinheiro contado duas vezes:
+
+- **Itaú:** a mesma entrada de 308,34 lançada como transferência do Nubank
+  *e* como entrada solta.
+- **Caixinha:** criada com `saldoInicial` 1.384,63 *e* recebendo a
+  transferência de 1.383,00 que era esse mesmo dinheiro. Conta nova cujo
+  dinheiro veio de outra conta do app começa com saldo inicial ZERO.
+- **Cartão:** o pagamento da fatura sem as compras do outro lado.
+
+Primeira pergunta diante de uma diferença: "isso entrou duas vezes?" —
+antes de "o que está faltando?".
+
+O que sobra depois disso costuma ser **rendimento**, que nenhum extrato
+lança como linha: o saldo só cresce sozinho. Foi 0,39 no BB, 0,04 no Itaú,
+2,94 no Nubank e 3,25 na Caixinha.
 
 ## Lições de 20–21/09/2026 (o dia em que o app "resetou" no celular dele)
 
