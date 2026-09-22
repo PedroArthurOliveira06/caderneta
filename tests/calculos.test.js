@@ -826,3 +826,33 @@ test('a fronteira anda sozinha quando entra histórico mais antigo', () => {
 test('sem lançamento nenhum não existe fronteira', () => {
   assert.equal(calc.primeiroMes({ contas: [], categorias: [], lancamentos: [] }), null);
 });
+
+test('parcelas da mesma compra viram um grupo só no classificador', () => {
+  const estado = {
+    contas: [{ id: 'c1', nome: 'Cartão BB', tipo: 'cartao', saldoInicial: 0 }],
+    categorias: [],
+    lancamentos: [
+      { id: '1', data: '2026-03-03', tipo: 'saida', valor: 714, contaId: 'c1', descricao: 'Curso (parcela 2/12)' },
+      { id: '2', data: '2026-04-03', tipo: 'saida', valor: 714, contaId: 'c1', descricao: 'Curso (parcela 3/12)' },
+      { id: '3', data: '2026-05-03', tipo: 'saida', valor: 714, contaId: 'c1', descricao: 'Curso (parcela 4/12)' },
+      { id: '4', data: '2026-04-09', tipo: 'saida', valor: 2212, contaId: 'c1', descricao: 'Mercado Livre' },
+      { id: '5', data: '2026-03-19', tipo: 'saida', valor: 3883, contaId: 'c1', descricao: 'Mercado Livre (parcela 2/6)' },
+    ],
+  };
+  const fila = calc.paraClassificar(estado);
+
+  // Duas escolhas em vez de cinco, e a compra à vista entra no mesmo balaio
+  // da parcelada porque é a mesma loja.
+  assert.equal(fila.length, 2);
+  assert.equal(fila[0].rotulo, 'Curso');
+  assert.equal(fila[0].itens.length, 3);
+  assert.equal(fila[1].rotulo, 'Mercado Livre');
+  assert.equal(fila[1].itens.length, 2);
+});
+
+test('nome sem parcela nenhuma continua inteiro', () => {
+  assert.equal(calc.semParcela('Ifood — Ponto Livre Hamburg'), 'Ifood — Ponto Livre Hamburg');
+  assert.equal(calc.semParcela('Exame (parcela 1/2)'), 'Exame');
+  // Só no fim: "(parcela 1/2) do curso" é nome, não sufixo.
+  assert.equal(calc.semParcela('(parcela 1/2) do curso'), '(parcela 1/2) do curso');
+});

@@ -232,18 +232,31 @@ export function categoriasAcimaDoNormal(estado, ano, mes) {
  * entrada: um grupo misturado não teria uma lista de categorias para
  * oferecer.
  */
+/**
+ * Tira o "(parcela 3/12)" do fim do nome.
+ *
+ * Doze parcelas do mesmo curso são a MESMA compra, e perguntar a categoria
+ * doze vezes rende doze vezes a mesma resposta. O sufixo continua no
+ * lançamento, que é onde ele informa alguma coisa; some só de onde serve
+ * para agrupar.
+ */
+export function semParcela(descricao) {
+  return String(descricao || '').replace(/\s*\(parcela \d+\/\d+\)\s*$/i, '').trim();
+}
+
 export function paraClassificar(estado) {
   const grupos = new Map();
 
   for (const l of estado.lancamentos) {
     if (l.tipo === 'transferencia' || l.categoriaId) continue;
 
-    const chave = `${l.tipo}|${simplificar(l.descricao)}`;
+    const nome = semParcela(l.descricao);
+    const chave = `${l.tipo}|${simplificar(nome)}`;
     if (!grupos.has(chave)) {
       grupos.set(chave, {
         chave,
         tipo: l.tipo,
-        rotulo: l.descricao || 'Sem descrição',
+        rotulo: nome || 'Sem descrição',
         itens: [],
         valor: 0,
       });
