@@ -154,14 +154,15 @@ do mês, e em 21/09/2026 ele disse que não quer.
 
 - `db/RODAR-NO-SUPABASE-gastos-que-se-repetem.sql` — rodado em 21/09/2026,
   e a Apple e o Spotify sobreviveram (conferido no backup dele). Resolvido.
-- `db/RODAR-NO-SUPABASE-cor-da-categoria.sql` — ainda não confirmado. Sem
-  ele a cor da categoria fica só no aparelho onde foi escolhida.
-- `db/RODAR-NO-SUPABASE-categoria-dos-dois-lados.sql` — ainda não
-  confirmado. Sem ele a categoria `ambos` não atravessa para o outro
-  aparelho.
+- `db/RODAR-NO-SUPABASE-cor-da-categoria.sql` e
+  `db/RODAR-NO-SUPABASE-categoria-dos-dois-lados.sql` — rodados em
+  22/09/2026. **Todas as migrações do `db/` estão aplicadas.**
 - Falta ele cadastrar dois gastos que se repetem que só apareceram no
   extrato: **Seguro BB R$ 10,86 dia 27** e **Tarifa MSG R$ 5,00 dia 25**,
   ambos na conta do Banco do Brasil (não no cartão).
+- Cor e tipo `ambos` das categorias que já existiam só sobem ao servidor
+  quando cada categoria for salva uma vez — envio recusado é descartado, e
+  as escolhas antigas ficaram presas no aparelho onde foram feitas.
 
 **Extrato do BB importado em 21/09/2026.** Sete meses de CSV viraram 159
 lançamentos; o saldo fecha em R$ 60,61, igual ao do banco. Duas coisas que
