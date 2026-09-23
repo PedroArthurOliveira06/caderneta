@@ -218,6 +218,25 @@ O saldo de verdade não sumiu: `faturaAVencer` continua cobrando a fatura
 fechada no aviso do topo do Extrato, com o valor que se deve mesmo. Se um
 dia ele parar de pagar tudo, é lá que a diferença aparece.
 
+**E os dados foram acertados para bater com a fatura, em 23/09/2026.** Três
+compras feitas depois do fechamento mudaram de mês (30/03→01/04, 29/04→01/05,
+29/07→01/08) e as duas de 27 e 28/02, que a fatura de março cobrou, viraram
+lançamentos em 01/03 com a data real escrita na descrição — o ponto de
+partida do cartão caiu de −641,95 para −332,95 na mesma operação, senão os
+R$ 309,00 contariam duas vezes. Os seis meses passaram a bater exatamente:
+943,08 · 507,48 · 444,62 · 826,95 · 672,18 · 652,29.
+
+**Isso vai sair do lugar de novo sozinho.** Toda compra que ele fizer no
+cartão depois do dia ~27 cai na fatura seguinte, e o app vai contá-la no mês
+em que ela aconteceu. Quando ele reclamar de novo, é isto — e o conserto é
+uma regra de `mover` como a de 23/09, ou finalmente guardar o dia de
+fechamento na conta do cartão.
+
+**A lição de conversa, não de código:** ele disse três vezes qual era o
+resultado que queria e eu respondi três vezes POR QUE a diferença existia.
+A explicação estava certa e era inútil. Quando ele repete um número, ele
+quer o número — explicar de novo é teimosia.
+
 **Quando um saldo não bate, o app costuma ter dinheiro A MAIS, não a menos.**
 Três casos no mesmo dia, todos de dinheiro contado duas vezes:
 
