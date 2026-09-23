@@ -227,6 +227,20 @@ function destravarFundo() {
   document.body.classList.remove('travado');
   document.body.style.top = '';
   window.scrollTo(0, alturaGuardada);
+
+  /* E de novo no quadro seguinte.
+
+     Ele perdia o lugar na lista ao editar um lançamento em 23/09/2026, e
+     eu não consegui reproduzir em nenhum caminho aqui — some no celular
+     dele e não no navegador do computador. O suspeito é o teclado: ele
+     recolhe DEPOIS de o diálogo fechar, o navegador rola por conta
+     própria quando a tela volta ao tamanho normal, e essa rolagem chega
+     depois da nossa. Insistir um quadro adiante custa nada e corrige
+     isso; se a primeira já funcionou, a segunda não faz diferença
+     nenhuma. */
+  requestAnimationFrame(() => {
+    if (!document.body.classList.contains('travado')) window.scrollTo(0, alturaGuardada);
+  });
 }
 
 /**
@@ -372,9 +386,19 @@ function mudarMes(passo) {
 
 /* ============================= pintura ================================= */
 
+let visaoDesenhada = '';
+
 function pintar() {
   const estado = dados.obter();
   if (!estado.configurado || !estado.contas.length) return;
+
+  // Mudar de mês, de tela ou de filtro PRECISA voltar ao topo: é outra
+  // leitura. Redesenhar a mesma tela, não — foi só um lançamento que
+  // mudou, e a lista continua a mesma debaixo do dedo.
+  const visaoAtual = [visao.tela, visao.ano, visao.mes, visao.filtroContaId, visao.busca].join('|');
+  const mesmaTela = visaoAtual === visaoDesenhada;
+  const rolagem = window.scrollY;
+  visaoDesenhada = visaoAtual;
 
   const buscando = visao.busca !== null && visao.tela === 'extrato';
   // Mês só faz sentido onde o mês é o assunto. Em Configurações e no Perfil
@@ -469,6 +493,15 @@ function pintar() {
     pintarAvisoDeBackup(estado);
     pintarBotoesDaTranca();
     conta.pintarAjustes();
+  }
+
+  /* Trocar o conteúdo de uma lista pode encurtar a página por um
+     instante, e o navegador então puxa a rolagem para o que ainda
+     cabe. Com a página travada isso não vale: lá ela está em
+     `position: fixed` e quem devolve o lugar é `destravarFundo`. */
+  if (mesmaTela && !document.body.classList.contains('travado')
+    && window.scrollY !== rolagem) {
+    window.scrollTo(0, rolagem);
   }
 }
 

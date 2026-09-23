@@ -305,6 +305,18 @@ Três erros meus em fila. O padrão vale para o que vier:
   22/09/2026 criei dois diálogos novos e esqueci a linha nos dois: o botão
   ficou ali, bonito, sem fazer nada. Quem varre os diálogos já existe —
   ligar o botão lá tira o passo que dá para esquecer.
+- **Ele perde o lugar na lista ao editar um lançamento — no celular dele, e
+  só lá.** Em 23/09/2026 tentei reproduzir por todos os caminhos no
+  navegador do computador (clique no item, Salvar de verdade, mudança de
+  data, tela de 375px) e a rolagem SEMPRE voltou. Como não achei a causa,
+  pus duas redes em vez de um conserto: `destravarFundo` devolve a rolagem
+  outra vez dentro de um `requestAnimationFrame` (o suspeito é o teclado
+  recolhendo depois do diálogo fechar e o navegador rolando por conta
+  própria), e `pintar()` devolve a rolagem quando redesenha a MESMA tela e
+  o redesenho a mexeu. Trocar de mês, de aba ou de filtro continua caindo
+  no topo, que é outra leitura. **Falta ele confirmar se resolveu** — e, se
+  não resolveu, a pergunta que separa as hipóteses é se acontece também
+  quando ele só abre o lançamento e fecha sem salvar.
 - **O evento `close` do `<dialog>` não dispara em todo navegador.** O
   atributo `open` vai e volta certinho, o evento nunca chega. Quem precisa
   saber que um diálogo fechou observa o atributo (`MutationObserver`), não o
