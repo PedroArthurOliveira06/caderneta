@@ -53,7 +53,7 @@ testáveis sem navegador.
 
 ```bash
 npm run dev      # http://localhost:4173 (servidor próprio, sem dependências)
-npm test         # 160 testes, Node puro, sem instalar nada
+npm test         # 162 testes, Node puro, sem instalar nada
 npm run versao   # OBRIGATÓRIO antes de cada publicação (ver armadilhas)
 npm run icones   # regera icons/
 ```
@@ -141,7 +141,7 @@ busca em todo o histórico, gastos que se repetem todo mês, classificador em
 lote, categoria aprendida pelo nome, aviso de categoria que subiu em relação
 ao mês passado, cor por categoria.
 
-A cada envio o GitHub roda sozinho os 160 testes e confere se a versão foi
+A cada envio o GitHub roda sozinho os 162 testes e confere se a versão foi
 carimbada — inclusive se o commit mexeu no app sem carimbar, que é o erro
 que os três arquivos de versão concordando entre si NÃO pegam.
 
@@ -321,6 +321,12 @@ Três erros meus em fila. O padrão vale para o que vier:
   atributo `open` vai e volta certinho, o evento nunca chega. Quem precisa
   saber que um diálogo fechou observa o atributo (`MutationObserver`), não o
   evento — é o que destrava a página em `ligarDialogos()`.
+- **Categoria se ordena com `localeCompare(…, 'pt-BR')`, nunca com `<`.**
+  Comparando string crua, "Água e luz" vai para o FIM da lista, depois de
+  "Vale Transporte" — em português o acento não muda o lugar da letra no
+  alfabeto. E ordenar é sempre em cópia: a cor de uma categoria sem cor
+  escolhida vem da POSIÇÃO dela em `estado.categorias`, então mexer naquela
+  ordem troca as cores de dono.
 - **`<select>` guarda o último valor sozinho, e `undefined` não é `null`.**
   Em `preencherSeletorDeCategorias`, `selecionado || seletor.value` fazia
   um lançamento SEM categoria abrir mostrando a categoria do lançamento

@@ -130,7 +130,14 @@ export function categoria(categoriaId) {
  * em dois pedaços que ninguém queria separados.
  */
 export function categoriasDe(tipo) {
-  return estado.categorias.filter((c) => c.tipo === tipo || c.tipo === 'ambos');
+  // Em ordem alfabética, e não na ordem em que foram criadas: quem procura
+  // uma categoria numa lista de treze procura pelo nome. `filter` já
+  // devolve um array novo, então ordenar aqui não mexe na ordem de
+  // `estado.categorias` — e isso importa, porque a cor de uma categoria sem
+  // cor escolhida vem da POSIÇÃO dela naquela lista.
+  return estado.categorias
+    .filter((c) => c.tipo === tipo || c.tipo === 'ambos')
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 }
 
 /** 'saida', 'entrada' ou 'ambos'. Registro antigo sem o campo é gasto. */

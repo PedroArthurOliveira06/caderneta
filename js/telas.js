@@ -830,11 +830,12 @@ export function pintarAjustes(estado, contexto) {
   pintarConferenciasNosAjustes(estado, contexto);
   pintarRecorrentesNosAjustes(estado, contexto);
 
-  // Gastos primeiro, depois as que servem aos dois, depois as entradas — do
-  // mais comum para o menos, que é a ordem em que se procura.
-  const ORDEM = { saida: 0, ambos: 1, entrada: 2 };
-  const ordenadas = [...estado.categorias].sort((a, b) =>
-    (ORDEM[a.tipo] ?? 0) - (ORDEM[b.tipo] ?? 0) || a.nome.localeCompare(b.nome, 'pt-BR'));
+  // Alfabética, e só. Já esteve agrupada por tipo — gastos, depois as dos
+  // dois lados, depois as entradas —, mas com treze categorias ele passou a
+  // procurar pelo nome, e aí o agrupamento obriga a achar o grupo antes de
+  // achar o nome. O tipo continua escrito em cada linha.
+  const ordenadas = [...estado.categorias]
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
   const COMO_CHAMAR = { saida: 'Gasto', entrada: 'Entrada', ambos: 'Gasto e entrada' };
 

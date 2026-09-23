@@ -519,3 +519,31 @@ test('juntar uma categoria com ela mesma não faz nada', () => {
   assert.equal(dados.juntarCategorias(c.id, c.id), 0);
   assert.equal(dados.obter().categorias.length, antes, 'e não apaga ninguém');
 });
+
+test('a lista de categorias sai em ordem alfabética, com acento no lugar certo', () => {
+  comecarDoZero();
+  for (const nome of ['Zoo', 'Água', 'Banco', 'Éden', 'alface']) {
+    dados.salvarCategoria({ nome, tipo: 'saida' });
+  }
+  const nomes = dados.categoriasDe('saida').map((c) => c.nome);
+  const esperado = [...nomes].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  assert.deepEqual(nomes, esperado);
+
+  // "Água" antes de "alface": em português o acento não joga a palavra para
+  // o fim do alfabeto, e é isso que o localeCompare resolve.
+  assert.ok(nomes.indexOf('Água') < nomes.indexOf('alface'));
+});
+
+// A cor de uma categoria sem cor escolhida vem da POSIÇÃO dela em
+// `estado.categorias`. Ordenar para mostrar não pode mexer naquela ordem,
+// senão as cores trocam de dono a cada categoria nova.
+test('ordenar para mostrar não reordena o estado', () => {
+  comecarDoZero();
+  dados.salvarCategoria({ nome: 'Zoo', tipo: 'saida' });
+  dados.salvarCategoria({ nome: 'Abacate', tipo: 'saida' });
+
+  const antes = dados.obter().categorias.map((c) => c.nome);
+  dados.categoriasDe('saida');
+  assert.deepEqual(dados.obter().categorias.map((c) => c.nome), antes);
+  assert.equal(antes[antes.length - 1], 'Abacate', 'a última criada continua por último');
+});
