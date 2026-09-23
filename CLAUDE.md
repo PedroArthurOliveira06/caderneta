@@ -194,6 +194,22 @@ setembro. Mais três armadilhas:
 - `pdftotext -raw` dá uma linha por lançamento; `-layout` separa a coluna
   de valores das descrições e embaralha tudo.
 
+**O número do cartão num mês NÃO é o total da fatura, e ele estranhou isso
+em 23/09/2026.** Março mostrava R$ 970,07 e a fatura correspondente era
+R$ 943,08. Os dois estavam certos e medem coisas diferentes:
+
+- o app conta a compra no dia em que ela aconteceu, então março vai até 31;
+- a fatura fecha por volta do dia 27 (varia: 30/03, 27/04…) e carrega as
+  compras do fim do mês anterior.
+
+A diferença em março era um Ifood de R$ 26,99 comprado em 30/03, que o
+banco empurrou para a fatura seguinte. **Reproduzir os totais de fatura por
+mês exigiria saber o dia de fechamento de cada mês, que muda** — uma regra
+fixa de "fecha dia 25" erraria abril em R$ 32,00. Por isso a linha do
+cartão passou a dizer **"a pagar em 10/04/26"** em vez de só "fatura": a
+regra, na frase dele, é "as compras do mês são pagas no dia 10 do mês
+seguinte", e o app sempre fez isso sem nunca escrever.
+
 **Quando um saldo não bate, o app costuma ter dinheiro A MAIS, não a menos.**
 Três casos no mesmo dia, todos de dinheiro contado duas vezes:
 

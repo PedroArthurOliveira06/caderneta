@@ -80,7 +80,8 @@ export function pintarSaldos(estado, contexto) {
       // saldo quase não muda, e no cartão o número já É o do mês — em nenhum
       // dos dois a comparação com o mês passado responde alguma coisa.
       ...reservas.linhas.map((l) => linhaDeSaldo(l, null, aoTocarConta, undefined, naoConfere.get(l.conta.id))),
-      ...cartoes.linhas.map((l) => linhaDeSaldo(l, 'fatura', aoTocarConta)),
+      ...cartoes.linhas.map((l) => linhaDeSaldo(l, 'fatura', aoTocarConta,
+        undefined, undefined, quandoVence(l, ano, mes, ehMesCorrente))),
     ]),
 
     // Entrou e saiu viram uma linha, não duas caixas: o mês inteiro tem uma
@@ -106,7 +107,7 @@ export function pintarSaldos(estado, contexto) {
  * que é caixinha, e a frase acima do grupo já explicou por que ela está
  * separada. Um rótulo a mais ali só fazia o nome quebrar em duas linhas.
  */
-function linhaDeSaldo(l, marca, aoTocarConta, saldoAntes, diferenca) {
+function linhaDeSaldo(l, marca, aoTocarConta, saldoAntes, diferenca, legenda) {
   const deve = marca === 'fatura' && l.saldo < 0;
   const valor = deve ? -l.saldo : l.saldo;
   const mexeu = typeof saldoAntes === 'number' && saldoAntes !== l.saldo;
@@ -129,12 +130,14 @@ function linhaDeSaldo(l, marca, aoTocarConta, saldoAntes, diferenca) {
             texto: `não confere: ${fmt.moeda(Math.abs(diferenca))} `
               + `${diferenca > 0 ? 'a mais' : 'a menos'} que o banco`,
           })
-        : mexeu
-          ? el('span', {
-              class: 'saldo-conta__antes',
-              texto: `começou o mês com ${fmt.moeda(marca === 'fatura' ? -saldoAntes : saldoAntes)}`,
-            })
-          : null,
+        : legenda
+          ? el('span', { class: 'saldo-conta__antes', texto: legenda })
+          : mexeu
+            ? el('span', {
+                class: 'saldo-conta__antes',
+                texto: `começou o mês com ${fmt.moeda(marca === 'fatura' ? -saldoAntes : saldoAntes)}`,
+              })
+            : null,
     ]),
     marca
       ? el('span', { class: 'saldo-conta__marca', texto: deve ? 'fatura' : marca })
@@ -970,4 +973,28 @@ export function pintarHistoricoDaCategoria(estado, categoriaId, contexto) {
     // As colunas contam o resto: se isto está subindo há meses ou se foi só
     // um mês fora da curva, o gráfico responde melhor que qualquer frase.
   );
+}
+
+/**
+ * "a pagar em 10/10" embaixo do nome do cartão.
+ *
+ * A regra, na frase dele: as compras do mês são pagas no dia 10 do mês
+ * seguinte. O app sempre fez assim, mas não dizia — a linha escrevia
+ * "fatura" e quem lia tinha de saber de cor quando aquilo vence.
+ *
+ * Cartão com saldo zerado ou positivo não ganha frase: não há o que pagar,
+ * e uma data de vencimento sem dívida só assusta.
+ */
+function quandoVence(l, ano, mes, ehMesCorrente) {
+  if (calc.tipoDaConta(l.conta) !== 'cartao' || l.saldo >= 0) return null;
+
+  const dia = Math.min(Math.max(Number(l.conta.diaVencimento) || 10, 1), 28);
+  const { ano: a, mes: m } = fmt.deslocarMes(ano, mes, 1);
+  const data = `${String(dia).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+
+  // No mês em curso o número ainda vai crescer até o fim do mês, e prometer
+  // um valor fechado seria mentira de alguns dias.
+  return ehMesCorrente
+    ? `o que fechar este mês vence em ${data}`
+    : `a pagar em ${data}/${String(a).slice(2)}`;
 }
