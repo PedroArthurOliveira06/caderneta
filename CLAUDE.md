@@ -138,8 +138,8 @@ login com aprovação manual, recuperação de senha, PIN, modo escuro,
 importação de arquivo (adicionar, acertar contas, mover datas), aviso e
 botão de atualização, lembrete da fatura com o pagamento já preenchido,
 busca em todo o histórico, gastos que se repetem todo mês, classificador em
-lote, categoria aprendida pelo nome, aviso de categoria acima da média,
-cor por categoria.
+lote, categoria aprendida pelo nome, aviso de categoria que subiu em relação
+ao mês passado, cor por categoria.
 
 A cada envio o GitHub roda sozinho os 159 testes e confere se a versão foi
 carimbada — inclusive se o commit mexeu no app sem carimbar, que é o erro
@@ -229,8 +229,16 @@ A comparação não sumiu: mora no diálogo que abre ao TOCAR na barra, onde é
 a resposta pedida em vez de um comentário não solicitado.
 `comparadoComOMesAnterior` foi apagada junto — ninguém mais a chamava.
 
-O aviso do topo do Resumo (`categoriasAcimaDoNormal`) continua na média —
-**falta perguntar a ele se quer trocar essa também**.
+O aviso do topo do Resumo virou `categoriasQueSubiram`, também mês a mês.
+O preço é honesto e vale lembrar: um mês fora da curva agora vira DOIS
+avisos — um quando sobe, outro quando desce de volta. A média amortecia
+isso, ao custo de ninguém conseguir conferir o número.
+
+**Nenhum botão do app está solto.** Auditei os 79 do `index.html` em
+23/09/2026: 14 são `submit` de formulário, 56 têm clique ligado por id, e
+9 são ligados por classe (`.aba`, `.segmento`, `.botao-data`) lendo
+`dataset`. Os 16 criados em `el('button', …)` trazem `onclick` no próprio
+objeto. Os dois quebrados eram os que eu tinha acabado de criar.
 
 ## Lições de 20–21/09/2026 (o dia em que o app "resetou" no celular dele)
 

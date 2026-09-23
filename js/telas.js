@@ -454,10 +454,10 @@ function linhaDoExtrato(estado, l, aoTocar) {
  * E nenhum juízo: "acima do seu normal", não "você gastou demais". O app não
  * sabe se o mês tinha um aniversário dentro.
  */
-export function pintarAcimaDoNormal(estado, contexto) {
+export function pintarQueSubiram(estado, contexto) {
   const alvo = document.getElementById('resumo-acima');
   const { ano, mes, hoje } = contexto;
-  const achados = calc.categoriasAcimaDoNormal(estado, ano, mes);
+  const achados = calc.categoriasQueSubiram(estado, ano, mes);
 
   if (!achados.length) {
     trocar(alvo);
@@ -465,9 +465,10 @@ export function pintarAcimaDoNormal(estado, contexto) {
   }
 
   const emCurso = fmt.chaveMes(hoje) === `${ano}-${String(mes).padStart(2, '0')}`;
+  const passado = achados[0].mesAnterior;
 
   trocar(alvo, el('div', { class: 'bloco' }, [
-    el('h2', { class: 'bloco__titulo', texto: 'Acima do seu normal' }),
+    el('h2', { class: 'bloco__titulo', texto: `Subiu em relação a ${fmt.mesNome(passado.mes)}` }),
 
     ...achados.map((a) => el('div', { class: 'acima' }, [
       el('div', { class: 'acima__topo' }, [
@@ -476,8 +477,10 @@ export function pintarAcimaDoNormal(estado, contexto) {
       ]),
       el('p', {
         class: 'acima__frase',
-        texto: `${emCurso ? 'Já são' : 'Foram'} ${fmt.moeda(a.excesso)} a mais que a média de `
-          + `${fmt.moeda(a.media)}, dos ${a.mesesComparados} meses anteriores em que houve esse gasto.`,
+        // O mês em curso ainda vai crescer, e dizer 'foram' num mês que não
+        // acabou daria a alta por fechada.
+        texto: `${emCurso ? 'Já são' : 'Foram'} ${fmt.moeda(a.aumento)} a mais que em `
+          + `${fmt.mesNome(passado.mes)}, quando foram ${fmt.moeda(a.anterior)}.`,
       }),
     ])),
   ]));

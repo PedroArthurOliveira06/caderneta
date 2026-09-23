@@ -164,55 +164,47 @@ export function rotuloDoLancamento(estado, l) {
   return categoria ? categoria.nome : 'Sem categoria';
 }
 
-/* ==================== o que fugiu da média ============================= */
+/* ============== o que subiu em relação ao mês passado ================== */
 
-/* Quanto acima da média já é notícia. Os dois juntos, não um ou outro:
-   sozinha, a porcentagem grita por causa de R$ 8 numa categoria pequena, e
-   sozinho, o valor cala num mês em que tudo subiu um pouco. */
-const MESES_DE_COMPARACAO = 3;
-const ACIMA_EM_PORCENTO = 0.2;
-const ACIMA_EM_CENTAVOS = 3000;
+/* Quanto de alta já é notícia. Os dois juntos, não um ou outro: sozinha, a
+   porcentagem grita por causa de R$ 8 numa categoria pequena, e sozinho, o
+   valor cala num mês em que tudo subiu um pouco. */
+const SUBIU_EM_PORCENTO = 0.2;
+const SUBIU_EM_CENTAVOS = 3000;
 
 /**
- * As categorias em que se gastou claramente mais que o habitual.
+ * As categorias em que se gastou claramente mais que NO MÊS PASSADO.
  *
- * O "habitual" é ele mesmo, não um orçamento que eu inventei: a média dos
- * meses anteriores. Um app que chuta quanto alguém DEVERIA gastar com comida
- * está adivinhando a vida de quem lê.
+ * Comparava com a média dos três meses anteriores até 22/09/2026, quando ele
+ * pediu mês a mês. A troca não é só de gosto: a média é uma conta que só o
+ * app sabe fazer, e que por isso ninguém tem como conferir; "gastei mais que
+ * mês passado?" ele checa virando a tela para o mês anterior.
  *
- * A média ignora os meses em que a categoria não apareceu. Isso é o que
- * separa "gasto que subiu" de "gasto que acontece de vez em quando": o
- * veterinário de R$ 180 uma vez a cada três meses tem média R$ 180, e não
- * R$ 60 — que faria o app gritar toda vez que o cachorro adoecesse.
+ * O preço dessa troca é honesto e vale dizer: um mês fora da curva vira dois
+ * avisos — um quando sobe, outro quando desce de volta. A média amortecia
+ * isso, ao custo de ninguém entender de onde saía o número.
  *
- * Por isso também exige pelo menos dois meses com gasto: com um só não
- * existe média, existe uma ocasião.
+ * Categoria que não existia no mês passado fica de fora. Gasto que estreia
+ * não "subiu": não havia de onde subir, e alardear todo gasto novo como
+ * alta transformaria o aviso em lista de compras.
  */
-export function categoriasAcimaDoNormal(estado, ano, mes) {
-  const anteriores = [];
-  for (let i = 1; i <= MESES_DE_COMPARACAO; i++) {
-    const { ano: a, mes: m } = deslocarMes(ano, mes, -i);
-    anteriores.push(new Map(porCategoria(estado, a, m).map((c) => [c.categoriaId, c.valor])));
-  }
+export function categoriasQueSubiram(estado, ano, mes) {
+  const { ano: a, mes: m } = deslocarMes(ano, mes, -1);
+  const passado = new Map(porCategoria(estado, a, m).map((c) => [c.categoriaId, c.valor]));
 
   return porCategoria(estado, ano, mes)
     .filter((linha) => linha.categoriaId !== 'sem-categoria')
     .map((linha) => {
-      const gastos = anteriores
-        .map((mapa) => mapa.get(linha.categoriaId) || 0)
-        .filter((v) => v > 0);
+      const anterior = passado.get(linha.categoriaId) || 0;
+      if (!anterior) return null;
 
-      if (gastos.length < 2) return null;
+      const aumento = linha.valor - anterior;
+      if (aumento < SUBIU_EM_CENTAVOS || aumento < anterior * SUBIU_EM_PORCENTO) return null;
 
-      const media = Math.round(gastos.reduce((a, b) => a + b, 0) / gastos.length);
-      const excesso = linha.valor - media;
-
-      if (excesso < ACIMA_EM_CENTAVOS || excesso < media * ACIMA_EM_PORCENTO) return null;
-
-      return { ...linha, media, excesso, mesesComparados: gastos.length };
+      return { ...linha, anterior, aumento, mesAnterior: { ano: a, mes: m } };
     })
     .filter(Boolean)
-    .sort((a, b) => b.excesso - a.excesso);
+    .sort((x, y) => y.aumento - x.aumento);
 }
 
 /* ===================== o que falta classificar ========================= */
