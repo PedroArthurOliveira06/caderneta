@@ -965,3 +965,29 @@ test('conta nunca conferida pede conferência, e cartão fica de fora', () => {
   assert.equal(lista[0].pedindo, true);
   assert.equal(lista[0].ultima, null);
 });
+
+test('a fatura do mês é a soma do que se gastou no cartão naquele mês', () => {
+  const e = {
+    contas: [
+      { id: 'bb', nome: 'Banco', tipo: 'conta', saldoInicial: 0, ordem: 0 },
+      { id: 'cc', nome: 'Cartão', tipo: 'cartao', saldoInicial: -50000, ordem: 1 },
+    ],
+    categorias: [],
+    lancamentos: [
+      // de fevereiro: fica de fora, mesmo ainda não tendo sido paga
+      { id: '1', data: '2026-02-27', tipo: 'saida', valor: 30900, contaId: 'cc' },
+      // pagamento da fatura antiga: transferência, não é compra
+      { id: '2', data: '2026-03-10', tipo: 'transferencia', valor: 33295, contaId: 'bb', contaDestinoId: 'cc' },
+      { id: '3', data: '2026-03-22', tipo: 'saida', valor: 27540, contaId: 'cc' },
+      // comprada dia 30: o banco joga para a fatura seguinte, e aqui conta
+      // em março mesmo — é o que ele pediu ao mandar esquecer o fechamento
+      { id: '4', data: '2026-03-30', tipo: 'saida', valor: 2699, contaId: 'cc' },
+      // estorno abate
+      { id: '5', data: '2026-03-31', tipo: 'entrada', valor: 4095, contaId: 'cc' },
+    ],
+  };
+  assert.equal(calc.gastoDoCartaoNoMes(e, 'cc', 2026, 3), 27540 + 2699 - 4095);
+
+  // E continua diferente do saldo, que carrega fevereiro e desconta o pago.
+  assert.equal(calc.saldoDaConta(e, 'cc', '2026-03-31'), -50000 - 30900 + 33295 - 27540 - 2699 + 4095);
+});

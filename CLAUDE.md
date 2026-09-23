@@ -53,7 +53,7 @@ testáveis sem navegador.
 
 ```bash
 npm run dev      # http://localhost:4173 (servidor próprio, sem dependências)
-npm test         # 159 testes, Node puro, sem instalar nada
+npm test         # 160 testes, Node puro, sem instalar nada
 npm run versao   # OBRIGATÓRIO antes de cada publicação (ver armadilhas)
 npm run icones   # regera icons/
 ```
@@ -141,7 +141,7 @@ busca em todo o histórico, gastos que se repetem todo mês, classificador em
 lote, categoria aprendida pelo nome, aviso de categoria que subiu em relação
 ao mês passado, cor por categoria.
 
-A cada envio o GitHub roda sozinho os 159 testes e confere se a versão foi
+A cada envio o GitHub roda sozinho os 160 testes e confere se a versão foi
 carimbada — inclusive se o commit mexeu no app sem carimbar, que é o erro
 que os três arquivos de versão concordando entre si NÃO pegam.
 
@@ -203,12 +203,20 @@ R$ 943,08. Os dois estavam certos e medem coisas diferentes:
   compras do fim do mês anterior.
 
 A diferença em março era um Ifood de R$ 26,99 comprado em 30/03, que o
-banco empurrou para a fatura seguinte. **Reproduzir os totais de fatura por
-mês exigiria saber o dia de fechamento de cada mês, que muda** — uma regra
-fixa de "fecha dia 25" erraria abril em R$ 32,00. Por isso a linha do
-cartão passou a dizer **"a pagar em 10/04/26"** em vez de só "fatura": a
-regra, na frase dele, é "as compras do mês são pagas no dia 10 do mês
-seguinte", e o app sempre fez isso sem nunca escrever.
+banco empurrou para a fatura seguinte. Reproduzir os totais de fatura por
+mês exigiria saber o dia de fechamento de cada mês, que muda — uma regra
+fixa de "fecha dia 25" erraria abril em R$ 32,00.
+
+**A decisão dele foi cortar o nó: "esquece o dia que fecha o cartão".** A
+linha do cartão mostra `gastoDoCartaoNoMes` — a soma do que se gastou nele
+naquele mês — e não o saldo acumulado, com a legenda "a pagar em 10/04/26".
+Funciona porque **ele paga a fatura inteira todo mês**: nas seis faturas
+lidas, "Pagamentos/Créditos" sempre quitou o saldo anterior por completo,
+então o que ficaria de trás é sempre zero.
+
+O saldo de verdade não sumiu: `faturaAVencer` continua cobrando a fatura
+fechada no aviso do topo do Extrato, com o valor que se deve mesmo. Se um
+dia ele parar de pagar tudo, é lá que a diferença aparece.
 
 **Quando um saldo não bate, o app costuma ter dinheiro A MAIS, não a menos.**
 Três casos no mesmo dia, todos de dinheiro contado duas vezes:

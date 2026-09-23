@@ -640,3 +640,26 @@ export function conferencias(estado, hoje) {
     .filter(Boolean)
     .sort((a, b) => Math.abs(b.diferenca || 0) - Math.abs(a.diferenca || 0));
 }
+
+/**
+ * Quanto se gastou NUM cartão dentro do mês — a fatura, do jeito simples.
+ *
+ * Diferente do saldo do cartão, que carrega o que ficou de trás. Ele pediu
+ * assim em 23/09/2026, com a regra na frase dele: "as compras do mês vão ser
+ * pagas no dia 10 do mês seguinte". Some tudo o que foi comprado no mês,
+ * ponto — sem dia de fechamento, que muda todo mês e que o app não tem como
+ * saber.
+ *
+ * Estorno abate: a Uber que devolveu R$ 40,95 não foi gasto. Pagamento de
+ * fatura não entra, porque é transferência — o dinheiro sai do banco e
+ * quita o cartão, não é compra nenhuma.
+ */
+export function gastoDoCartaoNoMes(estado, contaId, ano, mes) {
+  const { inicio, fim } = limitesDoMes(ano, mes);
+  return estado.lancamentos.reduce((soma, l) => {
+    if (l.contaId !== contaId || l.data < inicio || l.data > fim) return soma;
+    if (l.tipo === 'saida') return soma + l.valor;
+    if (l.tipo === 'entrada') return soma - l.valor;
+    return soma;
+  }, 0);
+}

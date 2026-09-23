@@ -24,7 +24,12 @@ export function pintarSaldos(estado, contexto) {
   // o outro quanto se deve. Misturar num número só esconde as duas respostas.
   const { linhas, total } = calc.saldos(estado, fim, 'conta');
   const reservas = calc.saldos(estado, fim, 'reserva');
-  const cartoes = calc.saldos(estado, fim, 'cartao');
+  const cartoes = {
+    linhas: calc.saldos(estado, fim, 'cartao').linhas.map((l) => ({
+      ...l,
+      saldo: -calc.gastoDoCartaoNoMes(estado, l.conta.id, ano, mes),
+    })),
+  };
   const totais = calc.totaisDoMes(estado, ano, mes, filtroContaId);
 
   // Só saldos positivos entram na proporção da faixa: um saldo negativo não
