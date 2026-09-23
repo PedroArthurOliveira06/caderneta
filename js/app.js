@@ -874,8 +874,22 @@ function preencherContas(seletor, selecionado) {
 }
 
 /** As categorias daquele tipo, em qualquer seletor que peça. */
+/**
+ * Enche o seletor de categorias, e `selecionado` tem TRÊS significados:
+ *
+ *   undefined -> mantenha o que já está escolhido
+ *   null / '' -> nenhuma; abra em branco
+ *   um id     -> esta aqui
+ *
+ * A diferença entre os dois primeiros não é preciosismo. Manter o
+ * escolhido é o certo ao trocar de Gasto para Entrada com o diálogo
+ * aberto — a pessoa não mudou de ideia sobre a categoria. Mas tratar
+ * `null` como "mantenha" fazia um lançamento SEM categoria abrir já
+ * mostrando a categoria do lançamento anterior: o `<select>` guarda o
+ * último valor sozinho, e quem lia via uma escolha que ninguém fez.
+ */
 function preencherSeletorDeCategorias(seletor, tipo, selecionado) {
-  const anterior = selecionado || seletor.value;
+  const anterior = selecionado === undefined ? seletor.value : (selecionado || '');
   const lista = dados.categoriasDe(tipo);
   trocar(seletor, [
     el('option', { value: '', texto: 'Sem categoria' }),
@@ -938,7 +952,8 @@ function abrirLancamento(lancamentoId, pronto) {
     $('lancamento-valor').value = fmt.valor(existente.valor);
     $('lancamento-data').value = existente.data;
     $('lancamento-descricao').value = existente.descricao || '';
-    preencherCategorias(existente.tipo === 'entrada' ? 'entrada' : 'saida', existente.categoriaId);
+    preencherCategorias(existente.tipo === 'entrada' ? 'entrada' : 'saida',
+      existente.categoriaId || null);
   } else {
     // Lançamento novo começa sem categoria. O <select> guardava sozinho a do
     // lançamento anterior — herança do navegador, não escolha de ninguém — e

@@ -321,6 +321,14 @@ Três erros meus em fila. O padrão vale para o que vier:
   atributo `open` vai e volta certinho, o evento nunca chega. Quem precisa
   saber que um diálogo fechou observa o atributo (`MutationObserver`), não o
   evento — é o que destrava a página em `ligarDialogos()`.
+- **`<select>` guarda o último valor sozinho, e `undefined` não é `null`.**
+  Em `preencherSeletorDeCategorias`, `selecionado || seletor.value` fazia
+  um lançamento SEM categoria abrir mostrando a categoria do lançamento
+  anterior — escolha que ninguém fez, e que bastava salvar para virar
+  verdade. Os três casos são diferentes: `undefined` é "mantenha o
+  escolhido" (trocar Gasto↔Entrada com o diálogo aberto), `null` é
+  "nenhuma", e um id é aquele. O mesmo buraco já tinha sido tapado no
+  lançamento novo em 21/09/2026, e ninguém olhou a edição.
 - **Campo de formulário com `background` precisa de `color` junto.** Sem ela
   o navegador pinta o texto de preto por conta própria, e no modo escuro
   fica preto sobre fundo escuro. Aconteceu em `.linha-nova input`.
