@@ -470,6 +470,10 @@ export function salvarConta(dados) {
       e.contas.push(salva);
     }
   }, () => enviarContas([salva]));
+  // Devolve a conta para quem precisa do id dela em seguida — é o caso de
+  // criar uma caixinha e lançar, na sequência, a transferência que pôs o
+  // dinheiro lá dentro.
+  return salva;
 }
 
 /** Só remove conta sem lançamento — apagar em cascata perderia histórico. */

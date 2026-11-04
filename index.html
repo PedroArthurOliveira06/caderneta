@@ -782,6 +782,28 @@
       </p>
     </div>
 
+    <div class="campo" id="campo-origem" hidden>
+      <span class="campo__rotulo">Esse dinheiro veio de onde?</span>
+      <div class="segmentado segmentado--duplo" role="group" aria-label="De onde veio o dinheiro">
+        <button type="button" class="segmento" data-origem="fora">Já estava lá</button>
+        <button type="button" class="segmento" data-origem="daqui">De outra conta daqui</button>
+      </div>
+      <p class="ajuda">
+        Se o dinheiro saiu de uma conta que já está na Caderneta, ele não é
+        saldo inicial — é uma transferência. Contado dos dois jeitos, o mesmo
+        dinheiro aparece em dobro.
+      </p>
+    </div>
+
+    <div class="campo" id="campo-origem-conta" hidden>
+      <label for="conta-origem">De qual conta saiu</label>
+      <select id="conta-origem"></select>
+      <p class="ajuda">
+        O app lança a transferência de hoje por você, e esta conta começa
+        do zero.
+      </p>
+    </div>
+
     <div class="campo" id="campo-vencimento" hidden>
       <label for="conta-vencimento">Dia do débito da fatura</label>
       <input type="number" id="conta-vencimento" min="1" max="28" step="1" value="10" inputmode="numeric">

@@ -257,10 +257,20 @@ antes de "o que está faltando?".
 
 **A caixinha repetiu o erro em 04/11/2026**, agora na "Caixinha 100%":
 `saldoInicial` 1.522,45 E uma transferência de 1.522,45 do Nubank no mesmo
-dia, dando 3.044,90. Terceira vez do MESMO engano, e ele acerta à mão toda
-vez. **A trava já foi oferecida duas vezes e ele não pediu** — ao criar
-conta com saldo inicial, perguntar se o dinheiro veio de outra conta do
-app. Oferecer de novo quando acontecer a quarta.
+dia, dando 3.044,90. Terceira vez do MESMO engano — e na terceira ele mandou
+travar.
+
+**A trava existe desde 04/11/2026.** Criando conta NOVA com saldo inicial
+diferente de zero, e já havendo outra conta de onde o dinheiro pudesse vir, o
+diálogo pergunta de onde ele veio e **não salva sem resposta**. Respondendo
+"de outra conta daqui", a conta nasce com saldo inicial ZERO e o app lança a
+transferência sozinho.
+
+Não há resposta pré-escolhida, de propósito: um padrão meu seria o mesmo que
+não perguntar, e foi assim que o dinheiro entrou em dobro três vezes. A
+pergunta não aparece na primeira conta da vida (não há de onde vir), nem no
+cartão (ali o número é dívida), nem ao editar (o saldo inicial já foi
+decidido um dia).
 
 Em 22/09/2026 isso virou funcionalidade: `conferencias` guarda o que o
 BANCO dizia num dia, e `estadoDaConferencia` compara com o saldo do app

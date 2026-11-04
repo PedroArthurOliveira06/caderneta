@@ -984,6 +984,12 @@ function abrirLancamento(lancamentoId, pronto) {
 let corEscolhida = dados.CORES_CONTA[0].id;
 let tipoContaEmEdicao = 'conta';
 
+/* De onde veio o dinheiro de uma conta NOVA: null enquanto ele não responde.
+   A pergunta só aparece quando há o que confundir, e enquanto estiver nula o
+   formulário não salva — é a trava que ele pediu depois de criar, três vezes,
+   uma caixinha com o dinheiro contado duas vezes. */
+let origemEmEdicao = null;
+
 function ligarDialogoConta() {
   const dialogo = $('dialogo-conta');
 
@@ -995,6 +1001,17 @@ function ligarDialogoConta() {
   });
 
   aplicarMascaraDeValor($('conta-saldo'));
+
+  // A pergunta aparece e some conforme ele digita o valor: perguntar de onde
+  // veio um dinheiro que ainda é zero seria conversa sobre nada.
+  $('conta-saldo').addEventListener('input', aplicarOrigem);
+
+  dialogo.querySelectorAll('[data-origem]').forEach((botao) => {
+    botao.addEventListener('click', () => {
+      origemEmEdicao = botao.dataset.origem;
+      aplicarOrigem();
+    });
+  });
 
   $('excluir-conta').addEventListener('click', () => {
     const id = $('conta-id').value;
@@ -1016,7 +1033,19 @@ function ligarDialogoConta() {
     }
     const informado = Math.abs(fmt.paraCentavos($('conta-saldo').value));
 
-    dados.salvarConta({
+    // A trava: com a pergunta na tela, não dá para salvar sem respondê-la.
+    // Um padrão escolhido por mim seria o mesmo que não perguntar — e foi
+    // exatamente assim que o dinheiro entrou em dobro três vezes.
+    if (!$('campo-origem').hidden && !origemEmEdicao) {
+      evento.preventDefault();
+      recado('Diga de onde veio esse dinheiro.');
+      return;
+    }
+
+    const veioDaqui = !$('campo-origem').hidden && origemEmEdicao === 'daqui';
+    const origemId = veioDaqui ? $('conta-origem').value : null;
+
+    const salva = dados.salvarConta({
       id: $('conta-id').value || undefined,
       nome,
       cor: corEscolhida,
@@ -1024,9 +1053,26 @@ function ligarDialogoConta() {
       // No cartão a pessoa digita quanto DEVE, um número positivo; por dentro
       // isso é saldo negativo, que é o que faz pagar a fatura abater a dívida
       // usando a mesma conta de transferência dos bancos.
-      saldoInicial: tipoContaEmEdicao === 'cartao' ? -informado : informado,
+      // Vindo de outra conta daqui, o ponto de partida é ZERO: quem põe o
+      // dinheiro lá é a transferência logo abaixo, e contar os dois é o erro.
+      saldoInicial: veioDaqui ? 0 : (tipoContaEmEdicao === 'cartao' ? -informado : informado),
       diaVencimento: Number($('conta-vencimento').value),
     });
+
+    if (veioDaqui && salva && origemId) {
+      dados.salvarLancamento({
+        tipo: 'transferencia',
+        valor: informado,
+        data: hoje,
+        contaId: origemId,
+        contaDestinoId: salva.id,
+        categoriaId: null,
+        descricao: `Para ${nome}`,
+      });
+      recado(`Criado, e lancei a transferência de ${fmt.moeda(informado)}.`);
+      return;
+    }
+
     // Cada um tem o seu gênero: caixinha é salva, banco e cartão são salvos.
     recado({ conta: 'Banco salvo.', cartao: 'Cartão salvo.', reserva: 'Caixinha salva.' }[tipoContaEmEdicao]);
   });
@@ -1061,9 +1107,38 @@ const PALAVRAS_DA_CONTA = {
   },
 };
 
+/**
+ * Mostra — ou esconde — a pergunta de onde veio o dinheiro.
+ *
+ * Só aparece quando os três se juntam: conta NOVA, com saldo inicial
+ * diferente de zero, e já existindo outra conta de onde o dinheiro pudesse
+ * ter vindo. Na primeira conta da vida não há de onde vir; num cartão o
+ * número é dívida, não dinheiro; editando, o saldo inicial já foi decidido
+ * um dia.
+ */
+function aplicarOrigem() {
+  const nova = !$('conta-id').value;
+  const temValor = Math.abs(fmt.paraCentavos($('conta-saldo').value)) > 0;
+  const outras = dados.obter().contas.filter((c) => dados.tipoDaConta(c) !== 'cartao');
+  const perguntar = nova && temValor && tipoContaEmEdicao !== 'cartao' && outras.length > 0;
+
+  $('campo-origem').hidden = !perguntar;
+  $('campo-origem-conta').hidden = !perguntar || origemEmEdicao !== 'daqui';
+
+  $('dialogo-conta').querySelectorAll('[data-origem]').forEach((b) =>
+    b.classList.toggle('segmento--ativo', b.dataset.origem === origemEmEdicao));
+
+  if (perguntar && origemEmEdicao === 'daqui') {
+    const atual = $('conta-origem').value;
+    trocar($('conta-origem'), outras.map((c) =>
+      el('option', { value: c.id, selected: c.id === atual, texto: c.nome })));
+  }
+}
+
 function aplicarTipoConta() {
   const cartao = tipoContaEmEdicao === 'cartao';
   $('campo-vencimento').hidden = !cartao;
+  aplicarOrigem();
   const palavras = PALAVRAS_DA_CONTA[tipoContaEmEdicao] || PALAVRAS_DA_CONTA.conta;
 
   $('dialogo-conta').querySelectorAll('[data-tipo-conta]').forEach((b) =>
@@ -1091,6 +1166,9 @@ function abrirConta(contaId) {
   $('conta-saldo').value = conta && conta.saldoInicial ? fmt.valor(Math.abs(conta.saldoInicial)) : '';
   $('conta-vencimento').value = String((conta && conta.diaVencimento) || 10);
   $('excluir-conta').hidden = !conta;
+  // Cada abertura começa sem resposta: a de ontem não vale para a conta de
+  // hoje, e herdar a anterior seria o mesmo defeito do <select> de categoria.
+  origemEmEdicao = null;
 
   aplicarTipoConta();
   pintarCores();
