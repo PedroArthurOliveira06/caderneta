@@ -56,6 +56,28 @@ export function pintarSaldos(estado, contexto) {
       texto: fmt.moeda(total),
     }),
 
+    /* O que está guardado, somado, logo embaixo do que está disponível.
+
+       Continua FORA do número grande, que é a regra da caixinha: dinheiro
+       separado para um objetivo não é dinheiro que dá para gastar hoje.
+       Mas ficar só lá embaixo, uma linha por caixinha, não respondia
+       'quanto eu tenho guardado ao todo' — e com mais de uma caixinha a
+       soma virava conta de cabeça.
+
+       Sem citar o nome da caixinha: encaixar nome próprio no meio da frase
+       pede artigo, e artigo pede saber o gênero do nome. Uma caixinha
+       chamada "A Caixinha" virava "nA Caixinha". O nome está logo
+       abaixo, na lista, onde não precisa concordar com nada. */
+    reservas.total
+      ? el('p', { class: 'painel-saldos__guardado' }, [
+          'e mais ',
+          el('strong', { texto: fmt.moeda(reservas.total) }),
+          reservas.linhas.length === 1
+            ? ' guardado na caixinha'
+            : ` guardado em ${reservas.linhas.length} caixinhas`,
+        ])
+      : null,
+
     somaPositiva > 0
       ? el('div', { class: 'faixa', 'aria-hidden': 'true' },
           linhas

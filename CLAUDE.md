@@ -29,7 +29,10 @@ Ver [README.md](README.md) para uso e publicação.
      não na categoria: o mesmo "Ifood" é assinatura num mês e pedido avulso
      no outro.
 5. **Caixinha (`tipo: 'reserva'`) fica fora do número grande.** Dinheiro
-   separado para um objetivo não é dinheiro disponível.
+   separado para um objetivo não é dinheiro disponível. Desde 04/11/2026 a
+   SOMA das caixinhas aparece numa linha de apoio logo abaixo — ele pediu
+   para ver os dois divididos —, mas em tamanho menor: dois números do
+   mesmo tamanho convidam a somar, que é o contrário do ponto.
 6. **Verde e vermelho significam entrou/saiu.** As cores de conta nunca usam
    esses dois, para um número vermelho não ter dois significados.
 7. **Cor de conta é variável do CSS, não código fixo** (`--conta-amarelo`).
