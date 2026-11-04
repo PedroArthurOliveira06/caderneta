@@ -255,6 +255,13 @@ Três casos no mesmo dia, todos de dinheiro contado duas vezes:
 Primeira pergunta diante de uma diferença: "isso entrou duas vezes?" —
 antes de "o que está faltando?".
 
+**A caixinha repetiu o erro em 04/11/2026**, agora na "Caixinha 100%":
+`saldoInicial` 1.522,45 E uma transferência de 1.522,45 do Nubank no mesmo
+dia, dando 3.044,90. Terceira vez do MESMO engano, e ele acerta à mão toda
+vez. **A trava já foi oferecida duas vezes e ele não pediu** — ao criar
+conta com saldo inicial, perguntar se o dinheiro veio de outra conta do
+app. Oferecer de novo quando acontecer a quarta.
+
 Em 22/09/2026 isso virou funcionalidade: `conferencias` guarda o que o
 BANCO dizia num dia, e `estadoDaConferencia` compara com o saldo do app
 **naquela data** — nunca com o de hoje, senão toda compra feita depois da
