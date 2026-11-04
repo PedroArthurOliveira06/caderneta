@@ -47,36 +47,40 @@ export function pintarSaldos(estado, contexto) {
   const ehMesCorrente = fmt.chaveMes(hoje) === `${ano}-${String(mes).padStart(2, '0')}`;
 
   trocar(alvo,
-    el('p', {
-      class: 'painel-saldos__rotulo',
-      texto: ehMesCorrente ? 'Saldo de hoje' : `Saldo no fim de ${fmt.mesPorExtenso(ano, mes)}`,
-    }),
-    el('p', {
-      class: `painel-saldos__total${total < 0 ? ' painel-saldos__total--negativo' : ''}`,
-      texto: fmt.moeda(total),
-    }),
+    /* Disponível e guardado lado a lado, do mesmo tamanho.
 
-    /* O que está guardado, somado, logo embaixo do que está disponível.
+       Continuam SEPARADOS, que é a regra da caixinha: o que está guardado
+       para um objetivo não entra no número do que dá para gastar hoje. O que
+       mudou é o peso — ele pediu os dois com o mesmo destaque, e é justo:
+       guardar é resultado tanto quanto sobrar, e um número de apoio dizia o
+       contrário.
 
-       Continua FORA do número grande, que é a regra da caixinha: dinheiro
-       separado para um objetivo não é dinheiro que dá para gastar hoje.
-       Mas ficar só lá embaixo, uma linha por caixinha, não respondia
-       'quanto eu tenho guardado ao todo' — e com mais de uma caixinha a
-       soma virava conta de cabeça.
+       Sem caixinha nenhuma, o saldo volta a ocupar a largura toda: uma coluna
+       sozinha com metade da tela vazia ao lado não é layout, é sobra. */
+    el('div', {
+      class: `painel-saldos__topo${reservas.total ? ' painel-saldos__topo--duplo' : ''}`,
+    }, [
+      el('div', { class: 'painel-saldos__parte' }, [
+        el('p', {
+          class: 'painel-saldos__rotulo',
+          texto: ehMesCorrente ? 'Saldo de hoje' : `Saldo no fim de ${fmt.mesPorExtenso(ano, mes)}`,
+        }),
+        el('p', {
+          class: `painel-saldos__total${total < 0 ? ' painel-saldos__total--negativo' : ''}`,
+          texto: fmt.moeda(total),
+        }),
+      ]),
 
-       Sem citar o nome da caixinha: encaixar nome próprio no meio da frase
-       pede artigo, e artigo pede saber o gênero do nome. Uma caixinha
-       chamada "A Caixinha" virava "nA Caixinha". O nome está logo
-       abaixo, na lista, onde não precisa concordar com nada. */
-    reservas.total
-      ? el('p', { class: 'painel-saldos__guardado' }, [
-          'e mais ',
-          el('strong', { texto: fmt.moeda(reservas.total) }),
-          reservas.linhas.length === 1
-            ? ' guardado na caixinha'
-            : ` guardado em ${reservas.linhas.length} caixinhas`,
-        ])
-      : null,
+      reservas.total
+        ? el('div', { class: 'painel-saldos__parte' }, [
+            el('p', {
+              class: 'painel-saldos__rotulo',
+              texto: reservas.linhas.length === 1 ? 'Na caixinha' : 'Nas caixinhas',
+            }),
+            el('p', { class: 'painel-saldos__total', texto: fmt.moeda(reservas.total) }),
+          ])
+        : null,
+    ]),
 
     somaPositiva > 0
       ? el('div', { class: 'faixa', 'aria-hidden': 'true' },

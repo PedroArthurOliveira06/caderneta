@@ -603,15 +603,19 @@ button { font: inherit; color: inherit; }
 
 .painel-saldos__total--negativo { color: var(--saida); }
 
-/* O guardado anda junto do disponível, mas não compete com ele: mesma
-   coluna, tamanho de apoio. Dois números do mesmo tamanho fariam a
-   pessoa somar os dois, que é justamente o que a caixinha evita. */
-.painel-saldos__guardado {
-  font-size: 0.875rem;
-  color: var(--texto-suave);
-  margin-top: 2px;
-}
-.painel-saldos__guardado strong { font-weight: 600; color: var(--texto); }
+/* Disponível e guardado dividem a largura, com o mesmo peso. O que separa
+   os dois é o espaço entre eles, não o tamanho da letra. */
+.painel-saldos__topo { display: flex; gap: 18px; }
+.painel-saldos__parte { min-width: 0; flex: 1; }
+
+/* Dois números na largura de um pedem letra menor: a 2,5rem, "R$ 5.536,33"
+   não cabe num celular de 320px. */
+.painel-saldos__topo--duplo .painel-saldos__total { font-size: 1.75rem; }
+
+/* Valor de dinheiro não parte no meio. O sinal de menos era onde quebrava:
+   o espaço do "R$" é fixo (U+00A0) e segura, mas depois do "−" o navegador
+   separava, e um "−" sozinho numa linha não quer dizer nada. */
+.painel-saldos__total { white-space: nowrap; }
 
 /* A faixa é o elemento memorável da tela: mostra, em largura, quanto do seu
    dinheiro está em cada banco. É informação, não enfeite. */

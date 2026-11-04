@@ -30,9 +30,11 @@ Ver [README.md](README.md) para uso e publicação.
      no outro.
 5. **Caixinha (`tipo: 'reserva'`) fica fora do número grande.** Dinheiro
    separado para um objetivo não é dinheiro disponível. Desde 04/11/2026 a
-   SOMA das caixinhas aparece numa linha de apoio logo abaixo — ele pediu
-   para ver os dois divididos —, mas em tamanho menor: dois números do
-   mesmo tamanho convidam a somar, que é o contrário do ponto.
+   SOMA das caixinhas fica **ao lado** do saldo dos bancos, do mesmo
+   tamanho: ele pediu os dois divididos e com o mesmo destaque. A regra
+   continua de pé — o que ela proíbe é SOMAR os dois num número só, não
+   mostrar os dois. Eu tinha posto a soma como linha de apoio miúda e ele
+   recusou: guardar é resultado tanto quanto sobrar.
 6. **Verde e vermelho significam entrou/saiu.** As cores de conta nunca usam
    esses dois, para um número vermelho não ter dois significados.
 7. **Cor de conta é variável do CSS, não código fixo** (`--conta-amarelo`).
