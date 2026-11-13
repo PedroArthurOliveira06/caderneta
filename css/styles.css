@@ -54,10 +54,12 @@
   --raio: 10px;
   --raio-p: 7px;
 
-  /* Archivo: grotesca desenhada para tela, com algarismos de largura fixa.
-     Numa coluna de valores isso não é capricho — é o que faz os dígitos se
-     alinharem sozinhos, sem ninguém medir nada. */
-  --fonte: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* IBM Plex Sans, escolhida pelos ALGARISMOS, que são o conteúdo deste app.
+     O 1 tem pé e bandeira — numa coluna de "1.153,90" e "175,43" isso é o
+     que dá ritmo, em vez de uma cerca de palitos. O 4 é fechado e o 6 e o 9
+     têm abertura larga, que é o que os segura legíveis a 12px na lista.
+     Largura fixa nos números alinha a coluna sem ninguém medir nada. */
+  --fonte: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   /* O que está escolhido precisa CONTRASTAR com o fundo, e no escuro isso
      se inverte: tinta sobre canvas claro, claro sobre canvas escuro. Sem
@@ -626,9 +628,14 @@ button { font: inherit; color: inherit; }
 .painel-saldos__topo { display: flex; gap: 18px; }
 .painel-saldos__parte { min-width: 0; flex: 1; }
 
-/* Dois números na largura de um pedem letra menor: a 2,5rem, "R$ 5.536,33"
-   não cabe num celular de 320px. */
-.painel-saldos__topo--duplo .painel-saldos__total { font-size: 1.75rem; }
+/* Dois números na largura de um pedem letra menor, e o quanto menor depende
+   da tela: num celular de 320px "R$ 12.345,67" não cabe em tamanho fixo
+   nenhum que ainda pareça número grande. O `clamp` encolhe só onde precisa e
+   trava no tamanho cheio a partir do aparelho médio — sem isso, ou o valor
+   vaza pela borda, ou todo mundo paga o preço do telefone mais estreito. */
+.painel-saldos__topo--duplo .painel-saldos__total {
+  font-size: clamp(1.3125rem, 7vw, 1.75rem);
+}
 
 /* Valor de dinheiro não parte no meio. O sinal de menos era onde quebrava:
    o espaço do "R$" é fixo (U+00A0) e segura, mas depois do "−" o navegador
