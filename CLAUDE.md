@@ -223,6 +223,20 @@ O saldo de verdade não sumiu: `faturaAVencer` continua cobrando a fatura
 fechada no aviso do topo do Extrato, com o valor que se deve mesmo. Se um
 dia ele parar de pagar tudo, é lá que a diferença aparece.
 
+**Pagar a fatura são DUAS coisas na vida dele, e desde 13/11/2026 o botão
+faz as duas em fila.** Todo mês alguém lhe manda o dinheiro — ENTRADA no
+banco, em valor redondo (R$ 333,00 para uma fatura de 332,95), categoria
+"Pagamento do Cartão" — e o banco debita o valor exato, que é a
+TRANSFERÊNCIA para o cartão. As duas já estavam nos dados dele desde março,
+lançadas à mão; o botão só preenchia a segunda.
+
+A entrada vem primeiro porque é a que precisa de edição. O débito vem
+depois, e é ele que faz o aviso sumir — `faturaAVencer` só conta
+transferência, então trocar um pelo outro deixaria o aviso vermelho na tela
+para sempre. `faturaPendente` guarda a segunda metade; `abrirLancamento`
+zera essa fila ao abrir, senão quem desistisse da entrada veria o débito
+aparecer ao salvar um café dias depois.
+
 **E os dados foram acertados para bater com a fatura, em 23/09/2026.** Três
 compras feitas depois do fechamento mudaram de mês (30/03→01/04, 29/04→01/05,
 29/07→01/08) e as duas de 27 e 28/02, que a fatura de março cobrou, viraram

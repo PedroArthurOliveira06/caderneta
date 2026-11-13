@@ -25,7 +25,7 @@ export const SUPABASE = {
 
 /* Escrita por `npm run versao` a cada publicação. Aparece no rodapé dos
    Ajustes, para dar como conferir se o celular já pegou a versão nova. */
-export const VERSAO_APP = '04/11/2026, 14:23';
+export const VERSAO_APP = '13/11/2026, 09:09';
 
 export function temServidor() {
   return Boolean(SUPABASE.url && SUPABASE.chaveAnon);

@@ -759,6 +759,19 @@ function ligarDialogoLancamento() {
     }
 
     dados.salvarLancamento(registro);
+
+    // Segunda metade do pagamento da fatura. Pego e zerado antes de abrir,
+    // para não haver chance de a fila disparar duas vezes.
+    const proximo = faturaPendente;
+    faturaPendente = null;
+    if (proximo) {
+      recado('Recebimento lançado. Agora o débito da fatura.');
+      // Num tempo à parte: o diálogo atual só fecha DEPOIS deste handler, e
+      // abrir o próximo agora seria desfeito pelo fechamento do de cima.
+      setTimeout(() => abrirLancamento(null, proximo), 0);
+      return;
+    }
+
     recado(registro.id ? 'Lançamento atualizado.' : 'Lançado.');
   });
 }
@@ -911,24 +924,64 @@ function preencherCategorias(tipo, selecionado) {
  * A data é a do vencimento, não a de hoje — e se ela já passou, é a de hoje:
  * um pagamento atrasado aconteceu quando aconteceu.
  */
+/* Quando o primeiro dos dois lançamentos é salvo, este guarda o segundo. */
+let faturaPendente = null;
+
+/**
+ * Pagar a fatura são DUAS coisas na vida dele, e o botão faz as duas em fila.
+ *
+ * Todo mês alguém lhe manda o dinheiro da fatura — isso é ENTRADA no banco,
+ * em valor redondo (R$ 333,00 para uma fatura de R$ 332,95) — e o banco
+ * debita a fatura em valor exato, que é TRANSFERÊNCIA para o cartão. As duas
+ * estão nos dados dele desde março, lançadas à mão.
+ *
+ * A entrada vem primeiro porque é a que precisa de edição: o valor exato da
+ * fatura é só um ponto de partida, e o que ele recebeu quase nunca bate com
+ * o centavo. O débito vem depois, com o valor certo, e é ele que faz o aviso
+ * vermelho sumir.
+ */
 function pagarFatura(fatura) {
   const bancos = dados.obter().contas
     .filter((c) => dados.tipoDaConta(c) === 'conta')
     .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
 
+  const banco = bancos.length ? bancos[0].id : '';
+  const data = fatura.vencimento > hoje ? hoje : fatura.vencimento;
+
+  // Procurada pelo nome, e aceitando não achar: quem apagou ou renomeou a
+  // categoria não pode ficar sem o botão por causa disso.
+  const pagamento = dados.categoriasDe('entrada')
+    .find((c) => fmt.simplificar(c.nome).includes('pagamento do cartao'));
+
   abrirLancamento(null, {
+    tipo: 'entrada',
+    contaId: banco,
+    contaDestinoId: null,
+    categoriaId: pagamento ? pagamento.id : null,
+    valor: fatura.falta,
+    data,
+    descricao: `Para a fatura do ${fatura.conta.nome}`,
+  });
+
+  // DEPOIS de abrir: `abrirLancamento` limpa a fila, para um lançamento
+  // qualquer nunca puxar o débito de uma fatura atrás de si.
+  faturaPendente = {
     tipo: 'transferencia',
-    contaId: bancos.length ? bancos[0].id : '',
+    contaId: banco,
     contaDestinoId: fatura.conta.id,
     valor: fatura.falta,
-    data: fatura.vencimento > hoje ? hoje : fatura.vencimento,
+    data,
     descricao: `Fatura do ${fatura.conta.nome}`,
-  });
+  };
 }
 
 function abrirLancamento(lancamentoId, pronto) {
   const dialogo = $('dialogo-lancamento');
   const existente = lancamentoId ? dados.lancamento(lancamentoId) : null;
+
+  // Abriu o diálogo, a fila da fatura morre: quem desistiu da entrada no meio
+  // do caminho não pode ver o débito aparecer ao salvar um café, dias depois.
+  faturaPendente = null;
 
   tipoEmEdicao = existente ? existente.tipo : (pronto ? pronto.tipo : 'saida');
   naturezaEmEdicao = existente && existente.natureza === 'corrente' ? 'corrente' : 'esporadico';
@@ -968,6 +1021,10 @@ function abrirLancamento(lancamentoId, pronto) {
       // destino e que escolhe um destino qualquer para não repetir a origem.
       if (pronto.contaId) $('lancamento-conta').value = pronto.contaId;
       $('lancamento-destino').value = pronto.contaDestinoId;
+      // Quem chama já sabe a categoria em alguns casos — o dinheiro que entra
+      // para pagar a fatura é sempre "Pagamento do Cartão". Vem depois do
+      // `value = ''` acima, que é o que limpa a herança do navegador.
+      if (pronto.categoriaId) $('lancamento-categoria').value = pronto.categoriaId;
     } else if (visao.filtroContaId) {
       $('lancamento-conta').value = visao.filtroContaId;
     }
