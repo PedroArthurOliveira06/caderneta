@@ -972,6 +972,9 @@ function pagarFatura(fatura) {
     valor: fatura.falta,
     data,
     descricao: `Fatura do ${fatura.conta.nome}`,
+    // Só este dos dois: o que ele recebe ele sabe de cor, o que o banco
+    // debitou é que precisa ser olhado.
+    conferirNoBanco: true,
   };
 }
 
@@ -982,6 +985,15 @@ function abrirLancamento(lancamentoId, pronto) {
   // Abriu o diálogo, a fila da fatura morre: quem desistiu da entrada no meio
   // do caminho não pode ver o débito aparecer ao salvar um café, dias depois.
   faturaPendente = null;
+
+  /* O aviso de que o valor é palpite.
+   *
+   * Em 13/11/2026 o app calculou uma fatura de R$ 535,86, o banco debitou
+   * R$ 337,75, e ele salvou o que veio preenchido — a conta ficou R$ 535,86
+   * abaixo da verdade. O número que eu ofereço é a soma das compras do mês,
+   * e a fatura fecha antes do fim do mês: os dois batem quase sempre, e
+   * "quase sempre" é o que faz ninguém conferir. */
+  $('aviso-valor-da-fatura').hidden = !(pronto && pronto.conferirNoBanco);
 
   tipoEmEdicao = existente ? existente.tipo : (pronto ? pronto.tipo : 'saida');
   naturezaEmEdicao = existente && existente.natureza === 'corrente' ? 'corrente' : 'esporadico';

@@ -237,6 +237,15 @@ para sempre. `faturaPendente` guarda a segunda metade; `abrirLancamento`
 zera essa fila ao abrir, senão quem desistisse da entrada veria o débito
 aparecer ao salvar um café dias depois.
 
+**O valor que eu preencho é PALPITE, e isso já custou caro.** No mesmo
+13/11/2026 o app calculou R$ 535,86 (a soma das compras de outubro), o banco
+debitou R$ 337,75, e ele salvou o que veio preenchido — o BB ficou 535,86
+abaixo da verdade, e os 198,11 de diferença são compras do fim de outubro
+que a fatura empurrou para a seguinte. **É o mesmo problema do dia de
+fechamento, agora mordendo pelo lado do pagamento.** Por isso o segundo
+passo leva `conferirNoBanco: true`, que acende um aviso vermelho embaixo do
+valor. O primeiro passo não leva: quanto ele recebeu, ele sabe de cor.
+
 **E os dados foram acertados para bater com a fatura, em 23/09/2026.** Três
 compras feitas depois do fechamento mudaram de mês (30/03→01/04, 29/04→01/05,
 29/07→01/08) e as duas de 27 e 28/02, que a fatura de março cobrou, viraram

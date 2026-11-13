@@ -1328,7 +1328,6 @@ button { font: inherit; color: inherit; }
 /* Saldo que não bate com o banco, e a linha da conferência que o diz. */
 .saldo-conta__antes--alerta { color: var(--saida); font-weight: 600; }
 .linha-ajuste__meta--alerta { color: var(--saida); font-weight: 600; }
-.ajuda--alerta { color: var(--saida); font-weight: 600; }
 
 /* ============================= ajustes ================================ */
 
@@ -1396,6 +1395,11 @@ button { font: inherit; color: inherit; }
 }
 
 .ajuda { font-size: 0.8125rem; color: var(--texto-suave); line-height: 1.5; }
+
+/* Depois de `.ajuda`, e não antes: as duas têm a mesma força, então quem vem
+   por último manda. Posta acima, a variante de alerta perdia a cor e virava
+   uma ajuda cinza igual às outras — justo ela, que existe para ser notada. */
+.ajuda--alerta { color: var(--saida); font-weight: 600; }
 
 /* =========================== botões =================================== */
 
