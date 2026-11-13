@@ -215,9 +215,17 @@ fixa de "fecha dia 25" erraria abril em R$ 32,00.
 **A decisão dele foi cortar o nó: "esquece o dia que fecha o cartão".** A
 linha do cartão mostra `gastoDoCartaoNoMes` — a soma do que se gastou nele
 naquele mês — e não o saldo acumulado, com a legenda "a pagar em 10/04/26".
-Funciona porque **ele paga a fatura inteira todo mês**: nas seis faturas
-lidas, "Pagamentos/Créditos" sempre quitou o saldo anterior por completo,
-então o que ficaria de trás é sempre zero.
+Funciona porque **ele quita a fatura inteira — mas nem sempre de uma vez.**
+Nas seis faturas de março a setembro, "Pagamentos/Créditos" zerou o saldo
+anterior num pagamento só. Em novembro/2026 não: o banco debitou R$ 337,75
+no dia 10, a conta ficou negativa, o pai depositou R$ 536,00 e o resto —
+R$ 198,11 — saiu depois. Somados, os R$ 535,86 da fatura.
+
+Isso não derruba o desenho, porque no fim do caminho não sobra nada atrás.
+Mas derruba a premissa de que existe UM pagamento por fatura: quem for
+casar pagamento com fatura tem de aceitar duas linhas, e `faturaAVencer`
+já faz isso certo, somando tudo o que entrou no cartão depois do
+fechamento.
 
 O saldo de verdade não sumiu: `faturaAVencer` continua cobrando a fatura
 fechada no aviso do topo do Extrato, com o valor que se deve mesmo. Se um
