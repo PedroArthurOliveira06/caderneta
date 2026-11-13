@@ -63,21 +63,15 @@ export function pintarSaldos(estado, contexto) {
       el('div', { class: 'painel-saldos__parte' }, [
         el('p', {
           class: 'painel-saldos__rotulo',
-          texto: ehMesCorrente ? 'Saldo de hoje' : `Saldo no fim de ${fmt.mesPorExtenso(ano, mes)}`,
+          texto: ehMesCorrente ? 'Disponível hoje' : `No fim de ${fmt.mesPorExtenso(ano, mes)}`,
         }),
-        el('p', {
-          class: `painel-saldos__total${total < 0 ? ' painel-saldos__total--negativo' : ''}`,
-          texto: fmt.moeda(total),
-        }),
+        numeroGrande(total, total < 0),
       ]),
 
       reservas.total
         ? el('div', { class: 'painel-saldos__parte' }, [
-            el('p', {
-              class: 'painel-saldos__rotulo',
-              texto: reservas.linhas.length === 1 ? 'Na caixinha' : 'Nas caixinhas',
-            }),
-            el('p', { class: 'painel-saldos__total', texto: fmt.moeda(reservas.total) }),
+            el('p', { class: 'painel-saldos__rotulo', texto: 'Guardado' }),
+            numeroGrande(reservas.total),
           ])
         : null,
     ]),
@@ -98,13 +92,18 @@ export function pintarSaldos(estado, contexto) {
     // metades de cabeça, e a tela inicial acabava antes do primeiro
     // lançamento aparecer.
     el('div', { class: 'saldos-contas' }, [
-      ...linhas.map((l) => linhaDeSaldo(l, null, aoTocarConta, antes.get(l.conta.id), naoConfere.get(l.conta.id))),
+      ...linhas.map((l) => linhaDeSaldo(l, null, aoTocarConta, antes.get(l.conta.id),
+        naoConfere.get(l.conta.id), undefined,
+        somaPositiva > 0 ? Math.max(l.saldo, 0) / somaPositiva : 0)),
 
       // Uma frase explica os dois grupos de uma vez, no lugar de um rótulo
       // repetido em cada linha: o que vem abaixo dela existe, mas não entra
       // no número grande.
       reservas.linhas.length || cartoes.linhas.length
-        ? el('p', { class: 'saldos-contas__corte', texto: 'Fora do saldo acima' })
+        // "Fora do saldo acima" apontava para um número que agora se chama
+        // "Disponível hoje". O rótulo passa a dizer a mesma coisa com a
+        // palavra que está ali em cima.
+        ? el('p', { class: 'saldos-contas__corte', texto: 'Fora do disponível' })
         : null,
 
       // "De onde veio" só nos bancos, que foi o que ele pediu. Na caixinha o
@@ -122,6 +121,12 @@ export function pintarSaldos(estado, contexto) {
       el('span', { class: 'mes-linha__rotulo', texto: 'No mês' }),
       el('span', { class: 'mes-linha__entrada', texto: `+ ${fmt.moeda(totais.entrou)}` }),
       el('span', { class: 'mes-linha__saida', texto: `− ${fmt.moeda(totais.saiu)}` }),
+      // O que sobrou fecha a linha: é a conta que as duas de antes pedem, e
+      // sem ela quem lê faz a subtração de cabeça.
+      el('span', { class: 'mes-linha__sobra' }, [
+        'sobrou ',
+        el('b', { texto: fmt.moeda(totais.sobrou) }),
+      ]),
     ]),
   );
 }
@@ -138,7 +143,25 @@ export function pintarSaldos(estado, contexto) {
  * que é caixinha, e a frase acima do grupo já explicou por que ela está
  * separada. Um rótulo a mais ali só fazia o nome quebrar em duas linhas.
  */
-function linhaDeSaldo(l, marca, aoTocarConta, saldoAntes, diferenca, legenda) {
+/**
+ * O número grande, com o "R$" separado do valor.
+ *
+ * `fmt.moeda` entrega "R$ 1.360,36" num pedaço só, e o espaço ali é fixo
+ * (U+00A0) — é por ele que a frase se parte em dois. O símbolo vira menor e
+ * mais claro: ele é a unidade do número, não o número, e do tamanho do resto
+ * roubava a primeira olhada.
+ */
+function numeroGrande(centavos, negativo) {
+  const [moeda, ...resto] = fmt.moeda(centavos).split(' ');
+  return el('p', {
+    class: `painel-saldos__total${negativo ? ' painel-saldos__total--negativo' : ''}`,
+  }, [
+    el('span', { class: 'painel-saldos__moeda', texto: moeda }),
+    resto.join(' '),
+  ]);
+}
+
+function linhaDeSaldo(l, marca, aoTocarConta, saldoAntes, diferenca, legenda, fatia) {
   const deve = marca === 'fatura' && l.saldo < 0;
   const valor = deve ? -l.saldo : l.saldo;
   const mexeu = typeof saldoAntes === 'number' && saldoAntes !== l.saldo;
@@ -173,10 +196,22 @@ function linhaDeSaldo(l, marca, aoTocarConta, saldoAntes, diferenca, legenda) {
     marca
       ? el('span', { class: 'saldo-conta__marca', texto: deve ? 'fatura' : marca })
       : null,
-    el('span', {
-      class: `saldo-conta__valor${deve || valor < 0 ? ' saldo-conta__valor--negativo' : ''}`,
-      texto: fmt.moeda(valor),
-    }),
+    el('span', { class: 'saldo-conta__direita' }, [
+      el('span', {
+        class: `saldo-conta__valor${deve || valor < 0 ? ' saldo-conta__valor--negativo' : ''}`,
+        texto: fmt.moeda(valor),
+      }),
+      // A fatia que este banco representa do total, na cor dele. É a mesma
+      // informação da faixa lá em cima, dita de novo na linha de quem ela
+      // fala — é o que liga uma coisa à outra sem precisar de legenda.
+      fatia > 0
+        ? el('span', { class: 'saldo-conta__fatia' }, [
+            el('i', {
+              estilo: { width: `${Math.max(2, Math.round(fatia * 100))}%`, background: hexDaConta(l.conta) },
+            }),
+          ])
+        : null,
+    ]),
   ]);
 }
 

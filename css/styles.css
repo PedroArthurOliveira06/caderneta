@@ -54,7 +54,10 @@
   --raio: 10px;
   --raio-p: 7px;
 
-  --fonte: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Archivo: grotesca desenhada para tela, com algarismos de largura fixa.
+     Numa coluna de valores isso não é capricho — é o que faz os dígitos se
+     alinharem sozinhos, sem ninguém medir nada. */
+  --fonte: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   /* O que está escolhido precisa CONTRASTAR com o fundo, e no escuro isso
      se inverte: tinta sobre canvas claro, claro sobre canvas escuro. Sem
@@ -110,10 +113,14 @@
     --texto-suave: #b0bfb7;
     --texto-fraco: #94a69c;
 
-    --canvas: #101713;
-    --superficie: #18211c;
-    --superficie-2: #202b25;
-    --linha: #2b3730;
+    /* O escuro é palco, não "tema escuro": o fundo some e os painéis ficam
+       um degrau acima dele, com a cor de cada banco acendendo em cima. Mais
+       fundo que antes de propósito — o contraste entre fundo e painel é o
+       que faz o número brilhar sem precisar aumentar a letra. */
+    --canvas: #0c1210;
+    --superficie: #151d19;
+    --superficie-2: #1c2520;
+    --linha: #273029;
     --linha-forte: #3c4a42;
 
     --entrada: #45d391;
@@ -589,16 +596,27 @@ button { font: inherit; color: inherit; }
 }
 
 .painel-saldos__rotulo {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   color: var(--texto-fraco);
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 
 .painel-saldos__total {
-  font-size: 2.5rem;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
+  font-size: 2.25rem;
+  /* 600 e não 700: o número já é o maior da tela, e peso máximo em cima de
+     tamanho máximo é gritar duas vezes a mesma coisa. */
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+
+/* O "R$" não é o número — é a unidade dele. Menor e mais claro, ele sai da
+   frente sem sumir, e o olho cai direto no valor. */
+.painel-saldos__moeda {
+  font-size: 0.5em;
+  font-weight: 500;
+  color: var(--texto-suave);
+  margin-right: 0.12em;
 }
 
 .painel-saldos__total--negativo { color: var(--saida); }
@@ -618,17 +636,21 @@ button { font: inherit; color: inherit; }
 .painel-saldos__total { white-space: nowrap; }
 
 /* A faixa é o elemento memorável da tela: mostra, em largura, quanto do seu
-   dinheiro está em cada banco. É informação, não enfeite. */
+   dinheiro está em cada banco. É informação, não enfeite — e por isso ela
+   ganhou corpo e passou a ter folga entre as partes, em vez de uma barra
+   única onde as cores se encostavam e viravam um arco-íris só. */
 .faixa {
   display: flex;
-  height: 8px;
-  border-radius: 999px;
-  overflow: hidden;
-  margin: 12px 0 14px;
-  background: var(--superficie-2);
+  gap: 3px;
+  height: 9px;
+  margin: 14px 0 10px;
 }
 
-.faixa__parte { min-width: 3px; transition: flex-grow 0.3s ease; }
+.faixa__parte {
+  min-width: 10px;
+  border-radius: 3px;
+  transition: flex-grow 0.3s ease;
+}
 
 .saldos-contas { display: grid; gap: 2px; }
 
@@ -654,10 +676,35 @@ button { font: inherit; color: inherit; }
 }
 
 .saldo-conta + .saldo-conta { border-top: 1px solid var(--superficie-2); }
-.saldo-conta__spine { align-self: stretch; border-radius: 999px; min-height: 22px; }
-.saldo-conta__nome { font-weight: 500; }
-.saldo-conta__valor { grid-column: 4; font-weight: 600; }
+
+/* A tarja virou ponto. Esticada, ela disputava altura com o nome e pedia
+   um alinhamento que nunca ficava certo quando a linha tinha subtítulo;
+   como ponto, ela só marca a cor e fica na linha do nome, onde o olho já
+   está. A cor continua sendo a mesma da faixa lá em cima. */
+.saldo-conta__spine {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  align-self: start;
+  margin-top: 7px;
+}
+
+.saldo-conta__nome { font-weight: 500; letter-spacing: -0.005em; }
+.saldo-conta__direita { grid-column: 4; display: grid; justify-items: end; gap: 5px; }
+.saldo-conta__valor { font-weight: 600; font-variant-numeric: tabular-nums; }
 .saldo-conta__valor--negativo { color: var(--saida); }
+
+/* Quanto deste banco é do seu dinheiro. Curta e quieta: é a mesma conta da
+   faixa do topo, e repetir alto o que já foi dito vira eco. */
+.saldo-conta__fatia {
+  width: 68px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--superficie-2);
+  overflow: hidden;
+}
+
+.saldo-conta__fatia i { display: block; height: 100%; border-radius: 2px; }
 
 /* O cartão fica abaixo dos bancos e um degrau mais quieto: é dinheiro que
    ainda vai sair, não dinheiro que existe. A linha acima separa as duas
@@ -801,15 +848,20 @@ button { font: inherit; color: inherit; }
 .mes-linha {
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  margin-top: 8px;
-  font-size: 0.9375rem;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 10px;
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
 }
 
-.mes-linha__rotulo { color: var(--texto-fraco); font-size: 0.8125rem; margin-right: auto; }
+/* Sem quebrar: a 320px "No mês" virava duas linhas, e um rótulo de duas
+   palavras empilhado desalinha a linha inteira. */
+.mes-linha__rotulo { color: var(--texto-fraco); font-size: 0.75rem; white-space: nowrap; }
 .mes-linha__entrada { color: var(--entrada); font-weight: 600; }
 .mes-linha__saida { color: var(--saida); font-weight: 600; }
+.mes-linha__sobra { color: var(--texto-fraco); font-size: 0.75rem; margin-left: auto; }
+.mes-linha__sobra b { color: var(--texto); font-weight: 600; font-size: 0.9375rem; }
 
 /* A grade do mês continua existindo, mas só na tela de Resumo, que é onde o
    mês é o assunto. No Extrato ela virou a linha acima: lá são quatro números
@@ -1190,14 +1242,23 @@ button { font: inherit; color: inherit; }
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
-  padding: 10px 16px 5px;
-  font-size: 0.8125rem;
+  padding: 12px 18px 6px;
+  font-size: 0.75rem;
   color: var(--texto-fraco);
 }
 
 .dia__total { font-variant-numeric: tabular-nums; }
 
-.dia__itens { background: var(--superficie); border-block: 1px solid var(--linha); }
+/* O dia é um bloco, não uma faixa que atravessa a tela: com canto e margem
+   lateral ele se separa do fundo, e a lista passa a ter respiração em vez
+   de ser uma régua contínua de linhas. */
+.dia__itens {
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  margin: 0 12px;
+  overflow: hidden;
+}
 
 .item {
   display: grid;

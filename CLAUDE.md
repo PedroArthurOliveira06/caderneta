@@ -35,6 +35,12 @@ Ver [README.md](README.md) para uso e publicação.
    continua de pé — o que ela proíbe é SOMAR os dois num número só, não
    mostrar os dois. Eu tinha posto a soma como linha de apoio miúda e ele
    recusou: guardar é resultado tanto quanto sobrar.
+6. **A cor do app pertence ao DINHEIRO, não à decoração.** Em 13/11/2026
+   ele trouxe quatro templates do Lovable — escuros, com um acento
+   saturado espalhado como enfeite — e pedimos a mesma cara. A adaptação
+   honesta foi: pegar o palco escuro e os números grandes, e NÃO pegar o
+   acento único, porque aqui já existem seis cores que significam banco e
+   duas que significam direção. Cor sem emprego é o que não entra.
 6. **Verde e vermelho significam entrou/saiu.** As cores de conta nunca usam
    esses dois, para um número vermelho não ter dois significados.
 7. **Cor de conta é variável do CSS, não código fixo** (`--conta-amarelo`).
