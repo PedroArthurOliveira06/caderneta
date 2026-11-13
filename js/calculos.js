@@ -438,13 +438,17 @@ export function porCategoria(estado, ano, mes, filtroContaId, tipo = 'saida') {
 /** Gasto do mês por conta — para responder "qual banco puxou mais?". */
 export function porConta(estado, ano, mes, tipo = 'saida') {
   return [...estado.contas]
-    .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
     .map((conta) => ({
       conta,
       valor: lancamentosDoMes(estado, ano, mes)
         .filter((l) => l.tipo === tipo && l.contaId === conta.id)
         .reduce((s, l) => s + l.valor, 0),
-    }));
+    }))
+    // Maior primeiro, como todo ranking do Resumo. Saía na ordem de cadastro
+    // dos bancos, e aí a barra mais comprida podia aparecer por último — um
+    // ranking que não ranqueia obriga a ler os números para saber a ordem,
+    // que é justamente o trabalho que a barra deveria poupar.
+    .sort((a, b) => b.valor - a.valor);
 }
 
 /**

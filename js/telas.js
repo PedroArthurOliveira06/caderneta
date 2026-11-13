@@ -627,28 +627,43 @@ export function pintarResumo(estado, contexto) {
   const { ano, mes, filtroContaId } = contexto;
   const totais = calc.totaisDoMes(estado, ano, mes, filtroContaId);
 
+  /* ---- o veredito do mês ----
+   *
+   * Era uma tabela 2×2 com borda interna, e os quatro números pesavam o
+   * mesmo — "Lançamentos: 10" do tamanho do "Sobrou". Mas um deles é a
+   * RESPOSTA e os outros três são como ela foi obtida, e agora a tela diz
+   * isso: sobrou grande, entrou e saiu pequenos embaixo, e a contagem num
+   * canto. A barra entre os dois reusa a linguagem da faixa do Extrato —
+   * largura é proporção, aqui como lá. */
+  const sobrouNegativo = totais.sobrou < 0;
+
   trocar(document.getElementById('resumo-topo'),
-    el('div', { class: 'bloco' }, [
-      el('h2', { class: 'bloco__titulo', texto: `O mês de ${fmt.mesPorExtenso(ano, mes)}` }),
-      el('div', { class: 'mes-resumo' }, [
-        el('div', { class: 'mes-resumo__item' }, [
-          el('p', { class: 'mes-resumo__rotulo', texto: 'Entrou' }),
-          el('p', { class: 'mes-resumo__valor mes-resumo__valor--entrada', texto: fmt.moeda(totais.entrou) }),
+    el('div', { class: 'veredito' }, [
+      el('p', {
+        class: 'veredito__rotulo',
+        texto: `${sobrouNegativo ? 'Faltou' : 'Sobrou'} em ${fmt.mesNome(mes)}`,
+      }),
+      numeroGrande(Math.abs(totais.sobrou), sobrouNegativo),
+
+      totais.entrou + totais.saiu > 0
+        ? el('div', { class: 'proporcao', 'aria-hidden': 'true' }, [
+            el('span', { class: 'proporcao__parte', estilo: { flexGrow: String(totais.entrou || 0.001) , background: 'var(--entrada-viva)' } }),
+            el('span', { class: 'proporcao__parte', estilo: { flexGrow: String(totais.saiu || 0.001), background: 'var(--saida-viva)' } }),
+          ])
+        : null,
+
+      el('div', { class: 'pernas' }, [
+        el('span', { class: 'pernas__item' }, [
+          'entrou',
+          el('b', { class: 'pernas__entrada', texto: fmt.moeda(totais.entrou) }),
         ]),
-        el('div', { class: 'mes-resumo__item' }, [
-          el('p', { class: 'mes-resumo__rotulo', texto: 'Saiu' }),
-          el('p', { class: 'mes-resumo__valor mes-resumo__valor--saida', texto: fmt.moeda(totais.saiu) }),
+        el('span', { class: 'pernas__item' }, [
+          'saiu',
+          el('b', { class: 'pernas__saida', texto: fmt.moeda(totais.saiu) }),
         ]),
-        el('div', { class: 'mes-resumo__item' }, [
-          el('p', { class: 'mes-resumo__rotulo', texto: 'Sobrou' }),
-          el('p', {
-            class: `mes-resumo__valor${totais.sobrou < 0 ? ' mes-resumo__valor--saida' : ''}`,
-            texto: fmt.moeda(totais.sobrou),
-          }),
-        ]),
-        el('div', { class: 'mes-resumo__item' }, [
-          el('p', { class: 'mes-resumo__rotulo', texto: 'Lançamentos' }),
-          el('p', { class: 'mes-resumo__valor', texto: String(totais.quantidade) }),
+        el('span', { class: 'pernas__item pernas__item--canto' }, [
+          'lançamentos',
+          el('b', { texto: String(totais.quantidade) }),
         ]),
       ]),
     ]));
@@ -671,10 +686,15 @@ export function pintarResumo(estado, contexto) {
           }),
         ]),
 
-        el('div', { class: 'peso-linhas' }, [
-          linhaDoPeso('Corrente', natureza.corrente, natureza.total, 'frequente'),
-          linhaDoPeso('Esporádico', natureza.esporadico, natureza.total, 'esporadico'),
-        ]),
+        // Maior primeiro, como em toda lista do app. Com "Corrente" fixo em
+        // cima, a linha de 5% abria um ranking onde a de 95% vinha depois.
+        el('div', { class: 'peso-linhas' },
+          [
+            ['Corrente', natureza.corrente, 'frequente'],
+            ['Esporádico', natureza.esporadico, 'esporadico'],
+          ]
+            .sort((a, b) => b[1] - a[1])
+            .map(([nome, valor, marca]) => linhaDoPeso(nome, valor, natureza.total, marca))),
 
         el('p', { class: 'ajuda', texto: textoDoPeso(natureza) }),
       ])
@@ -685,8 +705,8 @@ export function pintarResumo(estado, contexto) {
   const maior = categorias.length ? categorias[0].valor : 0;
 
   trocar(document.getElementById('resumo-categorias'),
-    el('div', { class: 'bloco' }, [
-      el('h2', { class: 'bloco__titulo', texto: 'Para onde foi o dinheiro' }),
+    el('section', { class: 'secao-resumo' }, [
+      el('h2', { class: 'secao-resumo__titulo', texto: 'Para onde foi o dinheiro' }),
       categorias.length
         ? el('div', {}, categorias.map((linha) =>
             barraDeCategoria(linha, maior, estado, contexto)))
@@ -700,8 +720,8 @@ export function pintarResumo(estado, contexto) {
   const maiorEntrada = entradas.length ? entradas[0].valor : 0;
 
   trocar(document.getElementById('resumo-entradas'), entradas.length
-    ? el('div', { class: 'bloco' }, [
-        el('h2', { class: 'bloco__titulo', texto: 'De onde veio o dinheiro' }),
+    ? el('section', { class: 'secao-resumo' }, [
+        el('h2', { class: 'secao-resumo__titulo', texto: 'De onde veio o dinheiro' }),
         el('div', {}, entradas.map((linha) =>
           barraDeCategoria(linha, maiorEntrada, estado, contexto))),
       ])
@@ -715,8 +735,11 @@ export function pintarResumo(estado, contexto) {
   const maiorConta = Math.max(...contas.map((c) => c.valor), 0);
 
   trocar(document.getElementById('resumo-contas'),
-    el('div', { class: 'bloco' }, [
-      el('h2', { class: 'bloco__titulo', texto: 'Quanto saiu de cada banco' }),
+    /* Sem caixa, como as duas listas acima. A borda agora quer dizer
+       "aqui tem gráfico" — três rankings seguidos em três molduras iguais
+       viravam três paredes, e não uma leitura. */
+    el('section', { class: 'secao-resumo' }, [
+      el('h2', { class: 'secao-resumo__titulo', texto: 'Quanto saiu de cada banco' }),
       el('div', {}, contas.map((linha) => el('div', { class: 'barra-categoria' }, [
         el('div', { class: 'barra-categoria__topo' }, [
           el('span', { class: 'barra-categoria__nome', texto: linha.conta.nome }),

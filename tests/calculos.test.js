@@ -991,3 +991,22 @@ test('a fatura do mês é a soma do que se gastou no cartão naquele mês', () =
   // E continua diferente do saldo, que carrega fevereiro e desconta o pago.
   assert.equal(calc.saldoDaConta(e, 'cc', '2026-03-31'), -50000 - 30900 + 33295 - 27540 - 2699 + 4095);
 });
+
+test('o gasto por banco sai do maior para o menor, não na ordem de cadastro', () => {
+  const e = {
+    contas: [
+      { id: 'bb', nome: 'Banco do Brasil', tipo: 'conta', saldoInicial: 0, ordem: 0 },
+      { id: 'nu', nome: 'Nubank', tipo: 'conta', saldoInicial: 0, ordem: 1 },
+      { id: 'cc', nome: 'Cartão', tipo: 'cartao', saldoInicial: 0, ordem: 2 },
+    ],
+    categorias: [],
+    lancamentos: [
+      { id: '1', data: '2026-11-05', tipo: 'saida', valor: 1313, contaId: 'bb' },
+      { id: '2', data: '2026-11-06', tipo: 'saida', valor: 4500, contaId: 'nu' },
+      { id: '3', data: '2026-11-07', tipo: 'saida', valor: 15390, contaId: 'cc' },
+    ],
+  };
+  // O primeiro cadastrado gastou o MENOS: na ordem de cadastro ele viria na
+  // frente, e a barra mais comprida apareceria por último.
+  assert.deepEqual(calc.porConta(e, 2026, 11).map((c) => c.conta.id), ['cc', 'nu', 'bb']);
+});

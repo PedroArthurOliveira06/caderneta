@@ -35,18 +35,24 @@ Ver [README.md](README.md) para uso e publicação.
    continua de pé — o que ela proíbe é SOMAR os dois num número só, não
    mostrar os dois. Eu tinha posto a soma como linha de apoio miúda e ele
    recusou: guardar é resultado tanto quanto sobrar.
-6. **A cor do app pertence ao DINHEIRO, não à decoração.** Em 13/11/2026
+6. **A caixa quer dizer "aqui tem gráfico".** O Resumo era seis blocos
+   iguais empilhados, e com a mesma moldura em tudo o olho não sabia o que
+   era resposta e o que era apoio. Desde 13/11/2026 só a área de plotagem
+   tem borda: um gráfico precisa de um campo onde as barras se apoiem, uma
+   lista não. Antes de pôr qualquer coisa dentro de `.bloco`, perguntar se
+   ali tem desenho — se não tiver, é `.secao-resumo`.
+7. **A cor do app pertence ao DINHEIRO, não à decoração.** Em 13/11/2026
    ele trouxe quatro templates do Lovable — escuros, com um acento
    saturado espalhado como enfeite — e pedimos a mesma cara. A adaptação
    honesta foi: pegar o palco escuro e os números grandes, e NÃO pegar o
    acento único, porque aqui já existem seis cores que significam banco e
    duas que significam direção. Cor sem emprego é o que não entra.
-6. **Verde e vermelho significam entrou/saiu.** As cores de conta nunca usam
+8. **Verde e vermelho significam entrou/saiu.** As cores de conta nunca usam
    esses dois, para um número vermelho não ter dois significados.
-7. **Cor de conta é variável do CSS, não código fixo** (`--conta-amarelo`).
+9. **Cor de conta é variável do CSS, não código fixo** (`--conta-amarelo`).
    Cada uma tem versão clara e escura: amarelo claro some no branco, roxo
    escuro some no preto.
-8. **Só `js/dados.js` fala com localStorage e com o servidor.** Toda escrita
+10. **Só `js/dados.js` fala com localStorage e com o servidor.** Toda escrita
    passa por `mutar()`.
 
 ## Dependência em mão única
@@ -64,7 +70,7 @@ testáveis sem navegador.
 
 ```bash
 npm run dev      # http://localhost:4173 (servidor próprio, sem dependências)
-npm test         # 162 testes, Node puro, sem instalar nada
+npm test         # 163 testes, Node puro, sem instalar nada
 npm run versao   # OBRIGATÓRIO antes de cada publicação (ver armadilhas)
 npm run icones   # regera icons/
 ```
@@ -152,7 +158,7 @@ busca em todo o histórico, gastos que se repetem todo mês, classificador em
 lote, categoria aprendida pelo nome, aviso de categoria que subiu em relação
 ao mês passado, cor por categoria.
 
-A cada envio o GitHub roda sozinho os 162 testes e confere se a versão foi
+A cada envio o GitHub roda sozinho os 163 testes e confere se a versão foi
 carimbada — inclusive se o commit mexeu no app sem carimbar, que é o erro
 que os três arquivos de versão concordando entre si NÃO pegam.
 

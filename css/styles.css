@@ -1321,14 +1321,67 @@ button { font: inherit; color: inherit; }
 
 /* ============================== resumo ================================ */
 
+/* A CAIXA QUER DIZER "aqui tem gráfico".
+ *
+ * O Resumo era seis blocos iguais empilhados, e com a mesma moldura em
+ * tudo o olho não tinha como saber o que era resposta e o que era apoio.
+ * Agora só a área de plotagem ganha caixa — um gráfico precisa de um campo
+ * onde as barras se apoiem; uma lista, não. Quem vê borda sabe que ali tem
+ * desenho, e isso é a moldura trabalhando em vez de enfeitar. */
 .bloco {
   background: var(--superficie);
-  border-block: 1px solid var(--linha);
-  padding: 18px 16px;
-  margin-bottom: 14px;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  padding: 16px;
+  margin: 0 12px 14px;
 }
 
-.bloco__titulo { font-size: 0.9375rem; margin-bottom: 14px; }
+.bloco__titulo { font-size: 0.75rem; font-weight: 500; color: var(--texto-fraco); }
+
+/* As listas do Resumo: sem caixa, só um rótulo e as linhas sobre o fundo.
+   São três rankings seguidos, e três paredes idênticas não eram leitura. */
+.secao-resumo { padding: 22px 16px 0; }
+
+.secao-resumo__titulo {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--texto-fraco);
+  margin-bottom: 10px;
+}
+
+/* ---- o veredito do mês ---- */
+.veredito {
+  background: var(--superficie);
+  border-radius: var(--raio-g);
+  margin: 0 12px;
+  padding: 16px 16px 14px;
+}
+
+.veredito__rotulo { font-size: 0.75rem; color: var(--texto-fraco); margin-bottom: 3px; }
+
+/* Entrou contra saiu, em largura. É a mesma leitura da faixa do Extrato —
+   proporção se lê de relance, número se lê soletrando. */
+.proporcao { display: flex; gap: 3px; height: 8px; margin: 14px 0 10px; }
+.proporcao__parte { display: block; min-width: 10px; border-radius: 3px; }
+
+.pernas {
+  display: flex;
+  gap: 16px;
+  font-size: 0.75rem;
+  color: var(--texto-fraco);
+  font-variant-numeric: tabular-nums;
+}
+
+.pernas__item b { display: block; font-size: 0.9375rem; font-weight: 600; color: var(--texto); }
+.pernas__entrada { color: var(--entrada) !important; }
+.pernas__saida { color: var(--saida) !important; }
+
+/* A contagem de lançamentos é curiosidade, não resposta: vai para o canto e
+   fica na cor de apoio. Ela dividia a caixa de cima com o "Sobrou". */
+.pernas__item--canto { margin-left: auto; text-align: right; }
+.pernas__item--canto b { color: var(--texto-suave); }
+
+.bloco__titulo { margin-bottom: 13px; }
 
 .barra-categoria { display: grid; gap: 5px; padding: 9px 0; }
 .barra-categoria + .barra-categoria { border-top: 1px solid var(--superficie-2); }
