@@ -1254,7 +1254,17 @@ button { font: inherit; color: inherit; }
   color: var(--texto-fraco);
 }
 
+/* O que mexeu no dia e o que sobrou depois dele, empilhados a direita.
+   Um e movimento, o outro e posicao: lado a lado eles se somariam na
+   leitura, e a linha nao caberia num celular de 320px. */
+.dia__direita { display: grid; justify-items: end; gap: 1px; text-align: right; }
 .dia__total { font-variant-numeric: tabular-nums; }
+.dia__saldo {
+  font-size: 0.6875rem;
+  color: var(--texto-fraco);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 
 /* O dia é um bloco, não uma faixa que atravessa a tela: com canto e margem
    lateral ele se separa do fundo, e a lista passa a ter respiração em vez

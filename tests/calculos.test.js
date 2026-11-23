@@ -1043,3 +1043,58 @@ test('compra antiga lançada hoje continua sendo cobrada', () => {
   };
   assert.equal(calc.quantosSemCategoria(e, '2026-11-23T00:00:00.000Z'), 1);
 });
+
+/* ---------------- o saldo no fim de cada dia -------------------------- */
+
+test('o saldo de cada dia acumula a partir do que havia antes do mês', () => {
+  const e = {
+    contas: [
+      { id: 'bb', nome: 'Banco', tipo: 'conta', saldoInicial: 100000, ordem: 0 },
+      { id: 'cx', nome: 'Caixinha', tipo: 'reserva', saldoInicial: 500000, ordem: 1 },
+    ],
+    categorias: [],
+    lancamentos: [
+      { id: '0', data: '2026-10-20', tipo: 'saida', valor: 10000, contaId: 'bb' },
+      { id: '1', data: '2026-11-03', tipo: 'saida', valor: 5000, contaId: 'bb' },
+      { id: '2', data: '2026-11-03', tipo: 'entrada', valor: 2000, contaId: 'bb' },
+      { id: '3', data: '2026-11-10', tipo: 'saida', valor: 1000, contaId: 'bb' },
+    ],
+  };
+  const dias = calc.saldosPorDia(e, 2026, 11);
+
+  // Novembro começa com 900 (1000 − 100 de outubro).
+  // 03/11: −50 +20 = 870. 10/11: −10 = 860.
+  assert.deepEqual([...dias.entries()], [
+    ['2026-11-03', 87000],
+    ['2026-11-10', 86000],
+  ]);
+
+  // A caixinha não entra na soma sem filtro — é a regra do número grande.
+  assert.equal([...dias.values()][0], 87000);
+});
+
+test('com filtro, o saldo é o daquele banco — é o que se compara com o extrato', () => {
+  const e = {
+    contas: [
+      { id: 'bb', nome: 'Banco do Brasil', tipo: 'conta', saldoInicial: 10000, ordem: 0 },
+      { id: 'nu', nome: 'Nubank', tipo: 'conta', saldoInicial: 90000, ordem: 1 },
+    ],
+    categorias: [],
+    lancamentos: [
+      { id: '1', data: '2026-11-05', tipo: 'saida', valor: 3000, contaId: 'nu' },
+      { id: '2', data: '2026-11-06', tipo: 'transferencia', valor: 20000, contaId: 'nu', contaDestinoId: 'bb' },
+    ],
+  };
+
+  // Olhando só o Nubank: 900 − 30 = 870, depois −200 da transferência = 670.
+  assert.deepEqual([...calc.saldosPorDia(e, 2026, 11, 'nu').entries()], [
+    ['2026-11-05', 87000],
+    ['2026-11-06', 67000],
+  ]);
+
+  // Sem filtro, a transferência entre bancos não mexe no total: só o gasto.
+  assert.deepEqual([...calc.saldosPorDia(e, 2026, 11).entries()], [
+    ['2026-11-05', 97000],
+    ['2026-11-06', 97000],
+  ]);
+});

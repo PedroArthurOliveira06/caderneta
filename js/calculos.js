@@ -9,7 +9,7 @@
    de gastos mentir para o dono.
    ========================================================================= */
 
-import { simplificar, valor as textoDoValor, dataCurta, deslocarMes, limitesDoMes } from './formato.js';
+import { simplificar, valor as textoDoValor, dataCurta, deslocarMes, limitesDoMes, somarDias } from './formato.js';
 
 /** Quanto o lançamento mexe no saldo DESTA conta. Positivo entra, negativo sai. */
 export function efeitoNaConta(lancamento, contaId) {
@@ -684,4 +684,50 @@ export function gastoDoCartaoNoMes(estado, contaId, ano, mes) {
     if (l.tipo === 'entrada') return soma - l.valor;
     return soma;
   }, 0);
+}
+
+/**
+ * O saldo no FIM de cada dia do mês — a coluna que todo extrato de banco tem
+ * e que faltava aqui.
+ *
+ * Existe por um trabalho que foi feito três vezes à mão: achar onde o app e o
+ * banco se separaram. Procurando pelo VALOR da diferença, é caçada; com o
+ * saldo ao lado de cada dia, é rolar a tela até os dois números deixarem de
+ * bater. A diferença deixa de ser um enigma e vira uma data.
+ *
+ * Com filtro de banco, é o saldo DAQUELE banco, que é o que se compara com o
+ * extrato de verdade. Sem filtro, é a soma dos bancos — o mesmo "disponível"
+ * do topo, dia a dia. Caixinha e cartão ficam de fora da soma pela regra de
+ * sempre: um é dinheiro separado, o outro é dívida.
+ *
+ * Devolve um Map de 'AAAA-MM-DD' para centavos, só com os dias que têm
+ * lançamento — que são os dias que o extrato desenha.
+ */
+export function saldosPorDia(estado, ano, mes, filtroContaId) {
+  const { inicio } = limitesDoMes(ano, mes);
+  const vespera = somarDias(inicio, -1);
+
+  const contas = filtroContaId
+    ? estado.contas.filter((c) => c.id === filtroContaId)
+    : estado.contas.filter((c) => tipoDaConta(c) === 'conta');
+
+  let saldo = contas.reduce((s, c) => s + saldoDaConta(estado, c.id, vespera), 0);
+
+  const ids = new Set(contas.map((c) => c.id));
+  const doMes = lancamentosDoMes(estado, ano, mes, filtroContaId);
+
+  // Do mais antigo para o mais novo: saldo é acumulado, e o extrato mostra ao
+  // contrário. Quem desenha inverte de novo na hora de ler o Map.
+  const dias = [...new Set(doMes.map((l) => l.data))].sort();
+  const porDia = new Map();
+
+  for (const dia of dias) {
+    for (const l of doMes) {
+      if (l.data !== dia) continue;
+      for (const id of ids) saldo += efeitoNaConta(l, id);
+    }
+    porDia.set(dia, saldo);
+  }
+
+  return porDia;
 }

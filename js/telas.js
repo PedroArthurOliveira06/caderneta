@@ -437,6 +437,8 @@ export function pintarExtrato(estado, contexto) {
     ? el('p', { class: 'dica-extrato', texto: 'Toque em um lançamento para mudar valor, data ou banco.' })
     : null;
 
+  const saldosDoDia = calc.saldosPorDia(estado, ano, mes, filtroContaId);
+
   trocar(alvo, [dica, ...calc.agruparPorDia(lista).map((grupo) => {
     // O total do dia é o efeito real no bolso: transferência entre bancos
     // não soma nem subtrai, porque o dinheiro continua sendo seu.
@@ -449,7 +451,16 @@ export function pintarExtrato(estado, contexto) {
     return el('section', { class: 'dia' }, [
       el('header', { class: 'dia__cabecalho' }, [
         el('span', { texto: `${fmt.dataLonga(grupo.data)}, ${fmt.diaDaSemana(grupo.data)}` }),
-        doDia !== 0 ? el('span', { class: 'dia__total', texto: fmt.comSinal(doDia) }) : null,
+        el('span', { class: 'dia__direita' }, [
+          doDia !== 0 ? el('span', { class: 'dia__total', texto: fmt.comSinal(doDia) }) : null,
+          // Quanto sobrou no fim do dia. É a coluna que todo extrato de banco
+          // tem, e é por ela que se acha ONDE o app e o banco se separaram —
+          // rolando até os dois pararem de bater, em vez de caçar pelo valor
+          // da diferença.
+          saldosDoDia.has(grupo.data)
+            ? el('span', { class: 'dia__saldo', texto: `saldo ${fmt.moeda(saldosDoDia.get(grupo.data))}` })
+            : null,
+        ]),
       ]),
       el('div', { class: 'dia__itens' }, grupo.itens.map((l) => linhaDoExtrato(estado, l, aoTocarLancamento))),
     ]);
