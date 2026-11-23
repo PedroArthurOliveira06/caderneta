@@ -150,9 +150,15 @@ No ar: **https://pedroarthuroliveira06.github.io/caderneta/**
 - Supabase: projeto `sbelyvcsbilsgpzlecuw`; ele é dono e aprovado
 - Usa nos dois aparelhos. Em 22/09/2026 o app passou a ter o histórico
   INTEIRO de março a setembro/2026 — planilha antiga, extrato do BB e as
-  seis faturas do cartão — e as **cinco contas batem com o banco ao
-  centavo**: BB 61,00 · Nubank 158,43 · Itaú 1.000,42 · Caixinha 1.386,25 ·
-  Cartão −32,80
+  seis faturas do cartão — e as **cinco contas passaram a bater com o banco
+  ao centavo**.
+
+> **Os valores dele não entram aqui.** Este arquivo mora num repositório
+> PÚBLICO, e até 23/11/2026 eu vinha anotando os saldos e os lançamentos
+> reais dele — 44 valores. O que estas anotações precisam guardar é o
+> PADRÃO do erro, não a quantia: "o saldo não batia por uns duzentos reais"
+> ensina a mesma coisa que o número exato e não publica a vida dele. Vale
+> para as mensagens de commit também.
 - Bancos: Banco do Brasil (amarelo), Nubank (roxo), Itaú (laranja),
   Cartão BB (azul), Caixinha do Nubank (roxo claro)
 
@@ -192,27 +198,28 @@ do mês, e em 21/09/2026 ele disse que não quer.
   `.catch(() => [])` e o envio recusado é descartado, então nada quebra.
 
 **Extrato do BB importado em 21/09/2026.** Sete meses de CSV viraram 159
-lançamentos; o saldo fecha em R$ 60,61, igual ao do banco. Duas coisas que
-custaram caro para descobrir:
+lançamentos, e o saldo fechou igual ao do banco. Duas coisas que custaram
+caro para descobrir:
 
 - O BB tem um **varrimento automático ("BB Rende Fácil")** que joga a sobra
   do dia para a poupança e traz de volta quando falta. São 63 linhas do
   extrato que **não são movimentação nenhuma** — contá-las dobra tudo.
 - Casar lançamento do app com linha do extrato **por valor absoluto está
-  errado**: em 07/03 ele recebeu 200 e mandou 200 no mesmo dia, o par saiu
-  trocado e o saldo deu −1.339,39. Casar pelo **efeito com sinal**.
+  errado**: num mesmo dia ele recebeu e mandou a MESMA quantia, o par saiu
+  trocado, e o saldo errou por mais de mil reais. Casar pelo **efeito com
+  sinal**.
 
 **Faturas do cartão importadas em 21/09/2026.** Seis PDFs (abril a setembro)
-viraram 77 lançamentos; o cartão fecha em −32,80, que é a fatura aberta de
-setembro. Mais três armadilhas:
+viraram 77 lançamentos, e o cartão fechou na fatura aberta de setembro.
+Mais três armadilhas:
 
 - **Fatura paga por Pix não se parece com fatura.** No extrato da conta ela
   vira "Pix - Enviado / BANCO DO BRASIL SA", não "Pagto cartão crédito", e
-  eu a importei como gasto solto — o cartão ficou 943,08 sem crédito.
-  Procurar pelos dois nomes.
+  eu a importei como gasto solto — o cartão ficou uma fatura inteira sem
+  crédito. Procurar pelos dois nomes.
 - **Dívida anterior ao corte vira `saldoInicial` negativo do cartão**, não
   lançamento. A fatura que venceu em 10/03 era de compras de fevereiro, e
-  fevereiro está fora do app: −641,95 no ponto de partida diz a verdade sem
+  fevereiro está fora do app: o ponto de partida negativo diz a verdade sem
   ressuscitar o mês.
 - **Parcela é cobrada no mês do período da fatura, não na data da compra.**
   A fatura mostra a data original ("03/02 PARC 05/12"); lançar nela empilha
@@ -221,26 +228,26 @@ setembro. Mais três armadilhas:
   de valores das descrições e embaralha tudo.
 
 **O número do cartão num mês NÃO é o total da fatura, e ele estranhou isso
-em 23/09/2026.** Março mostrava R$ 970,07 e a fatura correspondente era
-R$ 943,08. Os dois estavam certos e medem coisas diferentes:
+em 23/09/2026.** O valor de março e o da fatura correspondente não batiam, e
+os dois estavam certos — medem coisas diferentes:
 
 - o app conta a compra no dia em que ela aconteceu, então março vai até 31;
 - a fatura fecha por volta do dia 27 (varia: 30/03, 27/04…) e carrega as
   compras do fim do mês anterior.
 
-A diferença em março era um Ifood de R$ 26,99 comprado em 30/03, que o
-banco empurrou para a fatura seguinte. Reproduzir os totais de fatura por
-mês exigiria saber o dia de fechamento de cada mês, que muda — uma regra
-fixa de "fecha dia 25" erraria abril em R$ 32,00.
+A diferença em março era UM Ifood comprado em 30/03, que o banco empurrou
+para a fatura seguinte. Reproduzir os totais de fatura por mês exigiria
+saber o dia de fechamento de cada mês, que muda — uma regra fixa de "fecha
+dia 25" erraria abril por causa de um sorvete comprado dia 26.
 
 **A decisão dele foi cortar o nó: "esquece o dia que fecha o cartão".** A
 linha do cartão mostra `gastoDoCartaoNoMes` — a soma do que se gastou nele
 naquele mês — e não o saldo acumulado, com a legenda "a pagar em 10/04/26".
 Funciona porque **ele quita a fatura inteira — mas nem sempre de uma vez.**
 Nas seis faturas de março a setembro, "Pagamentos/Créditos" zerou o saldo
-anterior num pagamento só. Em novembro/2026 não: o banco debitou R$ 337,75
-no dia 10, a conta ficou negativa, o pai depositou R$ 536,00 e o resto —
-R$ 198,11 — saiu depois. Somados, os R$ 535,86 da fatura.
+anterior num pagamento só. Em novembro/2026 não: o banco debitou **parte** da
+fatura no dia 10 e a conta ficou negativa; o pai depositou o valor cheio, e o
+resto da fatura saiu depois. Dois pagamentos, uma fatura.
 
 Isso não derruba o desenho, porque no fim do caminho não sobra nada atrás.
 Mas derruba a premissa de que existe UM pagamento por fatura: quem for
@@ -254,7 +261,7 @@ dia ele parar de pagar tudo, é lá que a diferença aparece.
 
 **Pagar a fatura são DUAS coisas na vida dele, e desde 13/11/2026 o botão
 faz as duas em fila.** Todo mês alguém lhe manda o dinheiro — ENTRADA no
-banco, em valor redondo (R$ 333,00 para uma fatura de 332,95), categoria
+banco, sempre em valor REDONDO (alguns centavos acima da fatura), categoria
 "Pagamento do Cartão" — e o banco debita o valor exato, que é a
 TRANSFERÊNCIA para o cartão. As duas já estavam nos dados dele desde março,
 lançadas à mão; o botão só preenchia a segunda.
@@ -267,10 +274,10 @@ zera essa fila ao abrir, senão quem desistisse da entrada veria o débito
 aparecer ao salvar um café dias depois.
 
 **O valor que eu preencho é PALPITE, e isso já custou caro.** No mesmo
-13/11/2026 o app calculou R$ 535,86 (a soma das compras de outubro), o banco
-debitou R$ 337,75, e ele salvou o que veio preenchido — o BB ficou 535,86
-abaixo da verdade, e os 198,11 de diferença são compras do fim de outubro
-que a fatura empurrou para a seguinte. **É o mesmo problema do dia de
+13/11/2026 o app calculou a fatura pela soma das compras de outubro, o banco
+debitou bem menos, e ele salvou o que veio preenchido — o BB ficou uma
+fatura inteira abaixo da verdade. A diferença eram compras do fim de outubro
+que o banco empurrou para a fatura seguinte. **É o mesmo problema do dia de
 fechamento, agora mordendo pelo lado do pagamento.** Por isso o segundo
 passo leva `conferirNoBanco: true`, que acende um aviso vermelho embaixo do
 valor. O primeiro passo não leva: quanto ele recebeu, ele sabe de cor.
@@ -279,9 +286,9 @@ valor. O primeiro passo não leva: quanto ele recebeu, ele sabe de cor.
 compras feitas depois do fechamento mudaram de mês (30/03→01/04, 29/04→01/05,
 29/07→01/08) e as duas de 27 e 28/02, que a fatura de março cobrou, viraram
 lançamentos em 01/03 com a data real escrita na descrição — o ponto de
-partida do cartão caiu de −641,95 para −332,95 na mesma operação, senão os
-R$ 309,00 contariam duas vezes. Os seis meses passaram a bater exatamente:
-943,08 · 507,48 · 444,62 · 826,95 · 672,18 · 652,29.
+partida do cartão desceu na mesma operação, senão aquelas duas compras
+contariam duas vezes. Os seis meses passaram a bater exatamente com o total
+de cada fatura.
 
 **Isso vai sair do lugar de novo sozinho.** Toda compra que ele fizer no
 cartão depois do dia ~27 cai na fatura seguinte, e o app vai contá-la no mês
@@ -297,20 +304,20 @@ quer o número — explicar de novo é teimosia.
 **Quando um saldo não bate, o app costuma ter dinheiro A MAIS, não a menos.**
 Três casos no mesmo dia, todos de dinheiro contado duas vezes:
 
-- **Itaú:** a mesma entrada de 308,34 lançada como transferência do Nubank
-  *e* como entrada solta.
-- **Caixinha:** criada com `saldoInicial` 1.384,63 *e* recebendo a
-  transferência de 1.383,00 que era esse mesmo dinheiro. Conta nova cujo
-  dinheiro veio de outra conta do app começa com saldo inicial ZERO.
+- **Itaú:** a mesma entrada lançada como transferência do Nubank *e* como
+  entrada solta.
+- **Caixinha:** criada com `saldoInicial` cheio *e* recebendo a
+  transferência que era esse mesmo dinheiro. Conta nova cujo dinheiro veio
+  de outra conta do app começa com saldo inicial ZERO.
 - **Cartão:** o pagamento da fatura sem as compras do outro lado.
 
 Primeira pergunta diante de uma diferença: "isso entrou duas vezes?" —
 antes de "o que está faltando?".
 
-**A caixinha repetiu o erro em 04/11/2026**, agora na "Caixinha 100%":
-`saldoInicial` 1.522,45 E uma transferência de 1.522,45 do Nubank no mesmo
-dia, dando 3.044,90. Terceira vez do MESMO engano — e na terceira ele mandou
-travar.
+**A caixinha repetiu o erro em 04/11/2026**, numa caixinha nova:
+`saldoInicial` cheio E uma transferência do mesmo valor vinda do Nubank no
+mesmo dia — a caixinha mostrava o DOBRO do que tinha. Terceira vez do MESMO
+engano, e na terceira ele mandou travar.
 
 **A trava existe desde 04/11/2026.** Criando conta NOVA com saldo inicial
 diferente de zero, e já havendo outra conta de onde o dinheiro pudesse vir, o
@@ -332,8 +339,9 @@ mora na própria linha do saldo, não numa faixa no topo: alerta longe do
 número que ele acusa faz procurar.
 
 O que sobra depois disso costuma ser **rendimento**, que nenhum extrato
-lança como linha: o saldo só cresce sozinho. Foi 0,39 no BB, 0,04 no Itaú,
-2,94 no Nubank e 3,25 na Caixinha.
+lança como linha: o saldo só cresce sozinho. Nas quatro contas a sobra era
+de centavos a poucos reais — ordem de grandeza de rendimento, e foi assim
+que dava para reconhecer.
 
 **A barra de categoria mostra só o número.** Em 22/09/2026 ele pediu a
 comparação mês a mês em vez da média e, ao ver as frases embaixo de cada
