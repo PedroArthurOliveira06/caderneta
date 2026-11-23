@@ -731,3 +731,44 @@ export function saldosPorDia(estado, ano, mes, filtroContaId) {
 
   return porDia;
 }
+
+/* ============ decisões que o desenho fazia, e agora têm teste =========== */
+
+/**
+ * Quantos meses de gráfico cabem entre o primeiro lançamento e o mês na tela.
+ *
+ * O saldo inicial de uma conta vale desde sempre no cálculo, então pedir doze
+ * meses a um histórico de seis devolve seis meses de linha reta — e o texto
+ * dizia "você juntou X desde outubro de 2025", um mês em que o app não tinha
+ * nada. O começo do gráfico é o começo do histórico.
+ */
+export function mesesDeHistorico(estado, ano, mes, teto) {
+  const primeiro = primeiroMes(estado);
+  if (!primeiro) return 1;
+  const distancia = (ano * 12 + mes) - (primeiro.ano * 12 + primeiro.mes) + 1;
+  return Math.max(1, Math.min(teto, distancia));
+}
+
+/**
+ * A frase embaixo do nome do cartão: quando aquilo vence.
+ *
+ * A regra, na frase dele: as compras do mês são pagas no dia 10 do mês
+ * seguinte. O app sempre fez assim e não dizia — escrevia "fatura" e quem
+ * lia tinha de saber de cor.
+ *
+ * Cartão sem dívida não ganha frase: data de vencimento sem o que pagar só
+ * assusta. E no mês em curso a frase não promete valor, porque o número
+ * ainda vai crescer até o fim do mês.
+ */
+export function quandoVence(l, ano, mes, ehMesCorrente) {
+  if (tipoDaConta(l.conta) !== 'cartao' || l.saldo >= 0) return null;
+
+  // Entre 1 e 28: dia 29, 30 ou 31 não existe em todo mês.
+  const dia = Math.min(Math.max(Number(l.conta.diaVencimento) || 10, 1), 28);
+  const { ano: a, mes: m } = deslocarMes(ano, mes, 1);
+  const data = `${String(dia).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+
+  return ehMesCorrente
+    ? `o que fechar este mês vence em ${data}`
+    : `a pagar em ${data}/${String(a).slice(2)}`;
+}

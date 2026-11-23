@@ -136,7 +136,7 @@ export function pintarSaldos(estado, contexto) {
         l,
         marca: 'fatura',
         aoTocarConta,
-        legenda: quandoVence(l, ano, mes, ehMesCorrente),
+        legenda: calc.quandoVence(l, ano, mes, ehMesCorrente),
       })),
     ]),
 
@@ -686,12 +686,6 @@ export function pintarAvisoDeClassificar(estado, contexto) {
  * meses daquela categoria.
  */
 /** Quantos meses cabem entre o primeiro lançamento e o mês que está na tela. */
-function mesesDeHistorico(estado, ano, mes, teto) {
-  const primeiro = calc.primeiroMes(estado);
-  if (!primeiro) return 1;
-  const distancia = (ano * 12 + mes) - (primeiro.ano * 12 + primeiro.mes) + 1;
-  return Math.max(1, Math.min(teto, distancia));
-}
 
 function barraDeCategoria(linha, maior, estado, contexto) {
   return el('button', {
@@ -856,7 +850,7 @@ export function pintarResumo(estado, contexto) {
   // Precisa de pelo menos dois meses: um ponto sozinho não é tendência, é
   // um número, e o Extrato já mostra esse número melhor do que um gráfico.
   const patrimonio = calc.patrimonioPorMes(estado, ano, mes,
-    mesesDeHistorico(estado, ano, mes, 12));
+    calc.mesesDeHistorico(estado, ano, mes, 12));
   const tetoPat = Math.max(...patrimonio.map((m) => m.total), 1);
   const primeiro = patrimonio[0];
   const ultimo = patrimonio[patrimonio.length - 1];
@@ -898,10 +892,10 @@ export function pintarResumo(estado, contexto) {
         ]),
 
         el('p', { class: 'ajuda', texto: variacao === 0
-          ? `Você tem hoje o mesmo que tinha em ${fmt.mesPorExtenso(primeiro.ano, primeiro.mes)}.`
+          ? `Você tem hoje o mesmo que tinha em ${`${fmt.mesNome(primeiro.mes)} de ${primeiro.ano}`}.`
           : variacao > 0
-            ? `De ${fmt.mesPorExtenso(primeiro.ano, primeiro.mes)} para cá você juntou ${fmt.moeda(variacao)}.`
-            : `De ${fmt.mesPorExtenso(primeiro.ano, primeiro.mes)} para cá você tem ${fmt.moeda(-variacao)} a menos.` }),
+            ? `De ${`${fmt.mesNome(primeiro.mes)} de ${primeiro.ano}`} para cá você juntou ${fmt.moeda(variacao)}.`
+            : `De ${`${fmt.mesNome(primeiro.mes)} de ${primeiro.ano}`} para cá você tem ${fmt.moeda(-variacao)} a menos.` }),
 
         el('p', { class: 'ajuda', texto: 'A fatura do cartão não entra aqui:'
           + ' ela é dívida de um mês, e faria o mês do vencimento dar um tranco'
@@ -910,12 +904,16 @@ export function pintarResumo(estado, contexto) {
     : null);
 
   /* ---- evolução ---- */
-  const meses = calc.evolucao(estado, ano, mes, 6);
+  // O gráfico começa no primeiro lançamento: barras de meses em que o app
+  // não existia não dizem que você gastou pouco, dizem que não havia app.
+  const quantos = calc.mesesDeHistorico(estado, ano, mes, 6);
+  const meses = calc.evolucao(estado, ano, mes, quantos);
   const teto = Math.max(...meses.flatMap((m) => [m.entrou, m.saiu]), 1);
 
-  trocar(document.getElementById('resumo-evolucao'),
-    el('div', { class: 'bloco' }, [
-      el('h2', { class: 'bloco__titulo', texto: 'Últimos seis meses' }),
+  // Um mês sozinho não é evolução, é o número que o topo do Resumo já diz.
+  trocar(document.getElementById('resumo-evolucao'), meses.length < 2 ? null
+    : el('div', { class: 'bloco' }, [
+      el('h2', { class: 'bloco__titulo', texto: `Últimos ${porExtenso(meses.length)} meses` }),
       el('div', { class: 'evolucao' }, meses.map((m, i) => el('div', { class: 'evolucao__mes' }, [
         el('div', { class: 'evolucao__colunas' }, [
           el('span', {
@@ -943,6 +941,11 @@ export function pintarResumo(estado, contexto) {
         ]),
       ]),
     ]));
+}
+
+/** "Últimos 3 meses" se lê como planilha; "três" se lê como frase. */
+function porExtenso(n) {
+  return ['zero', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis'][n] || String(n);
 }
 
 function linhaDoPeso(rotulo, valor, total, tipo) {
@@ -1033,7 +1036,6 @@ export function pintarAjustes(estado, contexto) {
     ])));
 }
 
-
 /** A lista de gastos que se repetem, dentro dos Ajustes. */
 function pintarRecorrentesNosAjustes(estado, contexto) {
   const { aoEditarRecorrente } = contexto;
@@ -1117,7 +1119,7 @@ function pintarConferenciasNosAjustes(estado, contexto) {
 export function pintarHistoricoDaCategoria(estado, categoriaId, contexto) {
   const { ano, mes, tipo = 'saida' } = contexto;
   const meses = calc.historicoDaCategoria(estado, categoriaId, ano, mes,
-    mesesDeHistorico(estado, ano, mes, 12), tipo);
+    calc.mesesDeHistorico(estado, ano, mes, 12), tipo);
   const categoria = estado.categorias.find((c) => c.id === categoriaId);
   const nome = categoria ? categoria.nome : 'Sem categoria';
 
@@ -1170,16 +1172,4 @@ export function pintarHistoricoDaCategoria(estado, categoriaId, contexto) {
  * Cartão com saldo zerado ou positivo não ganha frase: não há o que pagar,
  * e uma data de vencimento sem dívida só assusta.
  */
-function quandoVence(l, ano, mes, ehMesCorrente) {
-  if (calc.tipoDaConta(l.conta) !== 'cartao' || l.saldo >= 0) return null;
 
-  const dia = Math.min(Math.max(Number(l.conta.diaVencimento) || 10, 1), 28);
-  const { ano: a, mes: m } = fmt.deslocarMes(ano, mes, 1);
-  const data = `${String(dia).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
-
-  // No mês em curso o número ainda vai crescer até o fim do mês, e prometer
-  // um valor fechado seria mentira de alguns dias.
-  return ehMesCorrente
-    ? `o que fechar este mês vence em ${data}`
-    : `a pagar em ${data}/${String(a).slice(2)}`;
-}

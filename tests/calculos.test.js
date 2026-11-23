@@ -1098,3 +1098,89 @@ test('com filtro, o saldo é o daquele banco — é o que se compara com o extra
     ['2026-11-06', 97000],
   ]);
 });
+
+/* ======================= quandoVence ======================= */
+
+test('o cartão diz em que dia aquilo vence — não só "fatura"', () => {
+  const cartao = { id: 'bb-cartao', nome: 'Cartão BB', tipo: 'cartao', diaVencimento: 10 };
+  const devendo = { conta: cartao, saldo: -53586 };
+
+  // Mês fechado: a frase promete a data.
+  assert.equal(calc.quandoVence(devendo, 2026, 11, false), 'a pagar em 10/12/26');
+
+  // Mês em curso: o número ainda vai crescer, então a frase não promete valor.
+  assert.equal(
+    calc.quandoVence(devendo, 2026, 11, true),
+    'o que fechar este mês vence em 10/12');
+});
+
+test('dezembro vence em janeiro do ano seguinte', () => {
+  const cartao = { id: 'c', nome: 'Cartão', tipo: 'cartao', diaVencimento: 10 };
+  assert.equal(calc.quandoVence({ conta: cartao, saldo: -1000 }, 2026, 12, false),
+    'a pagar em 10/01/27');
+});
+
+test('cartão sem dívida não ganha frase — data de vencimento sem conta só assusta', () => {
+  const cartao = { id: 'c', nome: 'Cartão', tipo: 'cartao', diaVencimento: 10 };
+  assert.equal(calc.quandoVence({ conta: cartao, saldo: 0 }, 2026, 11, false), null);
+  assert.equal(calc.quandoVence({ conta: cartao, saldo: 5000 }, 2026, 11, false), null);
+});
+
+test('banco e caixinha não vencem', () => {
+  const banco = { id: 'bb', nome: 'Banco do Brasil', tipo: 'conta' };
+  const caixinha = { id: 'cx', nome: 'Caixinha', tipo: 'reserva' };
+  assert.equal(calc.quandoVence({ conta: banco, saldo: -10000 }, 2026, 11, false), null);
+  assert.equal(calc.quandoVence({ conta: caixinha, saldo: -10000 }, 2026, 11, false), null);
+});
+
+test('dia de vencimento fora do calendário vira um dia que existe em todo mês', () => {
+  const faz = (dia) => calc.quandoVence(
+    { conta: { id: 'c', tipo: 'cartao', diaVencimento: dia }, saldo: -1000 },
+    2026, 1, false);
+
+  // Dia 31 não existe em fevereiro: o app para no 28.
+  assert.equal(faz(31), 'a pagar em 28/02/26');
+
+  // Sem dia, ou com dia zero, vale o dia 10 — é o dele.
+  assert.equal(faz(0), 'a pagar em 10/02/26');
+  assert.equal(faz(undefined), 'a pagar em 10/02/26');
+  assert.equal(faz(-5), 'a pagar em 01/02/26');
+});
+
+/* ==================== mesesDeHistorico ===================== */
+
+test('o gráfico começa no primeiro lançamento, não doze meses atrás', () => {
+  const e = {
+    contas: [{ id: 'bb', nome: 'BB', tipo: 'conta', saldoInicial: 100000 }],
+    categorias: [],
+    lancamentos: [
+      { id: '1', data: '2026-09-15', tipo: 'saida', valor: 1000, contaId: 'bb' },
+    ],
+  };
+
+  // Setembro, outubro, novembro: três meses. Pedir doze devolveria nove meses
+  // de linha reta, com o texto citando um mês em que o app não tinha nada.
+  assert.equal(calc.mesesDeHistorico(e, 2026, 11, 12), 3);
+
+  // No próprio mês do primeiro lançamento, um ponto.
+  assert.equal(calc.mesesDeHistorico(e, 2026, 9, 12), 1);
+});
+
+test('com histórico longo, o teto manda', () => {
+  const e = {
+    contas: [], categorias: [],
+    lancamentos: [{ id: '1', data: '2020-01-01', tipo: 'saida', valor: 1000, contaId: 'bb' }],
+  };
+  assert.equal(calc.mesesDeHistorico(e, 2026, 11, 12), 12);
+  assert.equal(calc.mesesDeHistorico(e, 2026, 11, 6), 6);
+});
+
+test('app vazio, ou mês anterior ao primeiro lançamento, dá um mês', () => {
+  assert.equal(calc.mesesDeHistorico({ contas: [], categorias: [], lancamentos: [] }, 2026, 11, 12), 1);
+
+  const e = {
+    contas: [], categorias: [],
+    lancamentos: [{ id: '1', data: '2026-09-15', tipo: 'saida', valor: 1000, contaId: 'bb' }],
+  };
+  assert.equal(calc.mesesDeHistorico(e, 2026, 5, 12), 1);
+});
