@@ -113,6 +113,15 @@ ferramentas/        servidor local, gerador de ícones, carimbo de versão
 - A página de Settings dá 404 para quem não está logado.
 - Aparelho preso na versão velha: Ajustes → Versão → "Buscar versão nova".
   Em último caso, abrir o link com `?novo=1`.
+- **O projeto gratuito do Supabase PAUSA com 7 dias sem atividade no banco**,
+  e ele recebeu o aviso em 23/11/2026. A armadilha é que o app é offline
+  primeiro: ele lê do próprio aparelho e só procura o servidor ao abrir
+  **logado e com internet**. Dá para lançar a semana inteira sem o Supabase
+  ver movimento nenhum — usar o app não é o mesmo que o banco ter atividade.
+  Abrir o app logado, com rede, tira da fila. Pausado, despausa à mão no
+  painel, e há 90 dias para isso. **Dado não se perde**: ele mora no
+  aparelho e no backup; o que para é a sincronização entre os dois
+  aparelhos. Não vale pagar o Pro só por causa disso.
 
 **Código**
 
