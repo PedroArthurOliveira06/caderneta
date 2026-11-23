@@ -1448,6 +1448,11 @@ button { font: inherit; color: inherit; }
 
 /* Saldo que não bate com o banco, e a linha da conferência que o diz. */
 .saldo-conta__antes--alerta { color: var(--saida); font-weight: 600; }
+
+/* "Faz 38 dias que você não confere" não é erro — é lembrete. Cor de
+   apoio, não de alarme: o vermelho está reservado para quando o número
+   JÁ se sabe errado, e gastá-lo aqui faria os dois pesarem igual. */
+.saldo-conta__antes--cobrando { color: var(--texto-suave); }
 .linha-ajuste__meta--alerta { color: var(--saida); font-weight: 600; }
 
 /* ============================= ajustes ================================ */

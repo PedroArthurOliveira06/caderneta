@@ -39,9 +39,21 @@ export function pintarSaldos(estado, contexto) {
   // O aviso de 'não confere' mora na própria linha do saldo, e não numa
   // faixa no topo: a tela tem de começar mostrando extrato, e um alerta
   // longe do número que ele acusa faz procurar.
-  const naoConfere = new Map(calc.conferencias(estado, fmt.hojeISO())
+  const conferidas = calc.conferencias(estado, fmt.hojeISO());
+
+  const naoConfere = new Map(conferidas
     .filter((c) => c.ultima && c.diferenca !== 0)
     .map((c) => [c.conta.id, c.diferenca]));
+
+  /* Há quanto tempo ninguém olha esta conta.
+   *
+   * `calculos` já respondia isso desde 22/09/2026 e NINGUÉM perguntava — o
+   * app sabia e calava. Os quatro casos de dinheiro contado duas vezes
+   * ficaram meses invisíveis porque conferir dependia de ele lembrar, e
+   * lembrar é o que ninguém faz. Aqui o app lembra por ele. */
+  const cobrando = new Map(conferidas
+    .filter((c) => c.pedindo)
+    .map((c) => [c.conta.id, c.ultima ? c.diasSemConferir : 'nunca']));
 
   const hoje = fmt.hojeISO();
   const ehMesCorrente = fmt.chaveMes(hoje) === `${ano}-${String(mes).padStart(2, '0')}`;
@@ -92,9 +104,14 @@ export function pintarSaldos(estado, contexto) {
     // metades de cabeça, e a tela inicial acabava antes do primeiro
     // lançamento aparecer.
     el('div', { class: 'saldos-contas' }, [
-      ...linhas.map((l) => linhaDeSaldo(l, null, aoTocarConta, antes.get(l.conta.id),
-        naoConfere.get(l.conta.id), undefined,
-        somaPositiva > 0 ? Math.max(l.saldo, 0) / somaPositiva : 0)),
+      ...linhas.map((l) => linhaDeSaldo({
+        l,
+        aoTocarConta,
+        saldoAntes: antes.get(l.conta.id),
+        diferenca: naoConfere.get(l.conta.id),
+        cobrandoConferencia: cobrando.get(l.conta.id),
+        fatia: somaPositiva > 0 ? Math.max(l.saldo, 0) / somaPositiva : 0,
+      })),
 
       // Uma frase explica os dois grupos de uma vez, no lugar de um rótulo
       // repetido em cada linha: o que vem abaixo dela existe, mas não entra
@@ -109,9 +126,18 @@ export function pintarSaldos(estado, contexto) {
       // "De onde veio" só nos bancos, que foi o que ele pediu. Na caixinha o
       // saldo quase não muda, e no cartão o número já É o do mês — em nenhum
       // dos dois a comparação com o mês passado responde alguma coisa.
-      ...reservas.linhas.map((l) => linhaDeSaldo(l, null, aoTocarConta, undefined, naoConfere.get(l.conta.id))),
-      ...cartoes.linhas.map((l) => linhaDeSaldo(l, 'fatura', aoTocarConta,
-        undefined, undefined, quandoVence(l, ano, mes, ehMesCorrente))),
+      ...reservas.linhas.map((l) => linhaDeSaldo({
+        l,
+        aoTocarConta,
+        diferenca: naoConfere.get(l.conta.id),
+        cobrandoConferencia: cobrando.get(l.conta.id),
+      })),
+      ...cartoes.linhas.map((l) => linhaDeSaldo({
+        l,
+        marca: 'fatura',
+        aoTocarConta,
+        legenda: quandoVence(l, ano, mes, ehMesCorrente),
+      })),
     ]),
 
     // Entrou e saiu viram uma linha, não duas caixas: o mês inteiro tem uma
@@ -161,7 +187,53 @@ function numeroGrande(centavos, negativo) {
   ]);
 }
 
-function linhaDeSaldo(l, marca, aoTocarConta, saldoAntes, diferenca, legenda, fatia) {
+/**
+ * A segunda linha de um saldo — e só UMA coisa cabe ali.
+ *
+ * A ordem abaixo é a da importância, e ela é a regra:
+ *
+ *   1. não confere  — o número está errado, e isso supera tudo
+ *   2. faz tempo    — o número PODE estar errado e ninguém olhou
+ *   3. legenda      — o que a conta é (o vencimento do cartão)
+ *   4. começou com  — de onde o número de hoje veio
+ *
+ * Era uma cadeia de ternários de três níveis e eu ia acrescentar o quarto.
+ * Como função, a prioridade se lê de cima para baixo em vez de se adivinhar
+ * pela indentação.
+ */
+function subtituloDoSaldo({ marca, saldoAntes, diferenca, legenda, cobrandoConferencia, mexeu }) {
+  if (diferenca) {
+    return el('span', {
+      class: 'saldo-conta__antes saldo-conta__antes--alerta',
+      texto: `não confere: ${fmt.moeda(Math.abs(diferenca))} `
+        + `${diferenca > 0 ? 'a mais' : 'a menos'} que o banco`,
+    });
+  }
+
+  if (cobrandoConferencia) {
+    return el('span', {
+      class: 'saldo-conta__antes saldo-conta__antes--cobrando',
+      texto: cobrandoConferencia === 'nunca'
+        ? 'nunca conferido com o banco'
+        : `faz ${cobrandoConferencia} dias que você não confere`,
+    });
+  }
+
+  if (legenda) return el('span', { class: 'saldo-conta__antes', texto: legenda });
+
+  // Só quando mudou. Repetir o mesmo número duas vezes na mesma linha não
+  // conta nada, e num mês sem movimento seria só ruído.
+  if (mexeu) {
+    return el('span', {
+      class: 'saldo-conta__antes',
+      texto: `começou o mês com ${fmt.moeda(marca === 'fatura' ? -saldoAntes : saldoAntes)}`,
+    });
+  }
+
+  return null;
+}
+
+function linhaDeSaldo({ l, marca, aoTocarConta, saldoAntes, diferenca, legenda, fatia, cobrandoConferencia }) {
   const deve = marca === 'fatura' && l.saldo < 0;
   const valor = deve ? -l.saldo : l.saldo;
   const mexeu = typeof saldoAntes === 'number' && saldoAntes !== l.saldo;
@@ -174,24 +246,7 @@ function linhaDeSaldo(l, marca, aoTocarConta, saldoAntes, diferenca, legenda, fa
     el('span', { class: 'saldo-conta__spine', estilo: { background: hexDaConta(l.conta) } }),
     el('span', { class: 'saldo-conta__corpo' }, [
       el('span', { class: 'saldo-conta__nome', texto: l.conta.nome }),
-      // Só quando mudou. Repetir o mesmo número duas vezes na mesma linha
-      // não conta nada, e num mês sem movimento seria só ruído.
-      // A conferência vem na frente do 'começou o mês com': saber que o
-      // número está errado importa mais do que saber de onde ele veio.
-      diferenca
-        ? el('span', {
-            class: 'saldo-conta__antes saldo-conta__antes--alerta',
-            texto: `não confere: ${fmt.moeda(Math.abs(diferenca))} `
-              + `${diferenca > 0 ? 'a mais' : 'a menos'} que o banco`,
-          })
-        : legenda
-          ? el('span', { class: 'saldo-conta__antes', texto: legenda })
-          : mexeu
-            ? el('span', {
-                class: 'saldo-conta__antes',
-                texto: `começou o mês com ${fmt.moeda(marca === 'fatura' ? -saldoAntes : saldoAntes)}`,
-              })
-            : null,
+      subtituloDoSaldo({ marca, saldoAntes, diferenca, legenda, cobrandoConferencia, mexeu }),
     ]),
     marca
       ? el('span', { class: 'saldo-conta__marca', texto: deve ? 'fatura' : marca })
