@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { interpretar, explicar, simplificar, categoriaProvavel } from '../js/interpretar.js';
+import { interpretar, explicar, simplificar, categoriaProvavel, palpitesDeCategoria } from '../js/interpretar.js';
 
 const CONTEXTO = {
   hoje: '2026-09-18',
@@ -250,4 +250,44 @@ test('palavra partida ao meio não some da descrição', () => {
   const lido = interpretar('mercado45', contextoSimples);
   assert.equal(lido.valor, 4500);
   assert.equal(lido.descricao, 'Mercado');
+});
+
+/* --------- o que o app já sabe classificar sozinho ---------------------- */
+
+test('palpite vem do nome que ele já classificou antes', () => {
+  const estado = {
+    categorias: [
+      { id: 'ali', nome: 'Alimentação', tipo: 'saida' },
+      { id: 'tra', nome: 'Transporte', tipo: 'saida' },
+    ],
+    lancamentos: [
+      // já classificados: é daqui que o app aprende
+      { id: '1', tipo: 'saida', descricao: 'Padaria São Roque', categoriaId: 'ali' },
+      { id: '2', tipo: 'saida', descricao: 'Uber', categoriaId: 'tra' },
+      // sem categoria, mesmo nome: o app sabe
+      { id: '3', tipo: 'saida', descricao: 'Padaria São Roque', categoriaId: null },
+      { id: '4', tipo: 'saida', descricao: 'uber', categoriaId: null },
+      // sem categoria e nome inédito: não tem de onde adivinhar
+      { id: '5', tipo: 'saida', descricao: 'Zoológico de Vitória', categoriaId: null },
+      // transferência não tem categoria por definição
+      { id: '6', tipo: 'transferencia', descricao: 'Padaria São Roque', categoriaId: null },
+    ],
+  };
+
+  const palpites = palpitesDeCategoria(estado);
+  assert.deepEqual(palpites, [
+    { id: '3', categoriaId: 'ali' },
+    { id: '4', categoriaId: 'tra' },
+  ]);
+});
+
+test('sem nada classificado, não há palpite nenhum', () => {
+  const estado = {
+    categorias: [{ id: 'ali', nome: 'Alimentação', tipo: 'saida' }],
+    lancamentos: [
+      { id: '1', tipo: 'saida', descricao: 'Padaria', categoriaId: null },
+      { id: '2', tipo: 'saida', descricao: 'Padaria', categoriaId: null },
+    ],
+  };
+  assert.deepEqual(palpitesDeCategoria(estado), []);
 });

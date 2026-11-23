@@ -18,7 +18,7 @@ import * as calc from './calculos.js';
 import * as conta from './conta.js';
 import * as tranca from './tranca.js';
 import * as tema from './tema.js';
-import { interpretar, explicar, categoriaProvavel } from './interpretar.js';
+import { interpretar, explicar, categoriaProvavel, palpitesDeCategoria } from './interpretar.js';
 import { el, trocar, hexDaConta, hexDaCategoria, hexDaCor, recado, baixarArquivo, nomeComData } from './ui.js';
 import { VERSAO_APP } from './configuracao.js';
 
@@ -468,6 +468,16 @@ function pintar() {
     aoLancarRecorrentes: (pendentes) => lancarRecorrentes(pendentes),
     aoBuscar: () => abrirBusca(),
     aoClassificar: () => abrirClassificador(),
+    // Calculado só na tela do Resumo, que é a única que mostra o aviso:
+    // varrer os lançamentos atrás de palpite a cada desenho do Extrato seria
+    // trabalho jogado fora.
+    palpites: visao.tela === 'resumo' ? palpitesDeCategoria(estado).length : 0,
+    aoAplicarPalpites: () => {
+      const quantos = dados.aplicarCategorias(palpitesDeCategoria(dados.obter()));
+      recado(quantos === 1
+        ? 'Um lançamento ganhou categoria.'
+        : `${quantos} lançamentos ganharam categoria.`);
+    },
     termo: visao.busca,
   };
 

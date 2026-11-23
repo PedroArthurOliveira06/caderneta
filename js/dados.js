@@ -644,6 +644,34 @@ export function lancamento(lancamentoId) {
  * vinte. Numa importação antiga isso é a diferença entre um toque e uma
  * fila que demora minutos para escoar.
  */
+/**
+ * Classifica vários lançamentos de uma vez, CADA UM com a sua categoria.
+ *
+ * Diferente de `classificarLancamentos`, que põe a mesma categoria em todos —
+ * aquela serve ao classificador, onde ele escolhe uma por grupo. Esta serve
+ * ao palpite automático, onde cada nome tem a sua resposta.
+ *
+ * Numa gravação só: são dezenas de linhas, e uma por uma encheria a fila de
+ * envio com dezenas de requisições para o mesmo trabalho.
+ */
+export function aplicarCategorias(pares) {
+  const porId = new Map(pares.map((p) => [p.id, p.categoriaId]));
+  const mudados = [];
+
+  mutar((e) => {
+    for (const l of e.lancamentos) {
+      const categoriaId = porId.get(l.id);
+      // Só o que ainda está sem categoria: se ele classificou à mão enquanto
+      // a tela estava aberta, a escolha dele manda.
+      if (!categoriaId || l.categoriaId) continue;
+      l.categoriaId = categoriaId;
+      mudados.push(l);
+    }
+  }, () => (mudados.length ? enviarLancamentos(mudados) : []));
+
+  return mudados.length;
+}
+
 export function classificarLancamentos(ids, categoriaId) {
   const procurados = new Set(ids);
   const mudados = [];

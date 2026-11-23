@@ -269,3 +269,25 @@ export function categoriaProvavel(estado, descricao, tipo) {
     ? melhor.id
     : null;
 }
+
+/**
+ * Os lançamentos sem categoria que o app JÁ SABE classificar.
+ *
+ * `categoriaProvavel` existe desde 21/09/2026, mas só era consultada na hora
+ * de criar um lançamento — para trás, o que ficou sem categoria ficava sem
+ * para sempre. No backup de 13/11/2026 eram 98 lançamentos, R$ 10.412,71, e
+ * 29 deles tinham nome que ele já havia classificado em outro lugar: o app
+ * sabia a resposta e não usava.
+ *
+ * Devolve só os que têm palpite. Compra avulsa que aconteceu uma vez na vida
+ * não tem de onde ser adivinhada, e continua esperando a mão dele.
+ */
+export function palpitesDeCategoria(estado) {
+  const palpites = [];
+  for (const l of (estado.lancamentos || [])) {
+    if (l.tipo === 'transferencia' || l.categoriaId) continue;
+    const categoriaId = categoriaProvavel(estado, l.descricao, l.tipo);
+    if (categoriaId) palpites.push({ id: l.id, categoriaId });
+  }
+  return palpites;
+}

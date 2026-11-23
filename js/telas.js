@@ -570,13 +570,30 @@ export function pintarAvisoDeClassificar(estado, contexto) {
     el('p', { class: 'classificar-aviso__titulo', texto: quantos === 1
       ? 'Um lançamento ainda não tem categoria'
       : `${quantos} lançamentos ainda não têm categoria` }),
-    el('p', { class: 'ajuda', texto: grupos === 1
-      ? 'Sem categoria eles não aparecem em "Para onde foi o dinheiro".'
-      : `Sem categoria eles não aparecem em "Para onde foi o dinheiro". Como se repetem pelo nome, são ${grupos} escolhas, não ${quantos}.` }),
+    // A segunda frase só quando ela conta alguma coisa: quando todo
+    // lançamento tem nome próprio, "são 3 escolhas, não 3" é piada.
+    el('p', { class: 'ajuda', texto: grupos < quantos
+      ? `Sem categoria eles não aparecem em "Para onde foi o dinheiro". Como se repetem pelo nome, são ${grupos} escolhas, não ${quantos}.`
+      : 'Sem categoria eles não aparecem em "Para onde foi o dinheiro".' }),
+    // O que o app já sabe sai num toque. Vem antes do botão de classificar à
+    // mão porque é o caminho mais curto, e porque depois dele a fila manual
+    // fica menor — pedir trabalho primeiro e oferecer o atalho depois seria
+    // ao contrário.
+    contexto.palpites > 0
+      ? el('button', {
+          class: 'botao botao--principal botao--largo',
+          type: 'button',
+          texto: contexto.palpites === 1
+            ? 'Aplicar 1 que o app já sabe'
+            : `Aplicar ${contexto.palpites} que o app já sabe`,
+          onclick: () => contexto.aoAplicarPalpites(),
+        })
+      : null,
+
     el('button', {
-      class: 'botao botao--principal botao--largo',
+      class: `botao botao--largo ${contexto.palpites > 0 ? 'botao--secundario' : 'botao--principal'}`,
       type: 'button',
-      texto: 'Classificar agora',
+      texto: contexto.palpites > 0 ? 'Escolher o resto à mão' : 'Classificar agora',
       onclick: () => contexto.aoClassificar(),
     }),
   ]));
