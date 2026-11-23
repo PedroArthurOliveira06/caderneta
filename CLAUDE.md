@@ -70,7 +70,7 @@ testáveis sem navegador.
 
 ```bash
 npm run dev      # http://localhost:4173 (servidor próprio, sem dependências)
-npm test         # 163 testes, Node puro, sem instalar nada
+npm test         # 170 testes, Node puro, sem instalar nada
 npm run versao   # OBRIGATÓRIO antes de cada publicação (ver armadilhas)
 npm run icones   # regera icons/
 ```
@@ -173,14 +173,19 @@ busca em todo o histórico, gastos que se repetem todo mês, classificador em
 lote, categoria aprendida pelo nome, aviso de categoria que subiu em relação
 ao mês passado, cor por categoria.
 
-A cada envio o GitHub roda sozinho os 163 testes e confere se a versão foi
+A cada envio o GitHub roda sozinho os 170 testes e confere se a versão foi
 carimbada — inclusive se o commit mexeu no app sem carimbar, que é o erro
 que os três arquivos de versão concordando entre si NÃO pegam.
 
 `js/dados.js` tem teste desde 18/09/2026, com um localStorage de mentira
-montado antes de importar o módulo. Continuam sem teste: `app.js`,
-`telas.js`, `conta.js`, `tranca.js`, `servidor.js` e `ui.js` — todos
-pesados em tela e rede.
+montado antes de importar o módulo. `js/servidor.js` ganhou teste em
+23/11/2026 — só de `ehFalhaTemporaria`, mas a parte dele que decide se um
+dado é descartado. Continuam sem teste: `app.js`, `telas.js`, `conta.js`,
+`tranca.js` e `ui.js` — todos pesados em tela.
+
+**O caminho para testar o que fala com rede** é esse: tirar a DECISÃO de
+dentro do `fetch` e deixá-la numa função pura, com nome. O que sobra para
+testar com navegador de mentira é só o encanamento.
 
 **A lista que ele pediu acabou.** Sobrava a previsão de quanto sobra no fim
 do mês, e em 21/09/2026 ele disse que não quer.
@@ -369,6 +374,18 @@ objeto. Os dois quebrados eram os que eu tinha acabado de criar.
 
 Três erros meus em fila. O padrão vale para o que vier:
 
+- **Projeto pausado RESPONDE — e isso quase custou lançamentos.** Em
+  23/11/2026 o Supabase pausou o projeto por inatividade. Um projeto
+  pausado não some do ar: o endereço atende e devolve ERRO. Esse erro caía
+  fora do `semRede` em dois lugares, e nos dois o app DESISTIA: `escoarFila`
+  jogava fora o envio que esperava para subir, e `entrarNoModoServidor`
+  deslogava e abria na chave comum, vazia — o mesmo susto de setembro. O
+  dado ficava no aparelho, mas a primeira sincronização seguinte
+  substituiria o aparelho pelo servidor. A regra virou uma função com nome
+  e teste, `servidor.ehFalhaTemporaria`: sem rede, sem status e 5xx são
+  passageiros e a gente insiste; 400, 401, 403 e 404 são recusa, e aí sim
+  desiste. **Antes de desistir de um dado, perguntar se a falha é recusa
+  ou soluço.**
 - **Coisa nova não pode ter poder de veto sobre o que já funcionava.** Pus a
   busca dos recorrentes no mesmo `Promise.all` das contas, categorias e
   lançamentos; num banco sem aquela tabela, a promessa inteira falhava e o

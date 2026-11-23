@@ -261,6 +261,19 @@ async function escoarFila() {
       } catch (erro) {
         if (erro.semRede) break; // volta quando a internet voltar
 
+        /* Falha passageira segura a fila; descartar por causa dela é perder
+           lançamento. Em 23/11/2026 o projeto do Supabase foi pausado por
+           inatividade, e um projeto pausado RESPONDE com erro — o que caía
+           fora do `semRede` e fazia o app jogar fora o que esperava para
+           subir. O dado continuava no aparelho, mas a primeira sincronização
+           seguinte substituiria o aparelho pelo servidor, e aí sumia. */
+        if (servidor.ehFalhaTemporaria(erro)) {
+          if (aoFalharEnvio) aoFalharEnvio(erro);
+          break;
+        }
+
+        // Recusa de verdade (400, 401, 403, 404…): o servidor não quer esta
+        // linha, e insistir seria tentar para sempre.
         fila.shift();
         gravarLocal(chaveFila, fila);
         if (aoFalharEnvio) aoFalharEnvio(erro);

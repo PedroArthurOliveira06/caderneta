@@ -68,10 +68,18 @@ async function entrarNoModoServidor() {
   try {
     perfil = await servidor.meuPerfil();
   } catch (erro) {
-    // Sem internet não dá para conferir a liberação. Se este aparelho já
-    // tem os dados baixados, abrir com eles é melhor que travar na porta.
-    if (erro.semRede && dados.obter().configurado) {
-      recado('Sem internet. Mostrando o que já estava neste aparelho.');
+    /* Não dá para conferir a liberação. Se este aparelho já tem os dados
+       baixados, abrir com eles é melhor que travar na porta.
+     *
+     * Vale para sem internet E para servidor fora do ar — em 23/11/2026 o
+     * projeto do Supabase foi pausado por inatividade, e um projeto pausado
+     * RESPONDE, com erro. Esse erro caía embaixo, deslogava, e o app abria
+     * na chave comum, vazia: o mesmo susto de setembro, "o app resetou".
+     * Só recusa explícita desloga. */
+    if (servidor.ehFalhaTemporaria(erro) && dados.obter().configurado) {
+      recado(erro.semRede
+        ? 'Sem internet. Mostrando o que já estava neste aparelho.'
+        : 'O servidor não respondeu. Mostrando o que já estava neste aparelho.');
       return 'aprovado';
     }
     dados.sairModoServidor();

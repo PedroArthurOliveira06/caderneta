@@ -18,6 +18,27 @@ const CHAVE_SESSAO = 'caderneta.sessao';
    não precisar digitar a senha de novo a cada abertura do app. */
 let sessao = null;
 
+/**
+ * A falha é passageira, ou o servidor recusou de verdade?
+ *
+ * A diferença decide se a gente INSISTE ou DESISTE, e desistir na hora errada
+ * perde dado. Vale para as três decisões do app: segurar a fila de envio,
+ * manter a sessão, e abrir com o que já está no aparelho.
+ *
+ * Passageiro: sem internet, sem status (o `fetch` nem voltou), e qualquer
+ * 5xx — inclusive o 540 que o Supabase devolve num projeto PAUSADO. Em
+ * 23/11/2026 o projeto dele foi pausado por inatividade, e essa foi a
+ * descoberta: projeto pausado não some, ele RESPONDE, e responde com erro.
+ * Tratar isso como recusa fazia o app jogar fora a fila e deslogar.
+ *
+ * Recusa: 400, 401, 403, 404 — o servidor entendeu o pedido e disse não.
+ * Aí insistir é tentar para sempre.
+ */
+export function ehFalhaTemporaria(erro) {
+  if (!erro) return false;
+  return Boolean(erro.semRede) || !erro.status || erro.status >= 500;
+}
+
 /* ------------------------------ sessão --------------------------------- */
 
 export function carregarSessao() {
