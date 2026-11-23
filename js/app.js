@@ -478,6 +478,11 @@ function pintar() {
         ? 'Um lançamento ganhou categoria.'
         : `${quantos} lançamentos ganharam categoria.`);
     },
+    avisarDesde: dados.limiteDoAviso(),
+    aoDeixarParaLa: () => {
+      dados.ignorarAntigosSemCategoria();
+      recado('Pronto. O aviso passa a valer só para o que você lançar daqui em diante.');
+    },
     termo: visao.busca,
   };
 

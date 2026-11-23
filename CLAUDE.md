@@ -70,7 +70,7 @@ testáveis sem navegador.
 
 ```bash
 npm run dev      # http://localhost:4173 (servidor próprio, sem dependências)
-npm test         # 170 testes, Node puro, sem instalar nada
+npm test         # 172 testes, Node puro, sem instalar nada
 npm run versao   # OBRIGATÓRIO antes de cada publicação (ver armadilhas)
 npm run icones   # regera icons/
 ```
@@ -173,7 +173,7 @@ busca em todo o histórico, gastos que se repetem todo mês, classificador em
 lote, categoria aprendida pelo nome, aviso de categoria que subiu em relação
 ao mês passado, cor por categoria.
 
-A cada envio o GitHub roda sozinho os 170 testes e confere se a versão foi
+A cada envio o GitHub roda sozinho os 172 testes e confere se a versão foi
 carimbada — inclusive se o commit mexeu no app sem carimbar, que é o erro
 que os três arquivos de versão concordando entre si NÃO pegam.
 

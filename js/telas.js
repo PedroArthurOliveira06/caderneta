@@ -557,14 +557,14 @@ export function pintarQueSubiram(estado, contexto) {
 
 export function pintarAvisoDeClassificar(estado, contexto) {
   const alvo = document.getElementById('aviso-classificar');
-  const quantos = calc.quantosSemCategoria(estado);
+  const quantos = calc.quantosSemCategoria(estado, contexto.avisarDesde);
 
   if (!quantos) {
     trocar(alvo);
     return;
   }
 
-  const grupos = calc.paraClassificar(estado).length;
+  const grupos = calc.paraClassificar(estado, contexto.avisarDesde).length;
 
   trocar(alvo, el('div', { class: 'bloco classificar-aviso' }, [
     el('p', { class: 'classificar-aviso__titulo', texto: quantos === 1
@@ -596,6 +596,18 @@ export function pintarAvisoDeClassificar(estado, contexto) {
       texto: contexto.palpites > 0 ? 'Escolher o resto à mão' : 'Classificar agora',
       onclick: () => contexto.aoClassificar(),
     }),
+
+    // A saída honesta: parar de cobrar sem apagar nem inventar categoria.
+    // Só aparece quando não há mais palpite a aplicar — oferecer "deixar para
+    // lá" antes do caminho fácil seria convidar a desistir à toa.
+    contexto.palpites === 0 && !contexto.avisarDesde
+      ? el('button', {
+          class: 'botao botao--texto botao--largo',
+          type: 'button',
+          texto: 'Deixar estes para lá',
+          onclick: () => contexto.aoDeixarParaLa(),
+        })
+      : null,
   ]));
 }
 

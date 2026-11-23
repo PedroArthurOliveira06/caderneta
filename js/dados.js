@@ -1059,3 +1059,38 @@ export function apagarTudo() {
     ...apagar('conferencias', `usuario=eq.${usuarioId}`),
   ]);
 }
+
+/* -------------------- o aviso de classificar ---------------------------- */
+
+/* Preferência de TELA, e por isso mora fora do estado sincronizado: o estado
+   é substituído pelo servidor a cada sincronização, e isto não é dado — é o
+   "não me avise mais sobre os antigos". Fica ao lado do tema e do PIN, que
+   também são escolha de aparelho. */
+const CHAVE_AVISO = 'caderneta.avisoSemCategoria';
+
+/**
+ * A partir de quando o aviso de "sem categoria" deve reclamar.
+ *
+ * Em 23/11/2026 ele decidiu não classificar o que ficou para trás: o que
+ * sobrou são compras avulsas, sem nome repetido de onde adivinhar, e cobrar
+ * isso todo mês num aviso que ele não vai atender é ruído. Os antigos
+ * continuam aparecendo no Resumo como "Sem categoria" — não somem, não
+ * mentem, só param de cobrar.
+ */
+export function limiteDoAviso() {
+  try {
+    return localStorage.getItem(CHAVE_AVISO) || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Daqui para trás, não reclama mais. Daqui para frente, sim. */
+export function ignorarAntigosSemCategoria() {
+  const agora = new Date().toISOString();
+  try {
+    localStorage.setItem(CHAVE_AVISO, agora);
+  } catch { /* modo anônimo: fica sem a preferência, o aviso continua */ }
+  ouvintes.forEach((ouvinte) => ouvinte(estado));
+  return agora;
+}

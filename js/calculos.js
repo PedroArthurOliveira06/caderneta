@@ -236,12 +236,10 @@ export function semParcela(descricao) {
  * entrada: um grupo misturado não teria uma lista de categorias para
  * oferecer.
  */
-export function paraClassificar(estado) {
+export function paraClassificar(estado, desde) {
   const grupos = new Map();
 
-  for (const l of estado.lancamentos) {
-    if (l.tipo === 'transferencia' || l.categoriaId) continue;
-
+  for (const l of semCategoria(estado, desde)) {
     const nome = semParcela(l.descricao);
     const chave = `${l.tipo}|${simplificar(nome)}`;
     if (!grupos.has(chave)) {
@@ -263,10 +261,30 @@ export function paraClassificar(estado) {
     .sort((a, b) => b.itens.length - a.itens.length || b.valor - a.valor);
 }
 
-/** Quantos lançamentos ainda esperam categoria, para o aviso dizer o número. */
-export function quantosSemCategoria(estado) {
-  return estado.lancamentos
-    .filter((l) => l.tipo !== 'transferencia' && !l.categoriaId).length;
+/**
+ * Quantos lançamentos ainda esperam categoria, para o aviso dizer o número.
+ *
+ * `desde` é um carimbo ISO: com ele, só conta o que foi LANÇADO a partir
+ * daquele instante. Serve para o aviso parar de cobrar os antigos sem que
+ * eles sumam de lugar nenhum — ele decidiu em 23/11/2026 não classificar o
+ * que ficou para trás, e cobrar todo mês uma coisa que não vai ser feita é
+ * ruído, não lembrete.
+ *
+ * A comparação é por `criadoEm`, não pela data do lançamento: "a partir de
+ * hoje" é sobre quando ele DIGITOU, e lançar hoje uma compra de semana
+ * passada continua sendo trabalho de hoje. Registro sem `criadoEm` é antigo
+ * por definição — o campo passou a existir depois dele.
+ */
+export function quantosSemCategoria(estado, desde) {
+  return semCategoria(estado, desde).length;
+}
+
+function semCategoria(estado, desde) {
+  return estado.lancamentos.filter((l) => {
+    if (l.tipo === 'transferencia' || l.categoriaId) return false;
+    if (!desde) return true;
+    return Boolean(l.criadoEm) && String(l.criadoEm) >= String(desde);
+  });
 }
 
 /* ====================== gastos que se repetem ========================= */

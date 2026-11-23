@@ -1010,3 +1010,36 @@ test('o gasto por banco sai do maior para o menor, não na ordem de cadastro', (
   // frente, e a barra mais comprida apareceria por último.
   assert.deepEqual(calc.porConta(e, 2026, 11).map((c) => c.conta.id), ['cc', 'nu', 'bb']);
 });
+
+/* ---------- parar de cobrar os antigos sem apagar nada ----------------- */
+
+test('o aviso passa a contar só o que foi lançado depois do corte', () => {
+  const e = {
+    contas: [{ id: 'a', nome: 'Banco', saldoInicial: 0, ordem: 0 }],
+    categorias: [{ id: 'c', nome: 'Comida', tipo: 'saida' }],
+    lancamentos: [
+      { id: '1', criadoEm: '2026-10-01T10:00:00.000Z', data: '2026-10-01', tipo: 'saida', valor: 1000, contaId: 'a', categoriaId: null, descricao: 'Antigo' },
+      { id: '2', criadoEm: '2026-11-30T10:00:00.000Z', data: '2026-11-30', tipo: 'saida', valor: 2000, contaId: 'a', categoriaId: null, descricao: 'Novo' },
+      // Sem `criadoEm`: é de antes do campo existir, logo é antigo.
+      { id: '3', data: '2026-09-01', tipo: 'saida', valor: 3000, contaId: 'a', categoriaId: null, descricao: 'Velho de guerra' },
+    ],
+  };
+  const corte = '2026-11-23T00:00:00.000Z';
+
+  assert.equal(calc.quantosSemCategoria(e), 3, 'sem corte, cobra todos');
+  assert.equal(calc.quantosSemCategoria(e, corte), 1, 'com corte, só o lançado depois');
+  assert.deepEqual(calc.paraClassificar(e, corte).map((g) => g.rotulo), ['Novo']);
+});
+
+// O corte é sobre QUANDO ELE DIGITOU, não sobre a data da compra: lançar hoje
+// uma compra de semana passada continua sendo trabalho de hoje.
+test('compra antiga lançada hoje continua sendo cobrada', () => {
+  const e = {
+    contas: [{ id: 'a', nome: 'Banco', saldoInicial: 0, ordem: 0 }],
+    categorias: [],
+    lancamentos: [
+      { id: '1', criadoEm: '2026-11-30T10:00:00.000Z', data: '2026-11-02', tipo: 'saida', valor: 1000, contaId: 'a', categoriaId: null, descricao: 'Esquecido' },
+    ],
+  };
+  assert.equal(calc.quantosSemCategoria(e, '2026-11-23T00:00:00.000Z'), 1);
+});
