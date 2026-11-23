@@ -369,13 +369,35 @@ export async function sincronizar() {
     contas, categorias, lancamentos, recorrentes, conferencias,
   });
 
+  /* Conferência que só existe AQUI sobe, em vez de ser apagada.
+   *
+   * Sincronizar substitui o aparelho pelo servidor, e isso é o certo para
+   * quem já subiu um dia. Mas a tabela de conferências só nasceu em
+   * 23/11/2026, e as que ele fez antes disso foram recusadas pelo servidor
+   * que ainda não tinha onde guardá-las. Sem isto, a primeira sincronização
+   * depois de criar a tabela trocaria as dele pela lista vazia — ele teria
+   * rodado o SQL para PERDER o que tinha.
+   *
+   * Vale só para conferência porque ela é anotação de quem olhou o banco: o
+   * aparelho é a única fonte, e não há versão do servidor para competir. */
+  const idsNoServidor = new Set(doServidor.conferencias.map((c) => c.id));
+  const soAqui = (estado.conferencias || []).filter((c) => c.id && !idsNoServidor.has(c.id));
+
   estado = {
     ...estadoVazio(),
     ...doServidor,
+    conferencias: [...doServidor.conferencias, ...soAqui],
     // Conta nenhuma no servidor significa conta nova: o app leva a pessoa
     // para a tela de primeiro acesso.
     configurado: doServidor.contas.length > 0,
   };
+
+  if (soAqui.length) {
+    fila.push(...enviarConferencias(soAqui));
+    // Gravada ANTES de tentar escoar: fila só em memória se perde se o app
+    // fechar no meio, e aí a conferência sumiria do mesmo jeito.
+    gravarLocal(chaveFila, fila);
+  }
 
   gravarLocal(chaveDados, estado);
   ouvintes.forEach((ouvinte) => ouvinte(estado));

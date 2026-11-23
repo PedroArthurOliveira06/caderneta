@@ -197,10 +197,17 @@ do mês, e em 21/09/2026 ele disse que não quer.
 - `db/RODAR-NO-SUPABASE-cor-da-categoria.sql` e
   `db/RODAR-NO-SUPABASE-categoria-dos-dois-lados.sql` — rodados em
   22/09/2026. **Todas as migrações do `db/` estão aplicadas.**
-- `db/RODAR-NO-SUPABASE-conferir-com-o-banco.sql` — **ele ainda precisa
-  rodar.** Sem ele o "conferir com o banco" funciona, mas cada conferência
-  fica só no aparelho onde foi feita: a tabela é buscada com
-  `.catch(() => [])` e o envio recusado é descartado, então nada quebra.
+- `db/RODAR-NO-SUPABASE-conferir-com-o-banco.sql` — rodado em 23/11/2026.
+  **Todas as migrações do `db/` estão aplicadas de novo.**
+
+**Criar a tabela tarde cria um problema de mão dupla.** Quando a tabela de
+conferências nasceu, as conferências que ele já tinha feito existiam só no
+aparelho — o servidor as havia recusado por não ter onde guardá-las. Como
+`sincronizar` substitui o aparelho pelo servidor, a primeira sincronização
+depois do SQL as apagaria: ele teria rodado a migração para PERDER o que
+tinha. Agora `sincronizar` olha o que só existe aqui e põe na fila de
+envio em vez de descartar. Vale para conferência porque ali o aparelho é a
+única fonte; para lançamento, o servidor manda.
 
 **Extrato do BB importado em 21/09/2026.** Sete meses de CSV viraram 159
 lançamentos, e o saldo fechou igual ao do banco. Duas coisas que custaram
