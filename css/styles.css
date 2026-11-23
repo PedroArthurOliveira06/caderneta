@@ -1233,7 +1233,10 @@ button { font: inherit; color: inherit; }
 
 /* ============================= extrato ================================ */
 
-.extrato { padding: 0 0 8px; }
+/* A folga embaixo é do tamanho do botão de lançar, que flutua por cima.
+   Com 8px, o último lançamento do mês ficava escondido atrás dele — e o
+   último é justamente o mais antigo, o que se vai conferir. */
+.extrato { padding: 0 0 calc(56px + 28px); }
 
 /* Um dia que está fora da tela não precisa ser medido nem pintado. O tamanho
    estimado existe para a barra de rolagem não pular enquanto o conteúdo
